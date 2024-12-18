@@ -1,7 +1,7 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-use array2d::{Array2D, Error};
+use array2d::{Array2D /*, Error */};
 
 const BIRTH_RULE: [bool; 9] = [false, false, false, true, false, false, false, false, false];
 const SURVIVE_RULE: [bool; 9] = [false, false, true, true, false, false, false, false, false];
@@ -11,8 +11,6 @@ const INITIAL_FILL: f32 = 0.3;
 pub struct WorldGrid {
     cells: Array2D<GridCell>,
     scratch_cells: Array2D<GridCell>,
-    width: usize,
-    height: usize,
     cells1d: Vec<GridCell>,
     // Should always be the same size as `cells`. When updating, we read from
     // `cells` and write to `scratch_cells`, then swap. Otherwise, it's not in
@@ -33,8 +31,6 @@ impl WorldGrid {
         Self {
             cells: Array2D::filled_with(GridCell::default(), height, width),
             scratch_cells: Array2D::filled_with(GridCell::default(), height, width),
-            width,
-            height,
             cells1d: vec![GridCell::default(); size],
             scratch_cells1d: vec![GridCell::default(); size],
         }
@@ -67,34 +63,34 @@ impl WorldGrid {
 
     fn count_neighbors(&self, x: usize, y: usize) -> usize {
         let (xm1, xp1) = if x == 0 {
-            (self.width - 1, x + 1)
-        } else if x == self.width - 1 {
+            (self.width() - 1, x + 1)
+        } else if x == self.width() - 1 {
             (x - 1, 0)
         } else {
             (x - 1, x + 1)
         };
         let (ym1, yp1) = if y == 0 {
-            (self.height - 1, y + 1)
-        } else if y == self.height - 1 {
+            (self.height() - 1, y + 1)
+        } else if y == self.height() - 1 {
             (y - 1, 0)
         } else {
             (y - 1, y + 1)
         };
-        self.cells1d[xm1 + ym1 * self.width].alive as usize
-            + self.cells1d[x + ym1 * self.width].alive as usize
-            + self.cells1d[xp1 + ym1 * self.width].alive as usize
-            + self.cells1d[xm1 + y * self.width].alive as usize
-            + self.cells1d[xp1 + y * self.width].alive as usize
-            + self.cells1d[xm1 + yp1 * self.width].alive as usize
-            + self.cells1d[x + yp1 * self.width].alive as usize
-            + self.cells1d[xp1 + yp1 * self.width].alive as usize
+        self.cells1d[xm1 + ym1 * self.width()].alive as usize
+            + self.cells1d[x + ym1 * self.width()].alive as usize
+            + self.cells1d[xp1 + ym1 * self.width()].alive as usize
+            + self.cells1d[xm1 + y * self.width()].alive as usize
+            + self.cells1d[xp1 + y * self.width()].alive as usize
+            + self.cells1d[xm1 + yp1 * self.width()].alive as usize
+            + self.cells1d[x + yp1 * self.width()].alive as usize
+            + self.cells1d[xp1 + yp1 * self.width()].alive as usize
     }
 
     pub fn update(&mut self) {
-        for y in 0..self.height {
-            for x in 0..self.width {
+        for y in 0..self.height() {
+            for x in 0..self.width() {
                 let neighbors = self.count_neighbors(x, y);
-                let idx = x + y * self.width;
+                let idx = x + y * self.width();
                 let next = self.cells1d[idx].update_neighbors(neighbors);
                 // Write into scratch_cells, since we're still reading from `self.cells`
                 self.scratch_cells1d[idx] = next;
@@ -129,17 +125,18 @@ impl WorldGrid {
         // possible to optimize by matching on Clipline and iterating over its arms
         for (x, y) in clipline::Clipline::new(
             ((x0, y0), (x1, y1)),
-            ((0, 0), (self.width as isize - 1, self.height as isize - 1)),
+            ((0, 0), (self.width() as isize - 1, self.height() as isize - 1)),
         )? {
             let (x, y) = (x as usize, y as usize);
-            self.cells1d[x + y * self.width].set_alive(alive);
+            let width = self.width();
+            self.cells1d[x + y * width].set_alive(alive);
         }
         Some(())
     }
 
     fn grid_idx<I: TryInto<usize>>(&self, x: I, y: I) -> Option<usize> {
         match (x.try_into(), y.try_into()) {
-            (Ok(x), Ok(y)) if x < self.width && y < self.height => Some(x + y * self.width),
+            (Ok(x), Ok(y)) if x < self.width() && y < self.height() => Some(x + y * self.width()),
             _ => None,
         }
     }
