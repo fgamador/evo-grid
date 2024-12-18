@@ -101,13 +101,13 @@ impl WorldGrid {
 
     pub fn draw(&self, screen: &mut [u8]) {
         debug_assert_eq!(screen.len(), 4 * self.cells.len());
-        for (c, pix) in self.cells.iter().zip(screen.chunks_exact_mut(4)) {
-            let color = if c.alive {
+        for (cell, pixel) in self.cells.iter().zip(screen.chunks_exact_mut(4)) {
+            let color_rgba = if cell.alive {
                 [0, 0xff, 0xff, 0xff]
             } else {
-                [0, 0, c.heat, 0xff]
+                [0, 0, cell.heat, 0xff]
             };
-            pix.copy_from_slice(&color);
+            pixel.copy_from_slice(&color_rgba);
         }
     }
 
