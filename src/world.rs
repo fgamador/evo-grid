@@ -18,7 +18,7 @@ const SURVIVE_RULE: [bool; 9] = [false, false, true, true, false, false, false, 
 const INITIAL_FILL: f32 = 0.3;
 
 #[derive(Clone, Copy, Debug, Default)]
-struct Cell {
+struct GridCell {
     alive: bool,
     // Used for the trail effect. Always 255 if `self.alive` is true (We could
     // use an enum for Cell, but it makes several functions slightly more
@@ -26,7 +26,7 @@ struct Cell {
     // memory, so we don't)
     heat: u8,
 }
-impl Cell {
+impl GridCell {
     fn new(alive: bool) -> Self {
         Self { alive, heat: 0 }
     }
@@ -66,23 +66,23 @@ impl Cell {
 }
 
 #[derive(Clone, Debug)]
-pub struct ConwayGrid {
-    cells: Vec<Cell>,
+pub struct WorldGrid {
+    cells: Vec<GridCell>,
     width: usize,
     height: usize,
     // Should always be the same size as `cells`. When updating, we read from
     // `cells` and write to `scratch_cells`, then swap. Otherwise it's not in
     // use, and `cells` should be updated directly.
-    scratch_cells: Vec<Cell>,
+    scratch_cells: Vec<GridCell>,
 }
 
-impl ConwayGrid {
+impl WorldGrid {
     fn new_empty(width: usize, height: usize) -> Self {
         assert!(width != 0 && height != 0);
         let size = width.checked_mul(height).expect("too big");
         Self {
-            cells: vec![Cell::default(); size],
-            scratch_cells: vec![Cell::default(); size],
+            cells: vec![GridCell::default(); size],
+            scratch_cells: vec![GridCell::default(); size],
             width,
             height,
         }
@@ -98,7 +98,7 @@ impl ConwayGrid {
         let mut rng: randomize::PCG32 = generate_seed().into();
         for c in self.cells.iter_mut() {
             let alive = randomize::f32_half_open_right(rng.next_u32()) > INITIAL_FILL;
-            *c = Cell::new(alive);
+            *c = GridCell::new(alive);
         }
         // run a few simulation iterations for aesthetics (If we don't, the
         // noise is ugly)
