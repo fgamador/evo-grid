@@ -1,44 +1,58 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+use array2d::{Array2D, Error};
+
 const BIRTH_RULE: [bool; 9] = [false, false, false, true, false, false, false, false, false];
 const SURVIVE_RULE: [bool; 9] = [false, false, true, true, false, false, false, false, false];
 const INITIAL_FILL: f32 = 0.3;
 
 #[derive(Clone, Debug)]
 pub struct WorldGrid {
-    cells: Vec<GridCell>,
+    cells: Array2D<GridCell>,
+    scratch_cells: Array2D<GridCell>,
     width: usize,
     height: usize,
+    cells1d: Vec<GridCell>,
     // Should always be the same size as `cells`. When updating, we read from
-    // `cells` and write to `scratch_cells`, then swap. Otherwise it's not in
+    // `cells` and write to `scratch_cells`, then swap. Otherwise, it's not in
     // use, and `cells` should be updated directly.
-    scratch_cells: Vec<GridCell>,
+    scratch_cells1d: Vec<GridCell>,
 }
 
 impl WorldGrid {
-    fn new_empty(width: usize, height: usize) -> Self {
-        assert!(width != 0 && height != 0);
-        let size = width.checked_mul(height).expect("too big");
-        Self {
-            cells: vec![GridCell::default(); size],
-            scratch_cells: vec![GridCell::default(); size],
-            width,
-            height,
-        }
-    }
-
     pub fn new_random(width: usize, height: usize) -> Self {
         let mut result = Self::new_empty(width, height);
         result.randomize();
         result
     }
 
+    fn new_empty(width: usize, height: usize) -> Self {
+        assert!(width != 0 && height != 0);
+        let size = width.checked_mul(height).expect("too big");
+        Self {
+            cells: Array2D::filled_with(GridCell::default(), height, width),
+            scratch_cells: Array2D::filled_with(GridCell::default(), height, width),
+            width,
+            height,
+            cells1d: vec![GridCell::default(); size],
+            scratch_cells1d: vec![GridCell::default(); size],
+        }
+    }
+
+    fn width(&self) -> usize {
+        self.cells.num_columns()
+    }
+
+    fn height(&self) -> usize {
+        self.cells.num_rows()
+    }
+
     pub fn randomize(&mut self) {
         let mut rng: randomize::PCG32 = generate_seed().into();
-        for c in self.cells.iter_mut() {
+        for cell in self.cells1d.iter_mut() {
             let alive = randomize::f32_half_open_right(rng.next_u32()) > INITIAL_FILL;
-            *c = GridCell::new(alive);
+            *cell = GridCell::new(alive);
         }
         // run a few simulation iterations for aesthetics (If we don't, the
         // noise is ugly)
@@ -46,8 +60,8 @@ impl WorldGrid {
             self.update();
         }
         // Smooth out noise in the heatmap that would remain for a while
-        for c in self.cells.iter_mut() {
-            c.cool_off(0.4);
+        for cell in self.cells1d.iter_mut() {
+            cell.cool_off(0.4);
         }
     }
 
@@ -66,14 +80,14 @@ impl WorldGrid {
         } else {
             (y - 1, y + 1)
         };
-        self.cells[xm1 + ym1 * self.width].alive as usize
-            + self.cells[x + ym1 * self.width].alive as usize
-            + self.cells[xp1 + ym1 * self.width].alive as usize
-            + self.cells[xm1 + y * self.width].alive as usize
-            + self.cells[xp1 + y * self.width].alive as usize
-            + self.cells[xm1 + yp1 * self.width].alive as usize
-            + self.cells[x + yp1 * self.width].alive as usize
-            + self.cells[xp1 + yp1 * self.width].alive as usize
+        self.cells1d[xm1 + ym1 * self.width].alive as usize
+            + self.cells1d[x + ym1 * self.width].alive as usize
+            + self.cells1d[xp1 + ym1 * self.width].alive as usize
+            + self.cells1d[xm1 + y * self.width].alive as usize
+            + self.cells1d[xp1 + y * self.width].alive as usize
+            + self.cells1d[xm1 + yp1 * self.width].alive as usize
+            + self.cells1d[x + yp1 * self.width].alive as usize
+            + self.cells1d[xp1 + yp1 * self.width].alive as usize
     }
 
     pub fn update(&mut self) {
@@ -81,18 +95,18 @@ impl WorldGrid {
             for x in 0..self.width {
                 let neighbors = self.count_neighbors(x, y);
                 let idx = x + y * self.width;
-                let next = self.cells[idx].update_neighbors(neighbors);
+                let next = self.cells1d[idx].update_neighbors(neighbors);
                 // Write into scratch_cells, since we're still reading from `self.cells`
-                self.scratch_cells[idx] = next;
+                self.scratch_cells1d[idx] = next;
             }
         }
-        std::mem::swap(&mut self.scratch_cells, &mut self.cells);
+        std::mem::swap(&mut self.scratch_cells1d, &mut self.cells1d);
     }
 
     pub fn toggle(&mut self, x: isize, y: isize) -> bool {
         if let Some(i) = self.grid_idx(x, y) {
-            let was_alive = self.cells[i].alive;
-            self.cells[i].set_alive(!was_alive);
+            let was_alive = self.cells1d[i].alive;
+            self.cells1d[i].set_alive(!was_alive);
             !was_alive
         } else {
             false
@@ -100,8 +114,8 @@ impl WorldGrid {
     }
 
     pub fn draw(&self, screen: &mut [u8]) {
-        debug_assert_eq!(screen.len(), 4 * self.cells.len());
-        for (cell, pixel) in self.cells.iter().zip(screen.chunks_exact_mut(4)) {
+        debug_assert_eq!(screen.len(), 4 * self.cells1d.len());
+        for (cell, pixel) in self.cells1d.iter().zip(screen.chunks_exact_mut(4)) {
             let color_rgba = if cell.alive {
                 [0, 0xff, 0xff, 0xff]
             } else {
@@ -118,7 +132,7 @@ impl WorldGrid {
             ((0, 0), (self.width as isize - 1, self.height as isize - 1)),
         )? {
             let (x, y) = (x as usize, y as usize);
-            self.cells[x + y * self.width].set_alive(alive);
+            self.cells1d[x + y * self.width].set_alive(alive);
         }
         Some(())
     }
