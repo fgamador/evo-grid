@@ -1,69 +1,9 @@
-/// Generate a pseudorandom seed for the game's PRNG.
-fn generate_seed() -> (u64, u64) {
-    use byteorder::{ByteOrder, NativeEndian};
-    use getrandom::getrandom;
-
-    let mut seed = [0_u8; 16];
-
-    getrandom(&mut seed).expect("failed to getrandom");
-
-    (
-        NativeEndian::read_u64(&seed[0..8]),
-        NativeEndian::read_u64(&seed[8..16]),
-    )
-}
+#![deny(clippy::all)]
+#![forbid(unsafe_code)]
 
 const BIRTH_RULE: [bool; 9] = [false, false, false, true, false, false, false, false, false];
 const SURVIVE_RULE: [bool; 9] = [false, false, true, true, false, false, false, false, false];
 const INITIAL_FILL: f32 = 0.3;
-
-#[derive(Clone, Copy, Debug, Default)]
-struct GridCell {
-    alive: bool,
-    // Used for the trail effect. Always 255 if `self.alive` is true (We could
-    // use an enum for Cell, but it makes several functions slightly more
-    // complex, and doesn't actually make anything any simpler here, or save any
-    // memory, so we don't)
-    heat: u8,
-}
-impl GridCell {
-    fn new(alive: bool) -> Self {
-        Self { alive, heat: 0 }
-    }
-
-    #[must_use]
-    fn update_neibs(self, n: usize) -> Self {
-        let next_alive = if self.alive {
-            SURVIVE_RULE[n]
-        } else {
-            BIRTH_RULE[n]
-        };
-        self.next_state(next_alive)
-    }
-
-    #[must_use]
-    fn next_state(mut self, alive: bool) -> Self {
-        self.alive = alive;
-        if self.alive {
-            self.heat = 255;
-        } else {
-            self.heat = self.heat.saturating_sub(1);
-        }
-        self
-    }
-
-    fn set_alive(&mut self, alive: bool) {
-        *self = self.next_state(alive);
-    }
-
-    fn cool_off(&mut self, decay: f32) {
-        if !self.alive {
-            let heat = (self.heat as f32 * decay).clamp(0.0, 255.0);
-            assert!(heat.is_finite());
-            self.heat = heat as u8;
-        }
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct WorldGrid {
@@ -111,7 +51,7 @@ impl WorldGrid {
         }
     }
 
-    fn count_neibs(&self, x: usize, y: usize) -> usize {
+    fn count_neighbors(&self, x: usize, y: usize) -> usize {
         let (xm1, xp1) = if x == 0 {
             (self.width - 1, x + 1)
         } else if x == self.width - 1 {
@@ -139,9 +79,9 @@ impl WorldGrid {
     pub fn update(&mut self) {
         for y in 0..self.height {
             for x in 0..self.width {
-                let neibs = self.count_neibs(x, y);
+                let neighbors = self.count_neighbors(x, y);
                 let idx = x + y * self.width;
-                let next = self.cells[idx].update_neibs(neibs);
+                let next = self.cells[idx].update_neighbors(neighbors);
                 // Write into scratch_cells, since we're still reading from `self.cells`
                 self.scratch_cells[idx] = next;
             }
@@ -183,10 +123,74 @@ impl WorldGrid {
         Some(())
     }
 
-    fn grid_idx<I: std::convert::TryInto<usize>>(&self, x: I, y: I) -> Option<usize> {
+    fn grid_idx<I: TryInto<usize>>(&self, x: I, y: I) -> Option<usize> {
         match (x.try_into(), y.try_into()) {
             (Ok(x), Ok(y)) if x < self.width && y < self.height => Some(x + y * self.width),
             _ => None,
+        }
+    }
+}
+
+/// Generate a pseudorandom seed for the game's PRNG.
+fn generate_seed() -> (u64, u64) {
+    use byteorder::{ByteOrder, NativeEndian};
+    use getrandom::getrandom;
+
+    let mut seed = [0_u8; 16];
+
+    getrandom(&mut seed).expect("failed to getrandom");
+
+    (
+        NativeEndian::read_u64(&seed[0..8]),
+        NativeEndian::read_u64(&seed[8..16]),
+    )
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct GridCell {
+    alive: bool,
+    // Used for the trail effect. Always 255 if `self.alive` is true (We could
+    // use an enum for Cell, but it makes several functions slightly more
+    // complex, and doesn't actually make anything any simpler here, or save any
+    // memory, so we don't)
+    heat: u8,
+}
+
+impl GridCell {
+    fn new(alive: bool) -> Self {
+        Self { alive, heat: 0 }
+    }
+
+    #[must_use]
+    fn update_neighbors(self, n: usize) -> Self {
+        let next_alive = if self.alive {
+            SURVIVE_RULE[n]
+        } else {
+            BIRTH_RULE[n]
+        };
+        self.next_state(next_alive)
+    }
+
+    #[must_use]
+    fn next_state(mut self, alive: bool) -> Self {
+        self.alive = alive;
+        if self.alive {
+            self.heat = 255;
+        } else {
+            self.heat = self.heat.saturating_sub(1);
+        }
+        self
+    }
+
+    fn set_alive(&mut self, alive: bool) {
+        *self = self.next_state(alive);
+    }
+
+    fn cool_off(&mut self, decay: f32) {
+        if !self.alive {
+            let heat = (self.heat as f32 * decay).clamp(0.0, 255.0);
+            assert!(heat.is_finite());
+            self.heat = heat as u8;
         }
     }
 }
