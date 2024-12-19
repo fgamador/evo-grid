@@ -132,6 +132,18 @@ impl WorldGrid {
     }
 
     pub fn draw(&self, screen: &mut [u8]) {
+        debug_assert_eq!(screen.len(), 4 * self.cells.num_elements());
+        for (cell, pixel) in self.cells.elements_row_major_iter().zip(screen.chunks_exact_mut(4)) {
+            let color_rgba = if cell.alive {
+                [0, 0xff, 0xff, 0xff]
+            } else {
+                [0, 0, cell.heat, 0xff]
+            };
+            pixel.copy_from_slice(&color_rgba);
+        }
+    }
+
+    pub fn draw1d(&self, screen: &mut [u8]) {
         debug_assert_eq!(screen.len(), 4 * self.cells1d.len());
         for (cell, pixel) in self.cells1d.iter().zip(screen.chunks_exact_mut(4)) {
             let color_rgba = if cell.alive {
