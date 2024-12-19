@@ -60,12 +60,6 @@ impl WorldGrid {
         for _ in 0..3 {
             self.update();
         }
-
-        // Smooth out noise in the heatmap that would remain for a while
-        for i in 0..self.cells.num_elements() {
-            let cell = self.cells.get_mut_row_major(i).unwrap();
-            cell.cool_off(0.4);
-        }
     }
 
     pub fn update(&mut self) {
@@ -122,16 +116,11 @@ fn generate_seed() -> (u64, u64) {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct GridCell {
     pub alive: bool,
-    // Used for the trail effect. Always 255 if `self.alive` is true (We could
-    // use an enum for Cell, but it makes several functions slightly more
-    // complex, and doesn't actually make anything any simpler here, or save any
-    // memory, so we don't)
-    pub heat: u8,
 }
 
 impl GridCell {
     fn new(alive: bool) -> Self {
-        Self { alive, heat: 0 }
+        Self { alive, }
     }
 
     #[must_use]
@@ -147,19 +136,6 @@ impl GridCell {
     #[must_use]
     fn next_state(mut self, alive: bool) -> Self {
         self.alive = alive;
-        if self.alive {
-            self.heat = 255;
-        } else {
-            self.heat = self.heat.saturating_sub(1);
-        }
         self
-    }
-
-    fn cool_off(&mut self, decay: f32) {
-        if !self.alive {
-            let heat = (self.heat as f32 * decay).clamp(0.0, 255.0);
-            assert!(heat.is_finite());
-            self.heat = heat as u8;
-        }
     }
 }
