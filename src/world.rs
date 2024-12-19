@@ -53,19 +53,25 @@ impl WorldGrid {
     }
 
     pub fn update(&mut self) {
+        self.init_next_cells();
+        self.update_next_cells();
+        mem::swap(&mut self.next_cells, &mut self.cells);
+    }
+
+    fn init_next_cells(&mut self) {
         for i in 0..self.cells.num_elements() {
             let cell = self.cells.get_row_major(i).unwrap();
             let next_cell = self.next_cells.get_mut_row_major(i).unwrap();
             *next_cell = *cell;
         }
+    }
 
+    fn update_next_cells(&mut self) {
         for row in 0..self.height() {
             for col in 0..self.width() {
                 self.cells[(row, col)].update(row, col, &mut self.next_cells);
             }
         }
-
-        mem::swap(&mut self.next_cells, &mut self.cells);
     }
 
     // fn count_neighbors(&self, row: usize, col: usize) -> usize {
