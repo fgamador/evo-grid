@@ -131,23 +131,6 @@ impl WorldGrid {
             + self.cells1d[xp1 + yp1 * self.width()].alive as usize
     }
 
-    pub fn toggle(&mut self, x: isize, y: isize) -> bool {
-        if let Some(i) = self.grid_idx(x, y) {
-            let was_alive = self.cells1d[i].alive;
-            self.cells1d[i].set_alive(!was_alive);
-            !was_alive
-        } else {
-            false
-        }
-    }
-
-    fn grid_idx<I: TryInto<usize>>(&self, x: I, y: I) -> Option<usize> {
-        match (x.try_into(), y.try_into()) {
-            (Ok(x), Ok(y)) if x < self.width() && y < self.height() => Some(x + y * self.width()),
-            _ => None,
-        }
-    }
-
     pub fn draw(&self, screen: &mut [u8]) {
         debug_assert_eq!(screen.len(), 4 * self.cells1d.len());
         for (cell, pixel) in self.cells1d.iter().zip(screen.chunks_exact_mut(4)) {
@@ -158,19 +141,6 @@ impl WorldGrid {
             };
             pixel.copy_from_slice(&color_rgba);
         }
-    }
-
-    pub fn set_line(&mut self, x0: isize, y0: isize, x1: isize, y1: isize, alive: bool) -> Option<()> {
-        // possible to optimize by matching on Clipline and iterating over its arms
-        for (x, y) in clipline::Clipline::new(
-            ((x0, y0), (x1, y1)),
-            ((0, 0), (self.width() as isize - 1, self.height() as isize - 1)),
-        )? {
-            let (x, y) = (x as usize, y as usize);
-            let width = self.width();
-            self.cells1d[x + y * width].set_alive(alive);
-        }
-        Some(())
     }
 }
 
@@ -233,10 +203,6 @@ impl GridCell {
             self.heat = self.heat.saturating_sub(1);
         }
         self
-    }
-
-    fn set_alive(&mut self, alive: bool) {
-        *self = self.next_state(alive);
     }
 
     fn cool_off(&mut self, decay: f32) {
