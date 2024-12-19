@@ -10,12 +10,10 @@ const INITIAL_FILL: f32 = 0.3;
 #[derive(Clone, Debug)]
 pub struct WorldGrid {
     cells: Array2D<GridCell>,
-    scratch_cells: Array2D<GridCell>,
-    cells1d: Vec<GridCell>,
     // Should always be the same size as `cells`. When updating, we read from
     // `cells` and write to `scratch_cells`, then swap. Otherwise, it's not in
     // use, and `cells` should be updated directly.
-    scratch_cells1d: Vec<GridCell>,
+    scratch_cells: Array2D<GridCell>,
 }
 
 impl WorldGrid {
@@ -27,12 +25,9 @@ impl WorldGrid {
 
     fn new_empty(width: usize, height: usize) -> Self {
         assert!(width != 0 && height != 0);
-        let size = width.checked_mul(height).expect("too big");
         Self {
             cells: Array2D::filled_with(GridCell::default(), height, width),
             scratch_cells: Array2D::filled_with(GridCell::default(), height, width),
-            cells1d: vec![GridCell::default(); size],
-            scratch_cells1d: vec![GridCell::default(); size],
         }
     }
 
@@ -51,21 +46,16 @@ impl WorldGrid {
             let alive = randomize::f32_half_open_right(rng.next_u32()) > INITIAL_FILL;
             *cell = GridCell::new(alive);
         }
-        for cell in self.cells1d.iter_mut() {
-            let alive = randomize::f32_half_open_right(rng.next_u32()) > INITIAL_FILL;
-            *cell = GridCell::new(alive);
-        }
+
         // run a few simulation iterations for aesthetics (If we don't, the
         // noise is ugly)
         for _ in 0..3 {
             self.update();
         }
+
+        // Smooth out noise in the heatmap that would remain for a while
         for i in 0..self.cells.num_elements() {
             let cell = self.cells.get_mut_row_major(i).unwrap();
-            cell.cool_off(0.4);
-        }
-        // Smooth out noise in the heatmap that would remain for a while
-        for cell in self.cells1d.iter_mut() {
             cell.cool_off(0.4);
         }
     }
@@ -80,17 +70,6 @@ impl WorldGrid {
             }
         }
         std::mem::swap(&mut self.scratch_cells, &mut self.cells);
-
-        for y in 0..self.height() {
-            for x in 0..self.width() {
-                let neighbors = self.count_neighbors1d(x, y);
-                let idx = x + y * self.width();
-                let next = self.cells1d[idx].update(neighbors);
-                // Write into scratch_cells, since we're still reading from `self.cells`
-                self.scratch_cells1d[idx] = next;
-            }
-        }
-        std::mem::swap(&mut self.scratch_cells1d, &mut self.cells1d);
     }
 
     fn count_neighbors(&self, row: usize, col: usize) -> usize {
@@ -106,46 +85,9 @@ impl WorldGrid {
            + self.cells[(row_below, col_right)].alive as usize
     }
 
-    fn count_neighbors1d(&self, x: usize, y: usize) -> usize {
-        let (xm1, xp1) = if x == 0 {
-            (self.width() - 1, x + 1)
-        } else if x == self.width() - 1 {
-            (x - 1, 0)
-        } else {
-            (x - 1, x + 1)
-        };
-        let (ym1, yp1) = if y == 0 {
-            (self.height() - 1, y + 1)
-        } else if y == self.height() - 1 {
-            (y - 1, 0)
-        } else {
-            (y - 1, y + 1)
-        };
-        self.cells1d[xm1 + ym1 * self.width()].alive as usize
-            + self.cells1d[x + ym1 * self.width()].alive as usize
-            + self.cells1d[xp1 + ym1 * self.width()].alive as usize
-            + self.cells1d[xm1 + y * self.width()].alive as usize
-            + self.cells1d[xp1 + y * self.width()].alive as usize
-            + self.cells1d[xm1 + yp1 * self.width()].alive as usize
-            + self.cells1d[x + yp1 * self.width()].alive as usize
-            + self.cells1d[xp1 + yp1 * self.width()].alive as usize
-    }
-
     pub fn draw(&self, screen: &mut [u8]) {
         debug_assert_eq!(screen.len(), 4 * self.cells.num_elements());
         for (cell, pixel) in self.cells.elements_row_major_iter().zip(screen.chunks_exact_mut(4)) {
-            let color_rgba = if cell.alive {
-                [0, 0xff, 0xff, 0xff]
-            } else {
-                [0, 0, cell.heat, 0xff]
-            };
-            pixel.copy_from_slice(&color_rgba);
-        }
-    }
-
-    pub fn draw1d(&self, screen: &mut [u8]) {
-        debug_assert_eq!(screen.len(), 4 * self.cells1d.len());
-        for (cell, pixel) in self.cells1d.iter().zip(screen.chunks_exact_mut(4)) {
             let color_rgba = if cell.alive {
                 [0, 0xff, 0xff, 0xff]
             } else {
