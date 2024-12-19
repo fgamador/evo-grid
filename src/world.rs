@@ -9,7 +9,7 @@ pub struct WorldGrid {
     // Should always be the same size as `cells`. When updating, we read from
     // `cells` and write to `scratch_cells`, then swap. Otherwise, it's not in
     // use, and `cells` should be updated directly.
-    scratch_cells: Array2D<GridCell>,
+    next_cells: Array2D<GridCell>,
 }
 
 impl WorldGrid {
@@ -23,15 +23,23 @@ impl WorldGrid {
         assert!(width != 0 && height != 0);
         Self {
             cells: Array2D::filled_with(GridCell::default(), height, width),
-            scratch_cells: Array2D::filled_with(GridCell::default(), height, width),
+            next_cells: Array2D::filled_with(GridCell::default(), height, width),
         }
     }
 
-    fn width(&self) -> usize {
+    pub fn randomize(&mut self) {
+        let mut rng: randomize::PCG32 = generate_seed().into();
+        for i in 0..self.cells.num_elements() {
+            let cell = self.cells.get_mut_row_major(i).unwrap();
+            *cell = GridCell::new(randomize::f32_closed(rng.next_u32()));
+        }
+    }
+
+    pub fn width(&self) -> usize {
         self.cells.num_columns()
     }
 
-    fn height(&self) -> usize {
+    pub fn height(&self) -> usize {
         self.cells.num_rows()
     }
 
@@ -43,24 +51,13 @@ impl WorldGrid {
         self.cells.elements_row_major_iter()
     }
 
-    pub fn randomize(&mut self) {
-        let mut rng: randomize::PCG32 = generate_seed().into();
-        for i in 0..self.cells.num_elements() {
-            let cell = self.cells.get_mut_row_major(i).unwrap();
-            *cell = GridCell::new(randomize::f32_closed(rng.next_u32()));
-        }
-    }
-
     pub fn update(&mut self) {
         for row in 0..self.height() {
             for col in 0..self.width() {
-                // let num_neighbors = self.count_neighbors(row, col);
-                let next = self.cells[(row, col)].update();
-                // Write into scratch_cells, since we're still reading from `self.cells`
-                self.scratch_cells[(row, col)] = next;
+                self.next_cells[(row, col)] = self.cells[(row, col)].update();
             }
         }
-        std::mem::swap(&mut self.scratch_cells, &mut self.cells);
+        std::mem::swap(&mut self.next_cells, &mut self.cells);
     }
 
     // fn count_neighbors(&self, row: usize, col: usize) -> usize {
@@ -115,13 +112,10 @@ impl GridCell {
     }
 
     #[must_use]
-    fn update(self) -> Self {
-        self.next_state()
-    }
-
-    #[must_use]
-    fn next_state(mut self) -> Self {
-        self
+    fn update(&self) -> Self {
+        Self {
+            substance: self.substance.decay(),
+        }
     }
 }
 
@@ -136,6 +130,13 @@ impl Substance {
         Self {
             color: [0xff, 0, 0],
             amount,
+        }
+    }
+
+    fn decay(&self) -> Self {
+        Self {
+            color: self.color,
+            amount: (self.amount * 0.99).clamp(0.0, 1.0),
         }
     }
 }
