@@ -1,8 +1,9 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-use array2d::{Array2D /*, Error */};
 use std::mem;
+
+use array2d::{Array2D /*, Error */};
 
 #[derive(Clone, Debug)]
 pub struct WorldGrid {
@@ -16,7 +17,8 @@ pub struct WorldGrid {
 impl WorldGrid {
     pub fn new_random(width: usize, height: usize) -> Self {
         let mut result = Self::new_empty(width, height);
-        result.randomize();
+        // result.randomize();
+        result.cells[(height / 2, width / 2)] = GridCell::new(1.0);
         result
     }
 
@@ -48,7 +50,7 @@ impl WorldGrid {
         self.cells.num_elements()
     }
 
-    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &GridCell> + Clone {
+    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item=&GridCell> + Clone {
         self.cells.elements_row_major_iter()
     }
 
@@ -69,7 +71,7 @@ impl WorldGrid {
     fn update_next_cells(&mut self) {
         for row in 0..self.height() {
             for col in 0..self.width() {
-                self.cells[(row, col)].update(row, col, &mut self.next_cells);
+                self.cells[(row, col)].update_next_cells(row, col, &mut self.next_cells);
             }
         }
     }
@@ -115,8 +117,8 @@ impl GridCell {
         }
     }
 
-    fn update(&self, row: usize, col: usize, next_cells: &mut Array2D<GridCell>) {
-        next_cells[(row, col)].substance = self.substance.decay();
+    fn update_next_cells(&self, row: usize, col: usize, next_cells: &mut Array2D<GridCell>) {
+        next_cells[(row, col)].substance.decay();
     }
 }
 
@@ -144,10 +146,7 @@ impl Substance {
         }
     }
 
-    fn decay(&self) -> Self {
-        Self {
-            color: self.color,
-            amount: (self.amount * 0.99).clamp(0.0, 1.0),
-        }
+    fn decay(&mut self) {
+        self.amount = (self.amount * 0.99).clamp(0.0, 1.0);
     }
 }
