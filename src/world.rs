@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 
 use array2d::{Array2D /*, Error */};
+use std::mem;
 
 #[derive(Clone, Debug)]
 pub struct WorldGrid {
@@ -52,12 +53,19 @@ impl WorldGrid {
     }
 
     pub fn update(&mut self) {
+        for i in 0..self.cells.num_elements() {
+            let cell = self.cells.get_row_major(i).unwrap();
+            let next_cell = self.next_cells.get_mut_row_major(i).unwrap();
+            *next_cell = *cell;
+        }
+
         for row in 0..self.height() {
             for col in 0..self.width() {
-                self.next_cells[(row, col)] = self.cells[(row, col)].update();
+                self.cells[(row, col)].update(row, col, &mut self.next_cells);
             }
         }
-        std::mem::swap(&mut self.next_cells, &mut self.cells);
+
+        mem::swap(&mut self.next_cells, &mut self.cells);
     }
 
     // fn count_neighbors(&self, row: usize, col: usize) -> usize {
@@ -73,16 +81,6 @@ impl WorldGrid {
     //        + self.cells[(row_below, col_right)].alive as usize
     // }
 }
-
-// fn neighbor_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
-//     if cell_index == 0 {
-//         (max_index, 1)
-//     } else if cell_index == max_index {
-//         (max_index - 1, 0)
-//     } else {
-//         (cell_index - 1, cell_index + 1)
-//     }
-// }
 
 /// Generate a pseudorandom seed for the game's PRNG.
 fn generate_seed() -> (u64, u64) {
@@ -111,13 +109,20 @@ impl GridCell {
         }
     }
 
-    #[must_use]
-    fn update(&self) -> Self {
-        Self {
-            substance: self.substance.decay(),
-        }
+    fn update(&self, row: usize, col: usize, next_cells: &mut Array2D<GridCell>) {
+        next_cells[(row, col)].substance = self.substance.decay();
     }
 }
+
+// fn neighbor_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
+//     if cell_index == 0 {
+//         (max_index, 1)
+//     } else if cell_index == max_index {
+//         (max_index - 1, 0)
+//     } else {
+//         (cell_index - 1, cell_index + 1)
+//     }
+// }
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Substance {
@@ -129,7 +134,7 @@ impl Substance {
     fn new(amount: f32) -> Self {
         Self {
             color: [0xff, 0, 0],
-            amount,
+            amount: amount.clamp(0.0, 1.0),
         }
     }
 
