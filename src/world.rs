@@ -39,6 +39,14 @@ impl WorldGrid {
         self.cells.num_rows()
     }
 
+    pub fn num_cells(&self) -> usize {
+        self.cells.num_elements()
+    }
+
+    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &GridCell> + Clone {
+        self.cells.elements_row_major_iter()
+    }
+
     pub fn randomize(&mut self) {
         let mut rng: randomize::PCG32 = generate_seed().into();
         for i in 0..self.cells.num_elements() {
@@ -84,18 +92,6 @@ impl WorldGrid {
            + self.cells[(row_below, col)].alive as usize
            + self.cells[(row_below, col_right)].alive as usize
     }
-
-    pub fn draw(&self, screen: &mut [u8]) {
-        debug_assert_eq!(screen.len(), 4 * self.cells.num_elements());
-        for (cell, pixel) in self.cells.elements_row_major_iter().zip(screen.chunks_exact_mut(4)) {
-            let color_rgba = if cell.alive {
-                [0, 0xff, 0xff, 0xff]
-            } else {
-                [0, 0, cell.heat, 0xff]
-            };
-            pixel.copy_from_slice(&color_rgba);
-        }
-    }
 }
 
 fn neighbor_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
@@ -124,13 +120,13 @@ fn generate_seed() -> (u64, u64) {
 }
 
 #[derive(Clone, Copy, Debug, Default)]
-struct GridCell {
-    alive: bool,
+pub struct GridCell {
+    pub alive: bool,
     // Used for the trail effect. Always 255 if `self.alive` is true (We could
     // use an enum for Cell, but it makes several functions slightly more
     // complex, and doesn't actually make anything any simpler here, or save any
     // memory, so we don't)
-    heat: u8,
+    pub heat: u8,
 }
 
 impl GridCell {
