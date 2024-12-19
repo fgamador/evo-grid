@@ -46,6 +46,11 @@ impl WorldGrid {
 
     pub fn randomize(&mut self) {
         let mut rng: randomize::PCG32 = generate_seed().into();
+        for i in 0..self.cells.num_elements() {
+            let cell = self.cells.get_mut_row_major(i).unwrap();
+            let alive = randomize::f32_half_open_right(rng.next_u32()) > INITIAL_FILL;
+            *cell = GridCell::new(alive);
+        }
         for cell in self.cells1d.iter_mut() {
             let alive = randomize::f32_half_open_right(rng.next_u32()) > INITIAL_FILL;
             *cell = GridCell::new(alive);
@@ -55,13 +60,53 @@ impl WorldGrid {
         for _ in 0..3 {
             self.update();
         }
+        for i in 0..self.cells.num_elements() {
+            let cell = self.cells.get_mut_row_major(i).unwrap();
+            cell.cool_off(0.4);
+        }
         // Smooth out noise in the heatmap that would remain for a while
         for cell in self.cells1d.iter_mut() {
             cell.cool_off(0.4);
         }
     }
 
-    fn count_neighbors(&self, x: usize, y: usize) -> usize {
+    pub fn update(&mut self) {
+        for row in 0..self.height() {
+            for col in 0..self.width() {
+                let num_neighbors = self.count_neighbors(row, col);
+                let next = self.cells[(row, col)].update(num_neighbors);
+                // Write into scratch_cells, since we're still reading from `self.cells`
+                self.scratch_cells[(row, col)] = next;
+            }
+        }
+        std::mem::swap(&mut self.scratch_cells, &mut self.cells);
+
+        for y in 0..self.height() {
+            for x in 0..self.width() {
+                let neighbors = self.count_neighbors1d(x, y);
+                let idx = x + y * self.width();
+                let next = self.cells1d[idx].update(neighbors);
+                // Write into scratch_cells, since we're still reading from `self.cells`
+                self.scratch_cells1d[idx] = next;
+            }
+        }
+        std::mem::swap(&mut self.scratch_cells1d, &mut self.cells1d);
+    }
+
+    fn count_neighbors(&self, row: usize, col: usize) -> usize {
+        let (col_left, col_right) = neighbor_indexes(col, self.width() - 1);
+        let (row_above, row_below) = neighbor_indexes(row, self.height() - 1);
+        self.cells[(row_above, col_left)].alive as usize
+           + self.cells[(row_above, col)].alive as usize
+           + self.cells[(row_above, col_right)].alive as usize
+           + self.cells[(row, col_left)].alive as usize
+           + self.cells[(row, col_right)].alive as usize
+           + self.cells[(row_below, col_left)].alive as usize
+           + self.cells[(row_below, col)].alive as usize
+           + self.cells[(row_below, col_right)].alive as usize
+    }
+
+    fn count_neighbors1d(&self, x: usize, y: usize) -> usize {
         let (xm1, xp1) = if x == 0 {
             (self.width() - 1, x + 1)
         } else if x == self.width() - 1 {
@@ -86,19 +131,6 @@ impl WorldGrid {
             + self.cells1d[xp1 + yp1 * self.width()].alive as usize
     }
 
-    pub fn update(&mut self) {
-        for y in 0..self.height() {
-            for x in 0..self.width() {
-                let neighbors = self.count_neighbors(x, y);
-                let idx = x + y * self.width();
-                let next = self.cells1d[idx].update_neighbors(neighbors);
-                // Write into scratch_cells, since we're still reading from `self.cells`
-                self.scratch_cells1d[idx] = next;
-            }
-        }
-        std::mem::swap(&mut self.scratch_cells1d, &mut self.cells1d);
-    }
-
     pub fn toggle(&mut self, x: isize, y: isize) -> bool {
         if let Some(i) = self.grid_idx(x, y) {
             let was_alive = self.cells1d[i].alive;
@@ -106,6 +138,13 @@ impl WorldGrid {
             !was_alive
         } else {
             false
+        }
+    }
+
+    fn grid_idx<I: TryInto<usize>>(&self, x: I, y: I) -> Option<usize> {
+        match (x.try_into(), y.try_into()) {
+            (Ok(x), Ok(y)) if x < self.width() && y < self.height() => Some(x + y * self.width()),
+            _ => None,
         }
     }
 
@@ -133,12 +172,15 @@ impl WorldGrid {
         }
         Some(())
     }
+}
 
-    fn grid_idx<I: TryInto<usize>>(&self, x: I, y: I) -> Option<usize> {
-        match (x.try_into(), y.try_into()) {
-            (Ok(x), Ok(y)) if x < self.width() && y < self.height() => Some(x + y * self.width()),
-            _ => None,
-        }
+fn neighbor_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
+    if cell_index == 0 {
+        (max_index, 1)
+    } else if cell_index == max_index {
+        (max_index - 1, 0)
+    } else {
+        (cell_index - 1, cell_index + 1)
     }
 }
 
@@ -173,11 +215,11 @@ impl GridCell {
     }
 
     #[must_use]
-    fn update_neighbors(self, n: usize) -> Self {
+    fn update(self, num_neighbors: usize) -> Self {
         let next_alive = if self.alive {
-            SURVIVE_RULE[n]
+            SURVIVE_RULE[num_neighbors]
         } else {
-            BIRTH_RULE[n]
+            BIRTH_RULE[num_neighbors]
         };
         self.next_state(next_alive)
     }
