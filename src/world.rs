@@ -75,19 +75,6 @@ impl WorldGrid {
             }
         }
     }
-
-    // fn count_neighbors(&self, row: usize, col: usize) -> usize {
-    //     let (col_left, col_right) = neighbor_indexes(col, self.width() - 1);
-    //     let (row_above, row_below) = neighbor_indexes(row, self.height() - 1);
-    //     self.cells[(row_above, col_left)].alive as usize
-    //        + self.cells[(row_above, col)].alive as usize
-    //        + self.cells[(row_above, col_right)].alive as usize
-    //        + self.cells[(row, col_left)].alive as usize
-    //        + self.cells[(row, col_right)].alive as usize
-    //        + self.cells[(row_below, col_left)].alive as usize
-    //        + self.cells[(row_below, col)].alive as usize
-    //        + self.cells[(row_below, col_right)].alive as usize
-    // }
 }
 
 /// Generate a pseudorandom seed for the game's PRNG.
@@ -122,9 +109,9 @@ impl GridCell {
         let (col_left, col_right) = neighbor_indexes(col, next_cells.num_columns() - 1);
 
         let next_cell = &mut next_cells[(row, col)];
-        //next_cell.substance.decay();
+        next_cell.substance.decay();
 
-        let delta = next_cell.substance.diffuse_out(); // / 8.0;
+        let delta = next_cell.substance.diffuse_out() / 8.0;
         next_cells[(row_above, col_left)].substance.diffuse_in(delta);
         next_cells[(row_above, col)].substance.diffuse_in(delta);
         next_cells[(row_above, col_right)].substance.diffuse_in(delta);
@@ -154,28 +141,17 @@ impl Substance {
         self.set_amount(self.amount * 0.99);
     }
 
-    // fn diffuse_to_neighbors(&mut self, row: usize, col: usize, next_cells: &mut Array2D<GridCell>) {
-    //     let (row_above, row_below) = neighbor_indexes(row, next_cells.num_rows() - 1);
-    //     let (col_left, col_right) = neighbor_indexes(col, next_cells.num_columns() - 1);
-    //     self.diffuse_to(&mut next_cells[(row_above, col_left)].substance);
-    //     // TODO
-    // }
-
     fn diffuse_out(&mut self) -> f32 {
-        let delta = self.amount * 0.1;
+        let delta = self.amount * 0.2;
         self.set_amount(self.amount - delta);
         delta
     }
 
     fn diffuse_in(&mut self, delta: f32) {
+        // TODO do better
+        self.color = [0xff, 0, 0];
         self.set_amount(self.amount + delta);
     }
-
-    // fn diffuse_to(&mut self, other: &mut Substance) {
-    //     let delta = self.amount * 0.1;
-    //     self.set_amount(self.amount - delta);
-    //     other.set_amount(other.amount + delta);
-    // }
 
     fn set_amount(&mut self, val: f32) {
         self.amount = val.clamp(0.0, 1.0);
