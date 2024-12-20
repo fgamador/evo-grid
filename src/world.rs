@@ -15,10 +15,15 @@ pub struct WorldGrid {
 }
 
 impl WorldGrid {
+    pub fn new(width: usize, height: usize) -> Self {
+        let mut result = Self::new_empty(width, height);
+        result.cells[(height / 2, width / 2)] = GridCell::new([0xff, 0, 0], 1.0);
+        result
+    }
+
     pub fn new_random(width: usize, height: usize) -> Self {
         let mut result = Self::new_empty(width, height);
-        // result.randomize();
-        result.cells[(height / 2, width / 2)] = GridCell::new(1.0);
+        result.randomize();
         result
     }
 
@@ -34,7 +39,7 @@ impl WorldGrid {
         let mut rng: randomize::PCG32 = generate_seed().into();
         for i in 0..self.cells.num_elements() {
             let cell = self.cells.get_mut_row_major(i).unwrap();
-            *cell = GridCell::new(randomize::f32_closed(rng.next_u32()));
+            *cell = GridCell::new([0xff, 0, 0], randomize::f32_closed(rng.next_u32()));
         }
     }
 
@@ -98,28 +103,32 @@ pub struct GridCell {
 }
 
 impl GridCell {
-    fn new(amount: f32) -> Self {
+    fn new(color: [u8; 3], amount: f32) -> Self {
         Self {
-            substance: Substance::new(amount),
+            substance: Substance::new(color, amount),
         }
     }
 
     fn update_next_cells(&self, row: usize, col: usize, next_cells: &mut Array2D<GridCell>) {
+        let mut deltas = NeighborhoodDeltas::new();
+        self.substance.calc_deltas(&mut deltas);
+
         let (row_above, row_below) = neighbor_indexes(row, next_cells.num_rows() - 1);
         let (col_left, col_right) = neighbor_indexes(col, next_cells.num_columns() - 1);
 
-        let next_cell = &mut next_cells[(row, col)];
-        next_cell.substance.decay();
+        next_cells[(row_above, col_left)].apply_delta(&deltas.deltas[(0, 0)]);
+        next_cells[(row_above, col)].apply_delta(&deltas.deltas[(0, 1)]);
+        next_cells[(row_above, col_right)].apply_delta(&deltas.deltas[(0, 2)]);
+        next_cells[(row, col_left)].apply_delta(&deltas.deltas[(1, 0)]);
+        next_cells[(row, col)].apply_delta(&deltas.deltas[(1, 1)]);
+        next_cells[(row, col_right)].apply_delta(&deltas.deltas[(1, 2)]);
+        next_cells[(row_below, col_left)].apply_delta(&deltas.deltas[(2, 0)]);
+        next_cells[(row_below, col)].apply_delta(&deltas.deltas[(2, 1)]);
+        next_cells[(row_below, col_right)].apply_delta(&deltas.deltas[(2, 2)]);
+    }
 
-        let delta = next_cell.substance.diffuse_out() / 8.0;
-        next_cells[(row_above, col_left)].substance.diffuse_in(delta);
-        next_cells[(row_above, col)].substance.diffuse_in(delta);
-        next_cells[(row_above, col_right)].substance.diffuse_in(delta);
-        next_cells[(row, col_left)].substance.diffuse_in(delta);
-        next_cells[(row, col_right)].substance.diffuse_in(delta);
-        next_cells[(row_below, col_left)].substance.diffuse_in(delta);
-        next_cells[(row_below, col)].substance.diffuse_in(delta);
-        next_cells[(row_below, col_right)].substance.diffuse_in(delta);
+    fn apply_delta(&mut self, delta: &GridCellDelta) {
+        self.substance.apply_delta(&delta.substance);
     }
 }
 
@@ -130,33 +139,108 @@ pub struct Substance {
 }
 
 impl Substance {
-    fn new(amount: f32) -> Self {
+    fn new(color: [u8; 3], amount: f32) -> Self {
         Self {
-            color: [0xff, 0, 0],
+            color,
             amount: amount.clamp(0.0, 1.0),
         }
     }
 
-    fn decay(&mut self) {
-        self.set_amount(self.amount * 0.99);
+    fn calc_deltas(&self, deltas: &mut NeighborhoodDeltas) {
+        deltas.for_all(|cell_delta| cell_delta.substance.color = self.color);
+        deltas.for_center(|cell_delta| cell_delta.substance.amount = -0.11 * self.amount);
+        deltas.for_neighbors(|cell_delta| cell_delta.substance.amount = (0.1 / 8.0) * self.amount);
     }
 
-    fn diffuse_out(&mut self) -> f32 {
-        let delta = self.amount * 0.2;
-        self.set_amount(self.amount - delta);
-        delta
+    fn apply_delta(&mut self, delta: &SubstanceDelta) {
+        self.color = delta.color;
+        self.set_amount_clamped(self.amount + delta.amount);
     }
 
-    fn diffuse_in(&mut self, delta: f32) {
-        // TODO do better
-        self.color = [0xff, 0, 0];
-        self.set_amount(self.amount + delta);
-    }
+    // fn decay(&mut self) {
+    //     self.set_amount(self.amount * 0.99);
+    // }
+    //
+    // fn diffuse_out(&mut self) -> f32 {
+    //     let delta = self.amount * 0.2;
+    //     self.set_amount(self.amount - delta);
+    //     delta
+    // }
+    //
+    // fn diffuse_in(&mut self, delta: f32) {
+    //     // TODO do better
+    //     self.color = [0xff, 0, 0];
+    //     self.set_amount(self.amount + delta);
+    // }
 
-    fn set_amount(&mut self, val: f32) {
+    fn set_amount_clamped(&mut self, val: f32) {
         self.amount = val.clamp(0.0, 1.0);
     }
 }
+
+struct NeighborhoodDeltas {
+    pub deltas: Array2D<GridCellDelta>,
+}
+
+impl NeighborhoodDeltas {
+    fn new() -> Self {
+        Self {
+            deltas: Array2D::filled_with(GridCellDelta::default(), 3, 3),
+        }
+    }
+
+    fn for_all<F>(&mut self, f: F)
+    where
+        F: Fn(&mut GridCellDelta),
+    {
+        for row in 0..=2 {
+            for col in 0..=2 {
+                f(&mut self.deltas[(row, col)]);
+            }
+        }
+    }
+
+    fn for_center<F>(&mut self, f: F)
+    where
+        F: Fn(&mut GridCellDelta),
+    {
+        f(&mut self.deltas[(1, 1)]);
+    }
+
+    fn for_neighbors<F>(&mut self, f: F)
+    where
+        F: Fn(&mut GridCellDelta),
+    {
+        f(&mut self.deltas[(0, 0)]);
+        f(&mut self.deltas[(0, 1)]);
+        f(&mut self.deltas[(0, 2)]);
+        f(&mut self.deltas[(1, 0)]);
+        f(&mut self.deltas[(1, 2)]);
+        f(&mut self.deltas[(2, 0)]);
+        f(&mut self.deltas[(2, 1)]);
+        f(&mut self.deltas[(2, 2)]);
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct GridCellDelta {
+    pub substance: SubstanceDelta,
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct SubstanceDelta {
+    pub color: [u8; 3],
+    pub amount: f32,
+}
+
+// impl SubstanceDelta {
+//     fn new(substance: &Substance, amount: f32) -> Self {
+//         Self {
+//             color: substance.color,
+//             amount: amount.clamp(-1.0, 1.0),
+//         }
+//     }
+// }
 
 fn neighbor_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
     if cell_index == 0 {
