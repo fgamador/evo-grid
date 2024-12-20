@@ -21,11 +21,11 @@ impl WorldGrid {
         result
     }
 
-    pub fn new_random(width: usize, height: usize) -> Self {
-        let mut result = Self::new_empty(width, height);
-        result.randomize();
-        result
-    }
+    // pub fn new_random(width: usize, height: usize) -> Self {
+    //     let mut result = Self::new_empty(width, height);
+    //     result.randomize();
+    //     result
+    // }
 
     fn new_empty(width: usize, height: usize) -> Self {
         assert!(width != 0 && height != 0);
@@ -35,13 +35,13 @@ impl WorldGrid {
         }
     }
 
-    pub fn randomize(&mut self) {
-        let mut rng: randomize::PCG32 = generate_seed().into();
-        for i in 0..self.cells.num_elements() {
-            let cell = self.cells.get_mut_row_major(i).unwrap();
-            *cell = GridCell::new([0xff, 0, 0], randomize::f32_closed(rng.next_u32()));
-        }
-    }
+    // pub fn randomize(&mut self) {
+    //     let mut rng: randomize::PCG32 = generate_seed().into();
+    //     for i in 0..self.cells.num_elements() {
+    //         let cell = self.cells.get_mut_row_major(i).unwrap();
+    //         *cell = GridCell::new([0xff, 0, 0], randomize::f32_closed(rng.next_u32()));
+    //     }
+    // }
 
     pub fn width(&self) -> usize {
         self.cells.num_columns()
@@ -83,19 +83,19 @@ impl WorldGrid {
 }
 
 /// Generate a pseudorandom seed for the game's PRNG.
-fn generate_seed() -> (u64, u64) {
-    use byteorder::{ByteOrder, NativeEndian};
-    use getrandom::getrandom;
-
-    let mut seed = [0_u8; 16];
-
-    getrandom(&mut seed).expect("failed to getrandom");
-
-    (
-        NativeEndian::read_u64(&seed[0..8]),
-        NativeEndian::read_u64(&seed[8..16]),
-    )
-}
+// fn generate_seed() -> (u64, u64) {
+//     use byteorder::{ByteOrder, NativeEndian};
+//     use getrandom::getrandom;
+//
+//     let mut seed = [0_u8; 16];
+//
+//     getrandom(&mut seed).expect("failed to getrandom");
+//
+//     (
+//         NativeEndian::read_u64(&seed[0..8]),
+//         NativeEndian::read_u64(&seed[8..16]),
+//     )
+// }
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct GridCell {
@@ -135,6 +135,16 @@ impl GridCell {
     }
 }
 
+fn neighbor_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
+    if cell_index == 0 {
+        (max_index, 1)
+    } else if cell_index == max_index {
+        (max_index - 1, 0)
+    } else {
+        (cell_index - 1, cell_index + 1)
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Substance {
     pub color: [u8; 3],
@@ -159,22 +169,6 @@ impl Substance {
         self.color = delta.color;
         self.set_amount_clamped(self.amount + delta.amount);
     }
-
-    // fn decay(&mut self) {
-    //     self.set_amount(self.amount * 0.99);
-    // }
-    //
-    // fn diffuse_out(&mut self) -> f32 {
-    //     let delta = self.amount * 0.2;
-    //     self.set_amount(self.amount - delta);
-    //     delta
-    // }
-    //
-    // fn diffuse_in(&mut self, delta: f32) {
-    //     // TODO do better
-    //     self.color = [0xff, 0, 0];
-    //     self.set_amount(self.amount + delta);
-    // }
 
     fn set_amount_clamped(&mut self, val: f32) {
         self.amount = val.clamp(0.0, 1.0);
@@ -234,23 +228,4 @@ struct GridCellDelta {
 struct SubstanceDelta {
     pub color: [u8; 3],
     pub amount: f32,
-}
-
-// impl SubstanceDelta {
-//     fn new(substance: &Substance, amount: f32) -> Self {
-//         Self {
-//             color: substance.color,
-//             amount: amount.clamp(-1.0, 1.0),
-//         }
-//     }
-// }
-
-fn neighbor_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
-    if cell_index == 0 {
-        (max_index, 1)
-    } else if cell_index == max_index {
-        (max_index - 1, 0)
-    } else {
-        (cell_index - 1, cell_index + 1)
-    }
 }
