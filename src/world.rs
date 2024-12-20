@@ -9,7 +9,7 @@ use array2d::{Array2D /*, Error */};
 pub struct WorldGrid {
     cells: Array2D<GridCell>,
     // Should always be the same size as `cells`. When updating, we read from
-    // `cells` and write to `scratch_cells`, then swap. Otherwise, it's not in
+    // `cells` and write to `next_cells`, then swap. Otherwise, it's not in
     // use, and `cells` should be updated directly.
     next_cells: Array2D<GridCell>,
 }
@@ -60,12 +60,12 @@ impl WorldGrid {
     }
 
     pub fn update(&mut self) {
-        self.init_next_cells();
+        self.copy_cells_into_next_cells();
         self.update_next_cells();
         mem::swap(&mut self.next_cells, &mut self.cells);
     }
 
-    fn init_next_cells(&mut self) {
+    fn copy_cells_into_next_cells(&mut self) {
         for i in 0..self.cells.num_elements() {
             let cell = self.cells.get_row_major(i).unwrap();
             let next_cell = self.next_cells.get_mut_row_major(i).unwrap();
@@ -74,11 +74,33 @@ impl WorldGrid {
     }
 
     fn update_next_cells(&mut self) {
+        let mut deltas = NeighborhoodDeltas::new();
         for row in 0..self.height() {
             for col in 0..self.width() {
-                self.cells[(row, col)].update_next_cells(row, col, &mut self.next_cells);
+                //self.cells[(row, col)].update_next_cells(row, col, &mut self.next_cells);
+                let cell = self.cells[(row, col)];
+                if cell.substance.is_some() {
+                    deltas.clear();
+                    cell.calc_deltas(&mut deltas);
+                    self.apply_deltas(row, col, &deltas);
+                }
             }
         }
+    }
+
+    fn apply_deltas(&mut self, row: usize, col: usize, deltas: &NeighborhoodDeltas) {
+        let (row_above, row_below) = neighbor_indexes(row, self.next_cells.num_rows() - 1);
+        let (col_left, col_right) = neighbor_indexes(col, self.next_cells.num_columns() - 1);
+
+        self.next_cells[(row_above, col_left)].apply_delta(&deltas.deltas[(0, 0)]);
+        self.next_cells[(row_above, col)].apply_delta(&deltas.deltas[(0, 1)]);
+        self.next_cells[(row_above, col_right)].apply_delta(&deltas.deltas[(0, 2)]);
+        self.next_cells[(row, col_left)].apply_delta(&deltas.deltas[(1, 0)]);
+        self.next_cells[(row, col)].apply_delta(&deltas.deltas[(1, 1)]);
+        self.next_cells[(row, col_right)].apply_delta(&deltas.deltas[(1, 2)]);
+        self.next_cells[(row_below, col_left)].apply_delta(&deltas.deltas[(2, 0)]);
+        self.next_cells[(row_below, col)].apply_delta(&deltas.deltas[(2, 1)]);
+        self.next_cells[(row_below, col_right)].apply_delta(&deltas.deltas[(2, 2)]);
     }
 }
 
@@ -96,7 +118,6 @@ impl WorldGrid {
 //         NativeEndian::read_u64(&seed[8..16]),
 //     )
 // }
-
 #[derive(Clone, Copy, Debug, Default)]
 pub struct GridCell {
     pub substance: Option<Substance>,
@@ -109,28 +130,14 @@ impl GridCell {
         }
     }
 
-    fn update_next_cells(&self, row: usize, col: usize, next_cells: &mut Array2D<GridCell>) {
+    fn calc_deltas(&self, deltas: &mut NeighborhoodDeltas) {
         if let Some(substance) = self.substance {
-            let mut deltas = NeighborhoodDeltas::new();
-
-            substance.calc_deltas(&mut deltas);
-
-            let (row_above, row_below) = neighbor_indexes(row, next_cells.num_rows() - 1);
-            let (col_left, col_right) = neighbor_indexes(col, next_cells.num_columns() - 1);
-
-            next_cells[(row_above, col_left)].apply_delta(&deltas.deltas[(0, 0)]);
-            next_cells[(row_above, col)].apply_delta(&deltas.deltas[(0, 1)]);
-            next_cells[(row_above, col_right)].apply_delta(&deltas.deltas[(0, 2)]);
-            next_cells[(row, col_left)].apply_delta(&deltas.deltas[(1, 0)]);
-            next_cells[(row, col)].apply_delta(&deltas.deltas[(1, 1)]);
-            next_cells[(row, col_right)].apply_delta(&deltas.deltas[(1, 2)]);
-            next_cells[(row_below, col_left)].apply_delta(&deltas.deltas[(2, 0)]);
-            next_cells[(row_below, col)].apply_delta(&deltas.deltas[(2, 1)]);
-            next_cells[(row_below, col_right)].apply_delta(&deltas.deltas[(2, 2)]);
+            substance.calc_deltas(deltas);
         }
     }
 
     fn apply_delta(&mut self, delta: &GridCellDelta) {
+        // TODO how do we remove the substance via a delta?
         self.substance.get_or_insert_default().apply_delta(&delta.substance);
     }
 }
@@ -186,6 +193,10 @@ impl NeighborhoodDeltas {
         }
     }
 
+    fn clear(&mut self) {
+        self.for_all(|cell| cell.clear());
+    }
+
     fn for_all<F>(&mut self, f: F)
     where
         F: Fn(&mut GridCellDelta),
@@ -224,8 +235,21 @@ struct GridCellDelta {
     pub substance: SubstanceDelta,
 }
 
+impl GridCellDelta {
+    fn clear(&mut self) {
+        self.substance.clear();
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default)]
 struct SubstanceDelta {
     pub color: [u8; 3],
     pub amount: f32,
+}
+
+impl SubstanceDelta {
+    fn clear(&mut self) {
+        self.color = [0, 0, 0];
+        self.amount = 0.0;
+    }
 }
