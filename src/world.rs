@@ -89,8 +89,8 @@ impl WorldGrid {
     }
 
     fn apply_deltas(&mut self, row: usize, col: usize, deltas: &NeighborhoodDeltas) {
-        let (row_above, row_below) = neighbor_indexes(row, self.next_cells.num_rows() - 1);
-        let (col_left, col_right) = neighbor_indexes(col, self.next_cells.num_columns() - 1);
+        let (row_above, row_below) = adjacent_indexes(row, self.next_cells.num_rows() - 1);
+        let (col_left, col_right) = adjacent_indexes(col, self.next_cells.num_columns() - 1);
 
         self.next_cells[(row_above, col_left)].apply_delta(&deltas.deltas[(0, 0)]);
         self.next_cells[(row_above, col)].apply_delta(&deltas.deltas[(0, 1)]);
@@ -142,7 +142,7 @@ impl GridCell {
     }
 }
 
-fn neighbor_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
+fn adjacent_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
     if cell_index == 0 {
         (max_index, 1)
     } else if cell_index == max_index {
