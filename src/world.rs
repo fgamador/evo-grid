@@ -77,7 +77,6 @@ impl WorldGrid {
         let mut deltas = NeighborhoodDeltas::new();
         for row in 0..self.height() {
             for col in 0..self.width() {
-                //self.cells[(row, col)].update_next_cells(row, col, &mut self.next_cells);
                 let cell = self.cells[(row, col)];
                 if cell.substance.is_some() {
                     deltas.clear();
@@ -118,6 +117,7 @@ impl WorldGrid {
 //         NativeEndian::read_u64(&seed[8..16]),
 //     )
 // }
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct GridCell {
     pub substance: Option<Substance>,
