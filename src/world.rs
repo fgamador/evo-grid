@@ -17,15 +17,11 @@ pub struct WorldGrid {
 impl WorldGrid {
     pub fn new(width: usize, height: usize) -> Self {
         let mut result = Self::new_empty(width, height);
-        result.cells[(height / 2, width / 2)] = GridCell::new([0xff, 0, 0], 1.0);
+        result.init_cell_square(height / 2, width / 2, 10, [0xff, 0, 0]);
+        result.init_cell_square(height / 4, width / 4, 5, [0, 0xff, 0]);
+        result.init_cell_square(3 * (height / 4), 3 * (width / 4), 5, [0, 0, 0xff]);
         result
     }
-
-    // pub fn new_random(width: usize, height: usize) -> Self {
-    //     let mut result = Self::new_empty(width, height);
-    //     result.randomize();
-    //     result
-    // }
 
     fn new_empty(width: usize, height: usize) -> Self {
         assert!(width != 0 && height != 0);
@@ -34,6 +30,20 @@ impl WorldGrid {
             next_cells: Array2D::filled_with(GridCell::default(), height, width),
         }
     }
+
+    fn init_cell_square(&mut self, row0: usize, col0: usize, side: usize, color: [u8; 3]) {
+        for row in row0..=(row0 + side) {
+            for col in col0..=(col0 + side) {
+                self.cells[(row, col)] = GridCell::new(color, 1.0);
+            }
+        }
+    }
+
+    // pub fn new_random(width: usize, height: usize) -> Self {
+    //     let mut result = Self::new_empty(width, height);
+    //     result.randomize();
+    //     result
+    // }
 
     // pub fn randomize(&mut self) {
     //     let mut rng: randomize::PCG32 = generate_seed().into();
@@ -121,7 +131,6 @@ impl WorldGrid {
 //         NativeEndian::read_u64(&seed[8..16]),
 //     )
 // }
-
 #[derive(Clone, Copy, Debug, Default)]
 pub struct GridCell {
     pub substance: Option<Substance>,
