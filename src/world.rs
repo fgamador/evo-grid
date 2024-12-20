@@ -99,36 +99,39 @@ fn generate_seed() -> (u64, u64) {
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct GridCell {
-    pub substance: Substance,
+    pub substance: Option<Substance>,
 }
 
 impl GridCell {
     fn new(color: [u8; 3], amount: f32) -> Self {
         Self {
-            substance: Substance::new(color, amount),
+            substance: Some(Substance::new(color, amount)),
         }
     }
 
     fn update_next_cells(&self, row: usize, col: usize, next_cells: &mut Array2D<GridCell>) {
-        let mut deltas = NeighborhoodDeltas::new();
-        self.substance.calc_deltas(&mut deltas);
+        if let Some(substance) = self.substance {
+            let mut deltas = NeighborhoodDeltas::new();
 
-        let (row_above, row_below) = neighbor_indexes(row, next_cells.num_rows() - 1);
-        let (col_left, col_right) = neighbor_indexes(col, next_cells.num_columns() - 1);
+            substance.calc_deltas(&mut deltas);
 
-        next_cells[(row_above, col_left)].apply_delta(&deltas.deltas[(0, 0)]);
-        next_cells[(row_above, col)].apply_delta(&deltas.deltas[(0, 1)]);
-        next_cells[(row_above, col_right)].apply_delta(&deltas.deltas[(0, 2)]);
-        next_cells[(row, col_left)].apply_delta(&deltas.deltas[(1, 0)]);
-        next_cells[(row, col)].apply_delta(&deltas.deltas[(1, 1)]);
-        next_cells[(row, col_right)].apply_delta(&deltas.deltas[(1, 2)]);
-        next_cells[(row_below, col_left)].apply_delta(&deltas.deltas[(2, 0)]);
-        next_cells[(row_below, col)].apply_delta(&deltas.deltas[(2, 1)]);
-        next_cells[(row_below, col_right)].apply_delta(&deltas.deltas[(2, 2)]);
+            let (row_above, row_below) = neighbor_indexes(row, next_cells.num_rows() - 1);
+            let (col_left, col_right) = neighbor_indexes(col, next_cells.num_columns() - 1);
+
+            next_cells[(row_above, col_left)].apply_delta(&deltas.deltas[(0, 0)]);
+            next_cells[(row_above, col)].apply_delta(&deltas.deltas[(0, 1)]);
+            next_cells[(row_above, col_right)].apply_delta(&deltas.deltas[(0, 2)]);
+            next_cells[(row, col_left)].apply_delta(&deltas.deltas[(1, 0)]);
+            next_cells[(row, col)].apply_delta(&deltas.deltas[(1, 1)]);
+            next_cells[(row, col_right)].apply_delta(&deltas.deltas[(1, 2)]);
+            next_cells[(row_below, col_left)].apply_delta(&deltas.deltas[(2, 0)]);
+            next_cells[(row_below, col)].apply_delta(&deltas.deltas[(2, 1)]);
+            next_cells[(row_below, col_right)].apply_delta(&deltas.deltas[(2, 2)]);
+        }
     }
 
     fn apply_delta(&mut self, delta: &GridCellDelta) {
-        self.substance.apply_delta(&delta.substance);
+        self.substance.get_or_insert_default().apply_delta(&delta.substance);
     }
 }
 
