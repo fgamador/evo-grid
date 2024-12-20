@@ -86,12 +86,12 @@ impl WorldGrid {
         let cell = self.cells[(row, col)];
         if cell.substance.is_some() {
             deltas.clear();
-            cell.calc_deltas(&mut deltas);
-            self.apply_deltas(row, col, &deltas);
+            cell.calc_neighborhood_deltas(&mut deltas);
+            self.apply_neighborhood_deltas(row, col, &deltas);
         }
     }
 
-    fn apply_deltas(&mut self, row: usize, col: usize, deltas: &NeighborhoodDeltas) {
+    fn apply_neighborhood_deltas(&mut self, row: usize, col: usize, deltas: &NeighborhoodDeltas) {
         let (row_above, row_below) = adjacent_indexes(row, self.next_cells.num_rows() - 1);
         let (col_left, col_right) = adjacent_indexes(col, self.next_cells.num_columns() - 1);
 
@@ -134,9 +134,9 @@ impl GridCell {
         }
     }
 
-    fn calc_deltas(&self, deltas: &mut NeighborhoodDeltas) {
+    fn calc_neighborhood_deltas(&self, deltas: &mut NeighborhoodDeltas) {
         if let Some(substance) = self.substance {
-            substance.calc_deltas(deltas);
+            substance.calc_neighborhood_deltas(deltas);
         }
     }
 
@@ -170,7 +170,7 @@ impl Substance {
         }
     }
 
-    fn calc_deltas(&self, deltas: &mut NeighborhoodDeltas) {
+    fn calc_neighborhood_deltas(&self, deltas: &mut NeighborhoodDeltas) {
         deltas.for_all(|cell_delta| cell_delta.substance.color = self.color);
         deltas.for_center(|cell_delta| cell_delta.substance.amount = -0.11 * self.amount);
         deltas.for_neighbors(|cell_delta| cell_delta.substance.amount = (0.1 / 8.0) * self.amount);
