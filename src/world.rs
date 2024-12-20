@@ -77,13 +77,17 @@ impl WorldGrid {
         let mut deltas = NeighborhoodDeltas::new();
         for row in 0..self.height() {
             for col in 0..self.width() {
-                let cell = self.cells[(row, col)];
-                if cell.substance.is_some() {
-                    deltas.clear();
-                    cell.calc_deltas(&mut deltas);
-                    self.apply_deltas(row, col, &deltas);
-                }
+                self.update_neighborhood(row, col, &mut deltas);
             }
+        }
+    }
+
+    fn update_neighborhood(&mut self, row: usize, col: usize, mut deltas: &mut NeighborhoodDeltas) {
+        let cell = self.cells[(row, col)];
+        if cell.substance.is_some() {
+            deltas.clear();
+            cell.calc_deltas(&mut deltas);
+            self.apply_deltas(row, col, &deltas);
         }
     }
 
