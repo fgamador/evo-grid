@@ -118,19 +118,23 @@ impl GridCell {
     }
 
     fn update_next_cells(&self, row: usize, col: usize, next_cells: &mut Array2D<GridCell>) {
-        next_cells[(row, col)].substance.decay();
+        let (row_above, row_below) = neighbor_indexes(row, next_cells.num_rows() - 1);
+        let (col_left, col_right) = neighbor_indexes(col, next_cells.num_columns() - 1);
+
+        let next_cell = &mut next_cells[(row, col)];
+        //next_cell.substance.decay();
+
+        let delta = next_cell.substance.diffuse_out(); // / 8.0;
+        next_cells[(row_above, col_left)].substance.diffuse_in(delta);
+        next_cells[(row_above, col)].substance.diffuse_in(delta);
+        next_cells[(row_above, col_right)].substance.diffuse_in(delta);
+        next_cells[(row, col_left)].substance.diffuse_in(delta);
+        next_cells[(row, col_right)].substance.diffuse_in(delta);
+        next_cells[(row_below, col_left)].substance.diffuse_in(delta);
+        next_cells[(row_below, col)].substance.diffuse_in(delta);
+        next_cells[(row_below, col_right)].substance.diffuse_in(delta);
     }
 }
-
-// fn neighbor_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
-//     if cell_index == 0 {
-//         (max_index, 1)
-//     } else if cell_index == max_index {
-//         (max_index - 1, 0)
-//     } else {
-//         (cell_index - 1, cell_index + 1)
-//     }
-// }
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Substance {
@@ -147,6 +151,43 @@ impl Substance {
     }
 
     fn decay(&mut self) {
-        self.amount = (self.amount * 0.99).clamp(0.0, 1.0);
+        self.set_amount(self.amount * 0.99);
+    }
+
+    // fn diffuse_to_neighbors(&mut self, row: usize, col: usize, next_cells: &mut Array2D<GridCell>) {
+    //     let (row_above, row_below) = neighbor_indexes(row, next_cells.num_rows() - 1);
+    //     let (col_left, col_right) = neighbor_indexes(col, next_cells.num_columns() - 1);
+    //     self.diffuse_to(&mut next_cells[(row_above, col_left)].substance);
+    //     // TODO
+    // }
+
+    fn diffuse_out(&mut self) -> f32 {
+        let delta = self.amount * 0.1;
+        self.set_amount(self.amount - delta);
+        delta
+    }
+
+    fn diffuse_in(&mut self, delta: f32) {
+        self.set_amount(self.amount + delta);
+    }
+
+    // fn diffuse_to(&mut self, other: &mut Substance) {
+    //     let delta = self.amount * 0.1;
+    //     self.set_amount(self.amount - delta);
+    //     other.set_amount(other.amount + delta);
+    // }
+
+    fn set_amount(&mut self, val: f32) {
+        self.amount = val.clamp(0.0, 1.0);
+    }
+}
+
+fn neighbor_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
+    if cell_index == 0 {
+        (max_index, 1)
+    } else if cell_index == max_index {
+        (max_index - 1, 0)
+    } else {
+        (cell_index - 1, cell_index + 1)
     }
 }
