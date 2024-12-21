@@ -151,7 +151,10 @@ impl GridCell {
 
     fn apply_delta(&mut self, delta: &GridCellDelta) {
         // TODO how do we remove the substance via a delta?
-        self.substance.get_or_insert_default().apply_delta(&delta.substance);
+        let substance = self.substance.get_or_insert_default();
+        if substance.color == [0, 0, 0] || delta.substance.color == substance.color {
+            substance.apply_delta(&delta.substance);
+        }
     }
 }
 
