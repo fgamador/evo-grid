@@ -18,8 +18,8 @@ impl WorldGrid {
     pub fn new(width: usize, height: usize) -> Self {
         let mut result = Self::new_empty(width, height);
         result.init_cell_square(height / 2, width / 2, 10, [0xff, 0, 0]);
-        result.init_cell_square(height / 4, width / 4, 5, [0, 0xff, 0]);
-        result.init_cell_square(3 * (height / 4), 3 * (width / 4), 5, [0, 0, 0xff]);
+        result.init_cell_square(height / 2, (width / 2) - 20, 10, [0, 0xff, 0]);
+        result.init_cell_square(height / 2, (width / 2) + 20, 10, [0, 0, 0xff]);
         result
     }
 
