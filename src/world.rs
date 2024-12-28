@@ -35,7 +35,10 @@ impl WorldGrid {
     fn init_cell_square(&mut self, row0: usize, col0: usize, side: usize, color: [u8; 3]) {
         for row in row0..=(row0 + side) {
             for col in col0..=(col0 + side) {
-                self.cells[(row, col)] = GridCell::new(color, 1.0);
+                self.cells[(row, col)] = GridCell::new(None, Some(Substance {
+                    color,
+                    amount: 1.0,
+                }));
             }
         }
     }
@@ -81,8 +84,13 @@ impl WorldGrid {
 
     fn update_neighborhood(&mut self, row: usize, col: usize, mut deltas: &mut NeighborhoodDeltas) {
         let cell = self.cells[(row, col)];
+        deltas.clear();
+
+        if cell.creature.is_some() {
+            // TODO
+        }
+
         if cell.substance.is_some() {
-            deltas.clear();
             cell.calc_neighborhood_deltas(&mut deltas);
             self.apply_neighborhood_deltas(row, col, &deltas);
         }
@@ -105,34 +113,66 @@ impl WorldGrid {
 }
 
 fn adjacent_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
-    ((cell_index as i64 - 1).rem_euclid(max_index as i64 + 1) as usize,
-     (cell_index as i64 + 1).rem_euclid(max_index as i64 + 1) as usize)
+    (
+        (cell_index as i64 - 1).rem_euclid(max_index as i64 + 1) as usize,
+        (cell_index as i64 + 1).rem_euclid(max_index as i64 + 1) as usize,
+    )
 }
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct GridCell {
+    pub creature: Option<Creature>,
     pub substance: Option<Substance>,
 }
 
 impl GridCell {
-    fn new(color: [u8; 3], amount: f32) -> Self {
+    fn new(creature: Option<Creature>, substance: Option<Substance>) -> Self {
         Self {
-            substance: Some(Substance::new(color, amount)),
+            creature,
+            substance,
         }
     }
 
     fn calc_neighborhood_deltas(&self, deltas: &mut NeighborhoodDeltas) {
+        if let Some(creature) = self.creature {
+            creature.calc_neighborhood_deltas(deltas);
+        }
+
         if let Some(substance) = self.substance {
             substance.calc_neighborhood_deltas(deltas);
         }
     }
 
     fn apply_delta(&mut self, delta: &GridCellDelta) {
-        // TODO how do we remove the substance via a delta?
+        // let creature = self.creature.get_or_insert_default();
+        // if substance.color == [0, 0, 0] || delta.substance.color == substance.color {
+        //     creature.apply_delta(&delta.creature);
+        // }
+
         let substance = self.substance.get_or_insert_default();
         if substance.color == [0, 0, 0] || delta.substance.color == substance.color {
             substance.apply_delta(&delta.substance);
         }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Creature {
+    pub color: [u8; 3],
+}
+
+impl Creature {
+    fn new(color: [u8; 3]) -> Self {
+        Self { color }
+    }
+
+    fn calc_neighborhood_deltas(&self, deltas: &mut NeighborhoodDeltas) {
+        // TODO
+        // deltas.for_all(|cell_delta| cell_delta.creature.color = self.color);
+    }
+
+    fn apply_delta(&mut self, delta: &CreatureDelta) {
+        self.color = delta.color;
     }
 }
 
@@ -216,12 +256,25 @@ impl NeighborhoodDeltas {
 
 #[derive(Clone, Copy, Debug, Default)]
 struct GridCellDelta {
+    pub creature: CreatureDelta,
     pub substance: SubstanceDelta,
 }
 
 impl GridCellDelta {
     fn clear(&mut self) {
+        self.creature.clear();
         self.substance.clear();
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct CreatureDelta {
+    pub color: [u8; 3],
+}
+
+impl CreatureDelta {
+    fn clear(&mut self) {
+        self.color = [0, 0, 0];
     }
 }
 
@@ -231,7 +284,7 @@ struct SubstanceDelta {
     pub amount: f32,
 }
 
-impl SubstanceDelta {
+impl crate::world::SubstanceDelta {
     fn clear(&mut self) {
         self.color = [0, 0, 0];
         self.amount = 0.0;
