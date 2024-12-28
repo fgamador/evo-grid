@@ -17,6 +17,7 @@ pub struct WorldGrid {
 impl WorldGrid {
     pub fn new(width: usize, height: usize) -> Self {
         let mut result = Self::new_empty(width, height);
+        result.init_cell_square(0, 0, 10, [0xff, 0x00, 0xff]);
         result.init_cell_square(height / 2, width / 2, 10, [0xff, 0, 0]);
         result.init_cell_square(height / 2, (width / 2) - 20, 10, [0, 0xff, 0]);
         result.init_cell_square(height / 2, (width / 2) + 20, 10, [0, 0, 0xff]);
@@ -117,6 +118,11 @@ impl WorldGrid {
     }
 }
 
+fn adjacent_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
+    ((cell_index as i64 - 1).rem_euclid(max_index as i64 + 1) as usize,
+     (cell_index as i64 + 1).rem_euclid(max_index as i64 + 1) as usize)
+}
+
 /// Generate a pseudorandom seed for the game's PRNG.
 // fn generate_seed() -> (u64, u64) {
 //     use byteorder::{ByteOrder, NativeEndian};
@@ -131,6 +137,7 @@ impl WorldGrid {
 //         NativeEndian::read_u64(&seed[8..16]),
 //     )
 // }
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct GridCell {
     pub substance: Option<Substance>,
@@ -155,16 +162,6 @@ impl GridCell {
         if substance.color == [0, 0, 0] || delta.substance.color == substance.color {
             substance.apply_delta(&delta.substance);
         }
-    }
-}
-
-fn adjacent_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
-    if cell_index == 0 {
-        (max_index, 1)
-    } else if cell_index == max_index {
-        (max_index - 1, 0)
-    } else {
-        (cell_index - 1, cell_index + 1)
     }
 }
 
