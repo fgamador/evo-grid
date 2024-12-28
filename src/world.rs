@@ -40,20 +40,6 @@ impl WorldGrid {
         }
     }
 
-    // pub fn new_random(width: usize, height: usize) -> Self {
-    //     let mut result = Self::new_empty(width, height);
-    //     result.randomize();
-    //     result
-    // }
-
-    // pub fn randomize(&mut self) {
-    //     let mut rng: randomize::PCG32 = generate_seed().into();
-    //     for i in 0..self.cells.num_elements() {
-    //         let cell = self.cells.get_mut_row_major(i).unwrap();
-    //         *cell = GridCell::new([0xff, 0, 0], randomize::f32_closed(rng.next_u32()));
-    //     }
-    // }
-
     pub fn width(&self) -> usize {
         self.cells.num_columns()
     }
@@ -122,21 +108,6 @@ fn adjacent_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
     ((cell_index as i64 - 1).rem_euclid(max_index as i64 + 1) as usize,
      (cell_index as i64 + 1).rem_euclid(max_index as i64 + 1) as usize)
 }
-
-/// Generate a pseudorandom seed for the game's PRNG.
-// fn generate_seed() -> (u64, u64) {
-//     use byteorder::{ByteOrder, NativeEndian};
-//     use getrandom::getrandom;
-//
-//     let mut seed = [0_u8; 16];
-//
-//     getrandom(&mut seed).expect("failed to getrandom");
-//
-//     (
-//         NativeEndian::read_u64(&seed[0..8]),
-//         NativeEndian::read_u64(&seed[8..16]),
-//     )
-// }
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct GridCell {
