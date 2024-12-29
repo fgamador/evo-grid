@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 
 use std::mem;
+use std::ops::{Index, IndexMut};
 
 use array2d::{Array2D /*, Error */};
 
@@ -95,15 +96,15 @@ impl WorldGrid {
         let (row_above, row_below) = adjacent_indexes(row, self.next_cells.num_rows() - 1);
         let (col_left, col_right) = adjacent_indexes(col, self.next_cells.num_columns() - 1);
 
-        self.next_cells[(row_above, col_left)].apply_delta(&deltas.deltas[(0, 0)]);
-        self.next_cells[(row_above, col)].apply_delta(&deltas.deltas[(0, 1)]);
-        self.next_cells[(row_above, col_right)].apply_delta(&deltas.deltas[(0, 2)]);
-        self.next_cells[(row, col_left)].apply_delta(&deltas.deltas[(1, 0)]);
-        self.next_cells[(row, col)].apply_delta(&deltas.deltas[(1, 1)]);
-        self.next_cells[(row, col_right)].apply_delta(&deltas.deltas[(1, 2)]);
-        self.next_cells[(row_below, col_left)].apply_delta(&deltas.deltas[(2, 0)]);
-        self.next_cells[(row_below, col)].apply_delta(&deltas.deltas[(2, 1)]);
-        self.next_cells[(row_below, col_right)].apply_delta(&deltas.deltas[(2, 2)]);
+        self.next_cells[(row_above, col_left)].apply_delta(&deltas[(0, 0)]);
+        self.next_cells[(row_above, col)].apply_delta(&deltas[(0, 1)]);
+        self.next_cells[(row_above, col_right)].apply_delta(&deltas[(0, 2)]);
+        self.next_cells[(row, col_left)].apply_delta(&deltas[(1, 0)]);
+        self.next_cells[(row, col)].apply_delta(&deltas[(1, 1)]);
+        self.next_cells[(row, col_right)].apply_delta(&deltas[(1, 2)]);
+        self.next_cells[(row_below, col_left)].apply_delta(&deltas[(2, 0)]);
+        self.next_cells[(row_below, col)].apply_delta(&deltas[(2, 1)]);
+        self.next_cells[(row_below, col_right)].apply_delta(&deltas[(2, 2)]);
     }
 }
 
@@ -219,13 +220,13 @@ impl Substance {
 }
 
 struct NeighborhoodDeltas {
-    pub deltas: Array2D<GridCellDelta>,
+    array: [GridCellDelta; 9],
 }
 
 impl NeighborhoodDeltas {
     fn new() -> Self {
         Self {
-            deltas: Array2D::filled_with(GridCellDelta::default(), 3, 3),
+            array: [GridCellDelta::default(); 9],
         }
     }
 
@@ -233,15 +234,46 @@ impl NeighborhoodDeltas {
         self.for_all(|cell, _| cell.clear());
     }
 
+    pub fn get(&self, row: usize, column: usize) -> Option<&GridCellDelta> {
+        self.get_index(row, column).map(|index| &self.array[index])
+    }
+
+    pub fn get_mut(&mut self, row: usize, column: usize) -> Option<&mut GridCellDelta> {
+        self.get_index(row, column)
+            .map(move |index| &mut self.array[index])
+    }
+
     fn for_all<F>(&mut self, f: F)
     where
         F: Fn(&mut GridCellDelta, bool),
     {
-        for row in 0..=2 {
-            for col in 0..=2 {
-                f(&mut self.deltas[(row, col)], row == 1 && col == 1);
-            }
+        for index in 0..9 {
+            f(&mut self.array[index], index == 4);
         }
+    }
+
+    fn get_index(&self, row: usize, column: usize) -> Option<usize> {
+        if row < 3 && column < 3 {
+            Some(row * 3 + column)
+        } else {
+            None
+        }
+    }
+}
+
+impl Index<(usize, usize)> for NeighborhoodDeltas {
+    type Output = GridCellDelta;
+
+    fn index(&self, (row, column): (usize, usize)) -> &Self::Output {
+        self.get(row, column)
+            .unwrap_or_else(|| panic!("Index indices {}, {} out of bounds", row, column))
+    }
+}
+
+impl IndexMut<(usize, usize)> for NeighborhoodDeltas {
+    fn index_mut(&mut self, (row, column): (usize, usize)) -> &mut Self::Output {
+        self.get_mut(row, column)
+            .unwrap_or_else(|| panic!("IndexMut indices {}, {} out of bounds", row, column))
     }
 }
 
