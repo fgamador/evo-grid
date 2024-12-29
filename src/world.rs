@@ -149,13 +149,8 @@ impl GridCell {
         }
 
         if let Some(substance_delta) = delta.substance {
-            // if self.substance.is_none() {
-            //     let substance = self.substance.get_or_insert_default();
-            //     substance.apply_delta(&substance_delta);
-            // }
-
-            let substance = self.substance.get_or_insert_default();
-            if substance.color == [0, 0, 0] || substance_delta.color == substance.color {
+            if self.substance.is_none() || substance_delta.color == self.substance.unwrap().color {
+                let substance = self.substance.get_or_insert_default();
                 substance.apply_delta(&substance_delta);
             }
         }
