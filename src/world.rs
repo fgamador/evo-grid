@@ -84,13 +84,8 @@ impl WorldGrid {
 
     fn update_neighborhood(&mut self, row: usize, col: usize, mut deltas: &mut NeighborhoodDeltas) {
         let cell = self.cells[(row, col)];
-        deltas.clear();
-
-        if cell.creature.is_some() {
-            // TODO
-        }
-
-        if cell.substance.is_some() {
+        if !cell.is_empty() {
+            deltas.clear();
             cell.calc_neighborhood_deltas(&mut deltas);
             self.apply_neighborhood_deltas(row, col, &deltas);
         }
@@ -133,6 +128,10 @@ impl GridCell {
         }
     }
 
+    fn is_empty(&self) -> bool {
+        self.creature.is_none() && self.substance.is_none()
+    }
+
     fn calc_neighborhood_deltas(&self, deltas: &mut NeighborhoodDeltas) {
         if let Some(creature) = self.creature {
             creature.calc_neighborhood_deltas(deltas);
@@ -144,14 +143,20 @@ impl GridCell {
     }
 
     fn apply_delta(&mut self, delta: &GridCellDelta) {
-        // let creature = self.creature.get_or_insert_default();
-        // if substance.color == [0, 0, 0] || delta.substance.color == substance.color {
-        //     creature.apply_delta(&delta.creature);
-        // }
+        if let Some(creature_delta) = delta.creature {
+            // TODO
+        }
 
-        let substance = self.substance.get_or_insert_default();
-        if substance.color == [0, 0, 0] || delta.substance.color == substance.color {
-            substance.apply_delta(&delta.substance);
+        if let Some(substance_delta) = delta.substance {
+            // if self.substance.is_none() {
+            //     let substance = self.substance.get_or_insert_default();
+            //     substance.apply_delta(&substance_delta);
+            // }
+
+            let substance = self.substance.get_or_insert_default();
+            if substance.color == [0, 0, 0] || substance_delta.color == substance.color {
+                substance.apply_delta(&substance_delta);
+            }
         }
     }
 }
@@ -191,9 +196,16 @@ impl Substance {
     }
 
     fn calc_neighborhood_deltas(&self, deltas: &mut NeighborhoodDeltas) {
-        deltas.for_all(|cell_delta| cell_delta.substance.color = self.color);
-        deltas.for_center(|cell_delta| cell_delta.substance.amount = -0.11 * self.amount);
-        deltas.for_neighbors(|cell_delta| cell_delta.substance.amount = (0.1 / 8.0) * self.amount);
+        deltas.for_all(|cell_delta, is_center| {
+            cell_delta.substance = Some(SubstanceDelta {
+                color: self.color,
+                amount: if is_center {
+                    -0.11 * self.amount
+                } else {
+                    (0.1 / 8.0) * self.amount
+                },
+            });
+        });
     }
 
     fn apply_delta(&mut self, delta: &SubstanceDelta) {
@@ -218,52 +230,31 @@ impl NeighborhoodDeltas {
     }
 
     fn clear(&mut self) {
-        self.for_all(|cell| cell.clear());
+        self.for_all(|cell, _| cell.clear());
     }
 
     fn for_all<F>(&mut self, f: F)
     where
-        F: Fn(&mut GridCellDelta),
+        F: Fn(&mut GridCellDelta, bool),
     {
         for row in 0..=2 {
             for col in 0..=2 {
-                f(&mut self.deltas[(row, col)]);
+                f(&mut self.deltas[(row, col)], row == 1 && col == 1);
             }
         }
-    }
-
-    fn for_center<F>(&mut self, f: F)
-    where
-        F: Fn(&mut GridCellDelta),
-    {
-        f(&mut self.deltas[(1, 1)]);
-    }
-
-    fn for_neighbors<F>(&mut self, f: F)
-    where
-        F: Fn(&mut GridCellDelta),
-    {
-        f(&mut self.deltas[(0, 0)]);
-        f(&mut self.deltas[(0, 1)]);
-        f(&mut self.deltas[(0, 2)]);
-        f(&mut self.deltas[(1, 0)]);
-        f(&mut self.deltas[(1, 2)]);
-        f(&mut self.deltas[(2, 0)]);
-        f(&mut self.deltas[(2, 1)]);
-        f(&mut self.deltas[(2, 2)]);
     }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
 struct GridCellDelta {
-    pub creature: CreatureDelta,
-    pub substance: SubstanceDelta,
+    pub creature: Option<CreatureDelta>,
+    pub substance: Option<SubstanceDelta>,
 }
 
 impl GridCellDelta {
     fn clear(&mut self) {
-        self.creature.clear();
-        self.substance.clear();
+        self.creature = None;
+        self.substance = None;
     }
 }
 
@@ -272,21 +263,8 @@ struct CreatureDelta {
     pub color: [u8; 3],
 }
 
-impl CreatureDelta {
-    fn clear(&mut self) {
-        self.color = [0, 0, 0];
-    }
-}
-
 #[derive(Clone, Copy, Debug, Default)]
 struct SubstanceDelta {
     pub color: [u8; 3],
     pub amount: f32,
-}
-
-impl crate::world::SubstanceDelta {
-    fn clear(&mut self) {
-        self.color = [0, 0, 0];
-        self.amount = 0.0;
-    }
 }
