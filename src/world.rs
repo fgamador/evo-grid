@@ -56,6 +56,10 @@ impl WorldGrid {
         self.cells.num_elements()
     }
 
+    fn cell(&self, row: usize, column: usize) -> &GridCell {
+        &self.cells[(row, column)]
+    }
+
     pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item=&GridCell> + Clone {
         self.cells.elements_row_major_iter()
     }
@@ -113,6 +117,41 @@ fn adjacent_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
         (cell_index as i64 - 1).rem_euclid(max_index as i64 + 1) as usize,
         (cell_index as i64 + 1).rem_euclid(max_index as i64 + 1) as usize,
     )
+}
+
+struct Neighborhood<'a> {
+    grid: &'a WorldGrid,
+    array: Array3By3<(usize, usize)>,
+}
+
+impl<'a> Neighborhood<'a> {
+    fn new(grid: &'a WorldGrid) -> Self {
+        Self {
+            grid,
+            array: Array3By3::<(usize, usize)>::new(),
+        }
+    }
+
+    pub fn get(&self, row: usize, column: usize) -> Option<&'a GridCell> {
+        let (grid_row, grid_column) = self.array.get(row, column)?;
+        Some(self.grid.cell(*grid_row, *grid_column))
+    }
+
+    fn for_all<F>(&self, f: F)
+    where
+        F: Fn(&(usize, usize), bool),
+    {
+        self.array.for_all(f);
+    }
+}
+
+impl<'a> Index<(usize, usize)> for Neighborhood<'a> {
+    type Output = GridCell;
+
+    fn index(&self, (row, column): (usize, usize)) -> &'a Self::Output {
+        self.get(row, column)
+            .unwrap_or_else(|| panic!("Index indices {}, {} out of bounds", row, column))
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -192,7 +231,7 @@ impl Substance {
     }
 
     fn calc_neighborhood_deltas(&self, deltas: &mut NeighborhoodDeltas) {
-        deltas.for_all(|cell_delta, is_center| {
+        deltas.for_all_mut(|cell_delta, is_center| {
             cell_delta.substance = Some(SubstanceDelta {
                 color: self.color,
                 amount: if is_center {
@@ -215,44 +254,33 @@ impl Substance {
 }
 
 struct NeighborhoodDeltas {
-    array: [GridCellDelta; 9],
+    array: Array3By3<GridCellDelta>,
 }
 
 impl NeighborhoodDeltas {
     fn new() -> Self {
         Self {
-            array: [GridCellDelta::default(); 9],
+            array: Array3By3::<GridCellDelta>::new(),
         }
     }
 
     fn clear(&mut self) {
-        self.for_all(|cell, _| cell.clear());
+        self.array.for_all_mut(|cell, _| cell.clear());
     }
 
     pub fn get(&self, row: usize, column: usize) -> Option<&GridCellDelta> {
-        self.get_index(row, column).map(|index| &self.array[index])
+        self.array.get(row, column)
     }
 
     pub fn get_mut(&mut self, row: usize, column: usize) -> Option<&mut GridCellDelta> {
-        self.get_index(row, column)
-            .map(move |index| &mut self.array[index])
+        self.array.get_mut(row, column)
     }
 
-    fn for_all<F>(&mut self, f: F)
+    fn for_all_mut<F>(&mut self, f: F)
     where
         F: Fn(&mut GridCellDelta, bool),
     {
-        for index in 0..9 {
-            f(&mut self.array[index], index == 4);
-        }
-    }
-
-    fn get_index(&self, row: usize, column: usize) -> Option<usize> {
-        if row < 3 && column < 3 {
-            Some(row * 3 + column)
-        } else {
-            None
-        }
+        self.array.for_all_mut(f);
     }
 }
 
@@ -269,6 +297,53 @@ impl IndexMut<(usize, usize)> for NeighborhoodDeltas {
     fn index_mut(&mut self, (row, column): (usize, usize)) -> &mut Self::Output {
         self.get_mut(row, column)
             .unwrap_or_else(|| panic!("IndexMut indices {}, {} out of bounds", row, column))
+    }
+}
+
+struct Array3By3<T: Copy + Default> {
+    array: [T; 9],
+}
+
+impl<T: Copy + Default> Array3By3<T> {
+    fn new() -> Self {
+        Self {
+            array: [T::default(); 9],
+        }
+    }
+
+    pub fn get(&self, row: usize, column: usize) -> Option<&T> {
+        Self::get_index(row, column).map(|index| &self.array[index])
+    }
+
+    pub fn get_mut(&mut self, row: usize, column: usize) -> Option<&mut T> {
+        Self::get_index(row, column)
+            .map(move |index| &mut self.array[index])
+    }
+
+    fn for_all<F>(&self, f: F)
+    where
+        F: Fn(&T, bool),
+    {
+        for index in 0..9 {
+            f(&self.array[index], index == 4);
+        }
+    }
+
+    fn for_all_mut<F>(&mut self, f: F)
+    where
+        F: Fn(&mut T, bool),
+    {
+        for index in 0..9 {
+            f(&mut self.array[index], index == 4);
+        }
+    }
+
+    fn get_index(row: usize, column: usize) -> Option<usize> {
+        if row < 3 && column < 3 {
+            Some(row * 3 + column)
+        } else {
+            None
+        }
     }
 }
 
