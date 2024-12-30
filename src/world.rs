@@ -260,7 +260,7 @@ struct NeighborhoodDeltas {
 impl NeighborhoodDeltas {
     fn new() -> Self {
         Self {
-            array: Array3By3::<GridCellDelta>::new(),
+            array: Array3By3::new(),
         }
     }
 
