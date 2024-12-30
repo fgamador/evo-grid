@@ -56,6 +56,10 @@ impl WorldGrid {
         self.cells.num_elements()
     }
 
+    fn get_cell(&self, row: usize, col: usize) -> Option<&GridCell> {
+        self.cells.get(row, col)
+    }
+
     fn cell(&self, row: usize, col: usize) -> &GridCell {
         &self.cells[(row, col)]
     }
@@ -110,6 +114,61 @@ impl WorldGrid {
         self.next_cells[(row_below, col)].apply_delta(&deltas[(2, 1)]);
         self.next_cells[(row_below, col_right)].apply_delta(&deltas[(2, 2)]);
     }
+}
+
+impl Index<(usize, usize)> for WorldGrid {
+    type Output = GridCell;
+
+    fn index(&self, (row, column): (usize, usize)) -> &Self::Output {
+        self.get_cell(row, column)
+            .unwrap_or_else(|| panic!("Index indices {}, {} out of bounds", row, column))
+    }
+}
+
+struct Neighborhood2<'a> {
+    array: [&'a GridCell; 9],
+}
+
+impl<'a> Neighborhood2<'a> {
+    fn new(grid: &'a WorldGrid, center_row: usize, center_col: usize) -> Self {
+        let (row_above, row_below) = adjacent_indexes2(center_row, grid.height());
+        let (col_left, col_right) = adjacent_indexes2(center_col, grid.width());
+        Self {
+            array: [
+                &grid[(row_above, col_left)], &grid[(row_above, center_col)], &grid[(row_above, col_right)],
+                &grid[(center_row, col_left)], &grid[(center_row, center_col)], &grid[(center_row, col_right)],
+                &grid[(row_below, col_left)], &grid[(row_below, center_col)], &grid[(row_below, col_right)],
+            ],
+        }
+    }
+
+    fn get(&self, row: usize, column: usize) -> Option<&'a GridCell> {
+        Some(self.array[Self::get_index(row, column)?])
+    }
+
+    fn get_index(row: usize, column: usize) -> Option<usize> {
+        if row < 3 && column < 3 {
+            Some(row * 3 + column)
+        } else {
+            None
+        }
+    }
+}
+
+impl<'a> Index<(usize, usize)> for Neighborhood2<'a> {
+    type Output = GridCell;
+
+    fn index(&self, (row, column): (usize, usize)) -> &'a Self::Output {
+        self.get(row, column)
+            .unwrap_or_else(|| panic!("Index indices {}, {} out of bounds", row, column))
+    }
+}
+
+fn adjacent_indexes2(cell_index: usize, max: usize) -> (usize, usize) {
+    (
+        (cell_index as i64 - 1).rem_euclid(max as i64) as usize,
+        (cell_index as i64 + 1).rem_euclid(max as i64) as usize,
+    )
 }
 
 fn adjacent_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
