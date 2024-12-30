@@ -56,8 +56,8 @@ impl WorldGrid {
         self.cells.num_elements()
     }
 
-    fn cell(&self, row: usize, column: usize) -> &GridCell {
-        &self.cells[(row, column)]
+    fn cell(&self, row: usize, col: usize) -> &GridCell {
+        &self.cells[(row, col)]
     }
 
     pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item=&GridCell> + Clone {
@@ -128,11 +128,21 @@ impl<'a> Neighborhood<'a> {
     fn new(grid: &'a WorldGrid) -> Self {
         Self {
             grid,
-            array: Array3By3::<(usize, usize)>::new(),
+            array: Array3By3::new(),
         }
     }
 
-    pub fn get(&self, row: usize, column: usize) -> Option<&'a GridCell> {
+    fn move_to(&mut self, row: usize, col: usize) {
+        let (row_above, row_below) = adjacent_indexes(row, self.grid.height() - 1);
+        let (col_left, col_right) = adjacent_indexes(col, self.grid.width() - 1);
+        self.array.fill(&[
+            (row_above, col_left), (row_above, col), (row_above, col_right),
+            (row, col_left), (row, col), (row, col_right),
+            (row_below, col_left), (row_below, col), (row_below, col_right),
+        ]);
+    }
+
+    fn get(&self, row: usize, column: usize) -> Option<&'a GridCell> {
         let (grid_row, grid_column) = self.array.get(row, column)?;
         Some(self.grid.cell(*grid_row, *grid_column))
     }
@@ -311,11 +321,15 @@ impl<T: Copy + Default> Array3By3<T> {
         }
     }
 
-    pub fn get(&self, row: usize, column: usize) -> Option<&T> {
+    fn fill(&mut self, values: &[T; 9]) {
+        self.array.clone_from_slice(values);
+    }
+
+    fn get(&self, row: usize, column: usize) -> Option<&T> {
         Self::get_index(row, column).map(|index| &self.array[index])
     }
 
-    pub fn get_mut(&mut self, row: usize, column: usize) -> Option<&mut T> {
+    fn get_mut(&mut self, row: usize, column: usize) -> Option<&mut T> {
         Self::get_index(row, column)
             .map(move |index| &mut self.array[index])
     }
