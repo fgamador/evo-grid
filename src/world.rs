@@ -79,20 +79,18 @@ impl WorldGrid {
     }
 
     fn update_next_cells(&mut self) {
-        let mut deltas = NeighborhoodDeltas::new();
         for row in 0..self.height() {
             for col in 0..self.width() {
-                self.update_neighborhood(row, col, &mut deltas);
+                self.update_neighborhood(row, col);
             }
         }
     }
 
-    fn update_neighborhood(&mut self, row: usize, col: usize, mut deltas: &mut NeighborhoodDeltas) {
+    fn update_neighborhood(&mut self, row: usize, col: usize) {
         let cell = self.cells[(row, col)];
         if !cell.is_empty() {
             let neighborhood = Neighborhood::new(self, row, col);
-            deltas.clear();
-            cell.calc_neighborhood_deltas(&neighborhood, &mut deltas);
+            let deltas = cell.calc_neighborhood_deltas(&neighborhood);
             self.apply_neighborhood_deltas(row, col, &deltas);
         }
     }
@@ -186,14 +184,18 @@ impl GridCell {
         self.creature.is_none() && self.substance.is_none()
     }
 
-    fn calc_neighborhood_deltas(&self, neighborhood: &Neighborhood, deltas: &mut NeighborhoodDeltas) {
+    fn calc_neighborhood_deltas(&self, neighborhood: &Neighborhood) -> NeighborhoodDeltas {
+        let mut deltas = NeighborhoodDeltas::new();
+
         if let Some(creature) = self.creature {
-            creature.calc_neighborhood_deltas(neighborhood, deltas);
+            creature.calc_neighborhood_deltas(neighborhood, &mut deltas);
         }
 
         if let Some(substance) = self.substance {
-            substance.calc_neighborhood_deltas(neighborhood, deltas);
+            substance.calc_neighborhood_deltas(neighborhood, &mut deltas);
         }
+
+        deltas
     }
 
     fn apply_delta(&mut self, delta: &GridCellDelta) {
