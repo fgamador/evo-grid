@@ -94,15 +94,16 @@ impl WorldGrid {
     fn update_neighborhood(&mut self, row: usize, col: usize, mut deltas: &mut NeighborhoodDeltas) {
         let cell = self.cells[(row, col)];
         if !cell.is_empty() {
+            let neighborhood = Neighborhood::new(self, row, col);
             deltas.clear();
-            cell.calc_neighborhood_deltas(&mut deltas);
+            cell.calc_neighborhood_deltas(&neighborhood, &mut deltas);
             self.apply_neighborhood_deltas(row, col, &deltas);
         }
     }
 
     fn apply_neighborhood_deltas(&mut self, row: usize, col: usize, deltas: &NeighborhoodDeltas) {
-        let (row_above, row_below) = adjacent_indexes(row, self.next_cells.num_rows() - 1);
-        let (col_left, col_right) = adjacent_indexes(col, self.next_cells.num_columns() - 1);
+        let (row_above, row_below) = adjacent_indexes0(row, self.next_cells.num_rows() - 1);
+        let (col_left, col_right) = adjacent_indexes0(col, self.next_cells.num_columns() - 1);
 
         self.next_cells[(row_above, col_left)].apply_delta(&deltas[(0, 0)]);
         self.next_cells[(row_above, col)].apply_delta(&deltas[(0, 1)]);
@@ -125,14 +126,14 @@ impl Index<(usize, usize)> for WorldGrid {
     }
 }
 
-struct Neighborhood2<'a> {
+struct Neighborhood<'a> {
     array: [&'a GridCell; 9],
 }
 
-impl<'a> Neighborhood2<'a> {
+impl<'a> Neighborhood<'a> {
     fn new(grid: &'a WorldGrid, center_row: usize, center_col: usize) -> Self {
-        let (row_above, row_below) = adjacent_indexes2(center_row, grid.height());
-        let (col_left, col_right) = adjacent_indexes2(center_col, grid.width());
+        let (row_above, row_below) = adjacent_indexes(center_row, grid.height());
+        let (col_left, col_right) = adjacent_indexes(center_col, grid.width());
         Self {
             array: [
                 &grid[(row_above, col_left)], &grid[(row_above, center_col)], &grid[(row_above, col_right)],
@@ -155,65 +156,6 @@ impl<'a> Neighborhood2<'a> {
     }
 }
 
-impl<'a> Index<(usize, usize)> for Neighborhood2<'a> {
-    type Output = GridCell;
-
-    fn index(&self, (row, column): (usize, usize)) -> &'a Self::Output {
-        self.get(row, column)
-            .unwrap_or_else(|| panic!("Index indices {}, {} out of bounds", row, column))
-    }
-}
-
-fn adjacent_indexes2(cell_index: usize, max: usize) -> (usize, usize) {
-    (
-        (cell_index as i64 - 1).rem_euclid(max as i64) as usize,
-        (cell_index as i64 + 1).rem_euclid(max as i64) as usize,
-    )
-}
-
-fn adjacent_indexes(cell_index: usize, max_index: usize) -> (usize, usize) {
-    (
-        (cell_index as i64 - 1).rem_euclid(max_index as i64 + 1) as usize,
-        (cell_index as i64 + 1).rem_euclid(max_index as i64 + 1) as usize,
-    )
-}
-
-struct Neighborhood<'a> {
-    grid: &'a WorldGrid,
-    array: Array3By3<(usize, usize)>,
-}
-
-impl<'a> Neighborhood<'a> {
-    fn new(grid: &'a WorldGrid) -> Self {
-        Self {
-            grid,
-            array: Array3By3::new(),
-        }
-    }
-
-    fn move_to(&mut self, row: usize, col: usize) {
-        let (row_above, row_below) = adjacent_indexes(row, self.grid.height() - 1);
-        let (col_left, col_right) = adjacent_indexes(col, self.grid.width() - 1);
-        self.array.fill(&[
-            (row_above, col_left), (row_above, col), (row_above, col_right),
-            (row, col_left), (row, col), (row, col_right),
-            (row_below, col_left), (row_below, col), (row_below, col_right),
-        ]);
-    }
-
-    fn get(&self, row: usize, column: usize) -> Option<&'a GridCell> {
-        let (grid_row, grid_column) = self.array.get(row, column)?;
-        Some(self.grid.cell(*grid_row, *grid_column))
-    }
-
-    fn for_all<F>(&self, f: F)
-    where
-        F: Fn(&(usize, usize), bool),
-    {
-        self.array.for_all(f);
-    }
-}
-
 impl<'a> Index<(usize, usize)> for Neighborhood<'a> {
     type Output = GridCell;
 
@@ -221,6 +163,20 @@ impl<'a> Index<(usize, usize)> for Neighborhood<'a> {
         self.get(row, column)
             .unwrap_or_else(|| panic!("Index indices {}, {} out of bounds", row, column))
     }
+}
+
+fn adjacent_indexes(cell_index: usize, max: usize) -> (usize, usize) {
+    (
+        (cell_index as i64 - 1).rem_euclid(max as i64) as usize,
+        (cell_index as i64 + 1).rem_euclid(max as i64) as usize,
+    )
+}
+
+fn adjacent_indexes0(cell_index: usize, max_index: usize) -> (usize, usize) {
+    (
+        (cell_index as i64 - 1).rem_euclid(max_index as i64 + 1) as usize,
+        (cell_index as i64 + 1).rem_euclid(max_index as i64 + 1) as usize,
+    )
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -241,13 +197,13 @@ impl GridCell {
         self.creature.is_none() && self.substance.is_none()
     }
 
-    fn calc_neighborhood_deltas(&self, deltas: &mut NeighborhoodDeltas) {
+    fn calc_neighborhood_deltas(&self, neighborhood: &Neighborhood, deltas: &mut NeighborhoodDeltas) {
         if let Some(creature) = self.creature {
-            creature.calc_neighborhood_deltas(deltas);
+            creature.calc_neighborhood_deltas(neighborhood, deltas);
         }
 
         if let Some(substance) = self.substance {
-            substance.calc_neighborhood_deltas(deltas);
+            substance.calc_neighborhood_deltas(neighborhood, deltas);
         }
     }
 
@@ -275,7 +231,7 @@ impl Creature {
         Self { color }
     }
 
-    fn calc_neighborhood_deltas(&self, deltas: &mut NeighborhoodDeltas) {
+    fn calc_neighborhood_deltas(&self, neighborhood: &Neighborhood, deltas: &mut NeighborhoodDeltas) {
         // TODO
         // deltas.for_all(|cell_delta| cell_delta.creature.color = self.color);
     }
@@ -299,7 +255,7 @@ impl Substance {
         }
     }
 
-    fn calc_neighborhood_deltas(&self, deltas: &mut NeighborhoodDeltas) {
+    fn calc_neighborhood_deltas(&self, neighborhood: &Neighborhood, deltas: &mut NeighborhoodDeltas) {
         deltas.for_all_mut(|cell_delta, is_center| {
             cell_delta.substance = Some(SubstanceDelta {
                 color: self.color,
