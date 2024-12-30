@@ -60,10 +60,6 @@ impl WorldGrid {
         self.cells.get(row, col)
     }
 
-    fn cell(&self, row: usize, col: usize) -> &GridCell {
-        &self.cells[(row, col)]
-    }
-
     pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item=&GridCell> + Clone {
         self.cells.elements_row_major_iter()
     }
@@ -102,8 +98,8 @@ impl WorldGrid {
     }
 
     fn apply_neighborhood_deltas(&mut self, row: usize, col: usize, deltas: &NeighborhoodDeltas) {
-        let (row_above, row_below) = adjacent_indexes0(row, self.next_cells.num_rows() - 1);
-        let (col_left, col_right) = adjacent_indexes0(col, self.next_cells.num_columns() - 1);
+        let (row_above, row_below) = adjacent_indexes(row, self.next_cells.num_rows());
+        let (col_left, col_right) = adjacent_indexes(col, self.next_cells.num_columns());
 
         self.next_cells[(row_above, col_left)].apply_delta(&deltas[(0, 0)]);
         self.next_cells[(row_above, col)].apply_delta(&deltas[(0, 1)]);
@@ -169,13 +165,6 @@ fn adjacent_indexes(cell_index: usize, max: usize) -> (usize, usize) {
     (
         (cell_index as i64 - 1).rem_euclid(max as i64) as usize,
         (cell_index as i64 + 1).rem_euclid(max as i64) as usize,
-    )
-}
-
-fn adjacent_indexes0(cell_index: usize, max_index: usize) -> (usize, usize) {
-    (
-        (cell_index as i64 - 1).rem_euclid(max_index as i64 + 1) as usize,
-        (cell_index as i64 + 1).rem_euclid(max_index as i64 + 1) as usize,
     )
 }
 
@@ -334,10 +323,6 @@ impl<T: Copy + Default> Array3By3<T> {
         Self {
             array: [T::default(); 9],
         }
-    }
-
-    fn fill(&mut self, values: &[T; 9]) {
-        self.array.clone_from_slice(values);
     }
 
     fn get(&self, row: usize, column: usize) -> Option<&T> {
