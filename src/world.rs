@@ -134,18 +134,6 @@ impl<'a> Neighborhood<'a> {
         }
     }
 
-    fn get(&self, row: usize, column: usize) -> Option<&'a GridCell> {
-        Some(self.array[Self::get_index(row, column)?])
-    }
-
-    fn get_index(row: usize, column: usize) -> Option<usize> {
-        if row < 3 && column < 3 {
-            Some(row * 3 + column)
-        } else {
-            None
-        }
-    }
-
     fn for_all_neighbors<F>(&self, deltas: &mut NeighborhoodDeltas, f: F)
     where
         F: Fn(&GridCell, &mut GridCellDelta),
@@ -163,15 +151,6 @@ impl<'a> Neighborhood<'a> {
         F: Fn(&GridCell, &mut GridCellDelta),
     {
         f(self.array[4], &mut deltas.array[4]);
-    }
-}
-
-impl<'a> Index<(usize, usize)> for Neighborhood<'a> {
-    type Output = GridCell;
-
-    fn index(&self, (row, column): (usize, usize)) -> &'a Self::Output {
-        self.get(row, column)
-            .unwrap_or_else(|| panic!("Index indices {}, {} out of bounds", row, column))
     }
 }
 
