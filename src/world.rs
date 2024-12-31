@@ -86,7 +86,8 @@ impl WorldGrid {
     fn update_neighborhood(&mut self, row: usize, col: usize) {
         let cell = self.cells[(row, col)];
         if !cell.is_empty() {
-            let neighborhood = Neighborhood::new(self, row, col);
+            let mut neighborhood = Neighborhood::new(self, row, col);
+            //cell.update_neighborhood(&mut neighborhood);
             let deltas = cell.calc_neighborhood_deltas(&neighborhood);
             self.apply_neighborhood_deltas(row, col, &deltas);
         }
@@ -219,6 +220,16 @@ impl GridCell {
         self.creature.is_none() && self.substance.is_none()
     }
 
+    fn update_neighborhood(&self, neighborhood: &mut Neighborhood) {
+        if let Some(creature) = self.creature {
+            creature.update_neighborhood(neighborhood);
+        }
+
+        if let Some(substance) = self.substance {
+            substance.update_neighborhood(neighborhood);
+        }
+    }
+
     fn calc_neighborhood_deltas(&self, neighborhood: &Neighborhood) -> NeighborhoodDeltas {
         let mut deltas = NeighborhoodDeltas::new();
 
@@ -254,9 +265,12 @@ impl Creature {
         Self { color }
     }
 
+    fn update_neighborhood(&self, _neighborhood: &mut Neighborhood) {
+        // TODO
+    }
+
     fn calc_neighborhood_deltas(&self, _neighborhood: &Neighborhood, _deltas: &mut NeighborhoodDeltas) {
         // TODO
-        // deltas.for_all(|cell_delta| cell_delta.creature.color = self.color);
     }
 
     fn apply_delta(&mut self, delta: &CreatureDelta) {
@@ -276,6 +290,24 @@ impl Substance {
             color,
             amount: amount.clamp(0.0, 1.0),
         }
+    }
+
+    fn update_neighborhood(&self, neighborhood: &mut Neighborhood) {
+        neighborhood.for_center2(|_cell, next_cell| {
+            let mut next_substance = next_cell.substance.get_or_insert(
+                Substance::new(self.color, 0.0));
+            if next_substance.color == self.color {
+                next_substance.amount += -0.11 * self.amount;
+            }
+        });
+
+        neighborhood.for_all_neighbors2(|neighbor, next_neighbor| {
+            let mut next_substance = next_neighbor.substance.get_or_insert(
+                Substance::new(self.color, 0.0));
+            if next_substance.color == self.color {
+                next_substance.amount += (0.1 / 8.0) * self.amount;
+            }
+        });
     }
 
     fn calc_neighborhood_deltas(&self, neighborhood: &Neighborhood, deltas: &mut NeighborhoodDeltas) {
