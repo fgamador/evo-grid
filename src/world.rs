@@ -118,19 +118,17 @@ impl Index<(usize, usize)> for WorldGrid {
 }
 
 struct Neighborhood<'a> {
-    array: [&'a GridCell; 9],
+    grid: &'a WorldGrid,
+    center_row: usize,
+    center_col: usize,
 }
 
 impl<'a> Neighborhood<'a> {
     fn new(grid: &'a WorldGrid, center_row: usize, center_col: usize) -> Self {
-        let (row_above, row_below) = adjacent_indexes(center_row, grid.height());
-        let (col_left, col_right) = adjacent_indexes(center_col, grid.width());
         Self {
-            array: [
-                &grid[(row_above, col_left)], &grid[(row_above, center_col)], &grid[(row_above, col_right)],
-                &grid[(center_row, col_left)], &grid[(center_row, center_col)], &grid[(center_row, col_right)],
-                &grid[(row_below, col_left)], &grid[(row_below, center_col)], &grid[(row_below, col_right)],
-            ],
+            grid,
+            center_row,
+            center_col,
         }
     }
 
@@ -138,19 +136,26 @@ impl<'a> Neighborhood<'a> {
     where
         F: Fn(&GridCell, &mut GridCellDelta),
     {
-        for index in 0..=3 {
-            f(self.array[index], &mut deltas.array[index]);
-        }
-        for index in 5..=8 {
-            f(self.array[index], &mut deltas.array[index]);
-        }
+        let (row_above, row_below) = adjacent_indexes(self.center_row, self.grid.height());
+        let (col_left, col_right) = adjacent_indexes(self.center_col, self.grid.width());
+
+        f(&self.grid[(row_above, col_left)], &mut deltas[(0, 0)]);
+        f(&self.grid[(row_above, self.center_col)], &mut deltas[(0, 1)]);
+        f(&self.grid[(row_above, col_right)], &mut deltas[(0, 2)]);
+
+        f(&self.grid[(self.center_row, col_left)], &mut deltas[(1, 0)]);
+        f(&self.grid[(self.center_row, col_right)], &mut deltas[(1, 2)]);
+
+        f(&self.grid[(row_below, col_left)], &mut deltas[(2, 0)]);
+        f(&self.grid[(row_below, self.center_col)], &mut deltas[(2, 1)]);
+        f(&self.grid[(row_below, col_right)], &mut deltas[(2, 2)]);
     }
 
     fn for_center<F>(&self, deltas: &mut NeighborhoodDeltas, f: F)
     where
         F: Fn(&GridCell, &mut GridCellDelta),
     {
-        f(self.array[4], &mut deltas.array[4]);
+        f(&self.grid[(self.center_row, self.center_col)], &mut deltas[(1, 1)]);
     }
 }
 
