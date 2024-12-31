@@ -270,33 +270,39 @@ impl Substance {
 }
 
 struct NeighborhoodDeltas {
-    array: Array3By3<GridCellDelta>,
+    array: [GridCellDelta; 9],
 }
 
 impl NeighborhoodDeltas {
     fn new() -> Self {
         Self {
-            array: Array3By3::new(),
+            array: [GridCellDelta::default(); 9],
         }
     }
 
-    fn clear(&mut self) {
-        self.array.for_all_mut(|cell, _| cell.clear());
+    fn get(&self, row: usize, column: usize) -> Option<&GridCellDelta> {
+        Some(&self.array[Self::get_index(row, column)?])
     }
 
-    pub fn get(&self, row: usize, column: usize) -> Option<&GridCellDelta> {
-        self.array.get(row, column)
+    fn get_mut(&mut self, row: usize, column: usize) -> Option<&mut GridCellDelta> {
+        Some(&mut self.array[Self::get_index(row, column)?])
     }
 
-    pub fn get_mut(&mut self, row: usize, column: usize) -> Option<&mut GridCellDelta> {
-        self.array.get_mut(row, column)
+    fn get_index(row: usize, column: usize) -> Option<usize> {
+        if row < 3 && column < 3 {
+            Some(row * 3 + column)
+        } else {
+            None
+        }
     }
 
     fn for_all_mut<F>(&mut self, f: F)
     where
         F: Fn(&mut GridCellDelta, bool),
     {
-        self.array.for_all_mut(f);
+        for index in 0..9 {
+            f(&mut self.array[index], index == 4);
+        }
     }
 }
 
@@ -313,53 +319,6 @@ impl IndexMut<(usize, usize)> for NeighborhoodDeltas {
     fn index_mut(&mut self, (row, column): (usize, usize)) -> &mut Self::Output {
         self.get_mut(row, column)
             .unwrap_or_else(|| panic!("IndexMut indices {}, {} out of bounds", row, column))
-    }
-}
-
-struct Array3By3<T: Copy + Default> {
-    array: [T; 9],
-}
-
-impl<T: Copy + Default> Array3By3<T> {
-    fn new() -> Self {
-        Self {
-            array: [T::default(); 9],
-        }
-    }
-
-    fn get(&self, row: usize, column: usize) -> Option<&T> {
-        Self::get_index(row, column).map(|index| &self.array[index])
-    }
-
-    fn get_mut(&mut self, row: usize, column: usize) -> Option<&mut T> {
-        Self::get_index(row, column)
-            .map(move |index| &mut self.array[index])
-    }
-
-    fn for_all<F>(&self, f: F)
-    where
-        F: Fn(&T, bool),
-    {
-        for index in 0..9 {
-            f(&self.array[index], index == 4);
-        }
-    }
-
-    fn for_all_mut<F>(&mut self, f: F)
-    where
-        F: Fn(&mut T, bool),
-    {
-        for index in 0..9 {
-            f(&mut self.array[index], index == 4);
-        }
-    }
-
-    fn get_index(row: usize, column: usize) -> Option<usize> {
-        if row < 3 && column < 3 {
-            Some(row * 3 + column)
-        } else {
-            None
-        }
     }
 }
 
