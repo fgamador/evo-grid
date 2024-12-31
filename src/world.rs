@@ -36,10 +36,7 @@ impl WorldGrid {
     fn init_cell_square(&mut self, row0: usize, col0: usize, side: usize, color: [u8; 3]) {
         for row in row0..=(row0 + side) {
             for col in col0..=(col0 + side) {
-                self.cells[(row, col)] = GridCell::new(None, Some(Substance {
-                    color,
-                    amount: 1.0,
-                }));
+                self.cells[(row, col)] = GridCell::new(None, Some(Substance::new(color, 1.0)));
             }
         }
     }
@@ -234,7 +231,7 @@ pub struct Creature {
 }
 
 impl Creature {
-    fn new(color: [u8; 3]) -> Self {
+    fn _new(color: [u8; 3]) -> Self {
         Self { color }
     }
 
