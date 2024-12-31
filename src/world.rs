@@ -148,6 +148,25 @@ impl<'a> Neighborhood<'a> {
             None
         }
     }
+
+    fn for_all_neighbors<F>(&self, deltas: &mut NeighborhoodDeltas, f: F)
+    where
+        F: Fn(&GridCell, &mut GridCellDelta),
+    {
+        for index in 0..=3 {
+            f(self.array[index], &mut deltas.array[index]);
+        }
+        for index in 5..=8 {
+            f(self.array[index], &mut deltas.array[index]);
+        }
+    }
+
+    fn for_center<F>(&self, deltas: &mut NeighborhoodDeltas, f: F)
+    where
+        F: Fn(&GridCell, &mut GridCellDelta),
+    {
+        f(self.array[4], &mut deltas.array[4]);
+    }
 }
 
 impl<'a> Index<(usize, usize)> for Neighborhood<'a> {
@@ -200,14 +219,11 @@ impl GridCell {
 
     fn apply_delta(&mut self, delta: &GridCellDelta) {
         if let Some(creature_delta) = delta.creature {
-            // TODO
+            self.creature.get_or_insert_default().apply_delta(&creature_delta);
         }
 
         if let Some(substance_delta) = delta.substance {
-            if self.substance.is_none() || substance_delta.color == self.substance.unwrap().color {
-                let substance = self.substance.get_or_insert_default();
-                substance.apply_delta(&substance_delta);
-            }
+            self.substance.get_or_insert_default().apply_delta(&substance_delta);
         }
     }
 }
@@ -222,7 +238,7 @@ impl Creature {
         Self { color }
     }
 
-    fn calc_neighborhood_deltas(&self, neighborhood: &Neighborhood, deltas: &mut NeighborhoodDeltas) {
+    fn calc_neighborhood_deltas(&self, _neighborhood: &Neighborhood, _deltas: &mut NeighborhoodDeltas) {
         // TODO
         // deltas.for_all(|cell_delta| cell_delta.creature.color = self.color);
     }
@@ -247,14 +263,19 @@ impl Substance {
     }
 
     fn calc_neighborhood_deltas(&self, neighborhood: &Neighborhood, deltas: &mut NeighborhoodDeltas) {
-        deltas.for_all_mut(|cell_delta, is_center| {
+        neighborhood.for_all_neighbors(deltas, |neighbor, neighbor_delta| {
+            if neighbor.substance.is_none() || neighbor.substance.unwrap().color == self.color {
+                neighbor_delta.substance = Some(SubstanceDelta {
+                    color: self.color,
+                    amount: (0.1 / 8.0) * self.amount,
+                });
+            }
+        });
+
+        neighborhood.for_center(deltas, |_cell, cell_delta| {
             cell_delta.substance = Some(SubstanceDelta {
                 color: self.color,
-                amount: if is_center {
-                    -0.11 * self.amount
-                } else {
-                    (0.1 / 8.0) * self.amount
-                },
+                amount: -0.11 * self.amount,
             });
         });
     }
@@ -295,15 +316,6 @@ impl NeighborhoodDeltas {
             None
         }
     }
-
-    fn for_all_mut<F>(&mut self, f: F)
-    where
-        F: Fn(&mut GridCellDelta, bool),
-    {
-        for index in 0..9 {
-            f(&mut self.array[index], index == 4);
-        }
-    }
 }
 
 impl Index<(usize, usize)> for NeighborhoodDeltas {
@@ -326,13 +338,6 @@ impl IndexMut<(usize, usize)> for NeighborhoodDeltas {
 struct GridCellDelta {
     pub creature: Option<CreatureDelta>,
     pub substance: Option<SubstanceDelta>,
-}
-
-impl GridCellDelta {
-    fn clear(&mut self) {
-        self.creature = None;
-        self.substance = None;
-    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
