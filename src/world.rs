@@ -2,7 +2,7 @@
 #![forbid(unsafe_code)]
 
 use std::mem;
-use std::ops::{Index, IndexMut};
+use std::ops::Index;
 
 use array2d::{Array2D /*, Error */};
 
@@ -87,25 +87,8 @@ impl WorldGrid {
         let cell = self.cells[(row, col)];
         if !cell.is_empty() {
             let mut neighborhood = Neighborhood::new(self, row, col);
-            //cell.update_neighborhood(&mut neighborhood);
-            let deltas = cell.calc_neighborhood_deltas(&neighborhood);
-            self.apply_neighborhood_deltas(row, col, &deltas);
+            cell.update_neighborhood(&mut neighborhood);
         }
-    }
-
-    fn apply_neighborhood_deltas(&mut self, row: usize, col: usize, deltas: &NeighborhoodDeltas) {
-        let (row_above, row_below) = adjacent_indexes(row, self.next_cells.num_rows());
-        let (col_left, col_right) = adjacent_indexes(col, self.next_cells.num_columns());
-
-        self.next_cells[(row_above, col_left)].apply_delta(&deltas[(0, 0)]);
-        self.next_cells[(row_above, col)].apply_delta(&deltas[(0, 1)]);
-        self.next_cells[(row_above, col_right)].apply_delta(&deltas[(0, 2)]);
-        self.next_cells[(row, col_left)].apply_delta(&deltas[(1, 0)]);
-        self.next_cells[(row, col)].apply_delta(&deltas[(1, 1)]);
-        self.next_cells[(row, col_right)].apply_delta(&deltas[(1, 2)]);
-        self.next_cells[(row_below, col_left)].apply_delta(&deltas[(2, 0)]);
-        self.next_cells[(row_below, col)].apply_delta(&deltas[(2, 1)]);
-        self.next_cells[(row_below, col_right)].apply_delta(&deltas[(2, 2)]);
     }
 }
 
@@ -135,33 +118,14 @@ impl<'a> Neighborhood<'a> {
         }
     }
 
-    fn for_all_neighbors<F>(&self, deltas: &mut NeighborhoodDeltas, f: F)
+    fn for_center<F>(&mut self, f: F)
     where
-        F: Fn(&GridCell, &mut GridCellDelta),
+        F: Fn(&GridCell, &mut GridCell),
     {
-        let (row_above, row_below) = adjacent_indexes(self.center_row, self.cells.num_rows());
-        let (col_left, col_right) = adjacent_indexes(self.center_col, self.cells.num_columns());
-
-        f(&self.cells[(row_above, col_left)], &mut deltas[(0, 0)]);
-        f(&self.cells[(row_above, self.center_col)], &mut deltas[(0, 1)]);
-        f(&self.cells[(row_above, col_right)], &mut deltas[(0, 2)]);
-
-        f(&self.cells[(self.center_row, col_left)], &mut deltas[(1, 0)]);
-        f(&self.cells[(self.center_row, col_right)], &mut deltas[(1, 2)]);
-
-        f(&self.cells[(row_below, col_left)], &mut deltas[(2, 0)]);
-        f(&self.cells[(row_below, self.center_col)], &mut deltas[(2, 1)]);
-        f(&self.cells[(row_below, col_right)], &mut deltas[(2, 2)]);
+        self.for_cell(self.center_row, self.center_col, &f);
     }
 
-    fn for_center<F>(&self, deltas: &mut NeighborhoodDeltas, f: F)
-    where
-        F: Fn(&GridCell, &mut GridCellDelta),
-    {
-        f(&self.cells[(self.center_row, self.center_col)], &mut deltas[(1, 1)]);
-    }
-
-    fn for_all_neighbors2<F>(&mut self, f: F)
+    fn for_all_neighbors<F>(&mut self, f: F)
     where
         F: Fn(&GridCell, &mut GridCell),
     {
@@ -178,13 +142,6 @@ impl<'a> Neighborhood<'a> {
         self.for_cell(row_below, col_left, &f);
         self.for_cell(row_below, self.center_col, &f);
         self.for_cell(row_below, col_right, &f);
-    }
-
-    fn for_center2<F>(&mut self, f: F)
-    where
-        F: Fn(&GridCell, &mut GridCell),
-    {
-        self.for_cell(self.center_row, self.center_col, &f);
     }
 
     fn for_cell<F>(&mut self, row: usize, col: usize, f: &F)
@@ -229,30 +186,6 @@ impl GridCell {
             substance.update_neighborhood(neighborhood);
         }
     }
-
-    fn calc_neighborhood_deltas(&self, neighborhood: &Neighborhood) -> NeighborhoodDeltas {
-        let mut deltas = NeighborhoodDeltas::new();
-
-        if let Some(creature) = self.creature {
-            creature.calc_neighborhood_deltas(neighborhood, &mut deltas);
-        }
-
-        if let Some(substance) = self.substance {
-            substance.calc_neighborhood_deltas(neighborhood, &mut deltas);
-        }
-
-        deltas
-    }
-
-    fn apply_delta(&mut self, delta: &GridCellDelta) {
-        if let Some(creature_delta) = delta.creature {
-            self.creature.get_or_insert_default().apply_delta(&creature_delta);
-        }
-
-        if let Some(substance_delta) = delta.substance {
-            self.substance.get_or_insert_default().apply_delta(&substance_delta);
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -267,14 +200,6 @@ impl Creature {
 
     fn update_neighborhood(&self, _neighborhood: &mut Neighborhood) {
         // TODO
-    }
-
-    fn calc_neighborhood_deltas(&self, _neighborhood: &Neighborhood, _deltas: &mut NeighborhoodDeltas) {
-        // TODO
-    }
-
-    fn apply_delta(&mut self, delta: &CreatureDelta) {
-        self.color = delta.color;
     }
 }
 
@@ -293,108 +218,20 @@ impl Substance {
     }
 
     fn update_neighborhood(&self, neighborhood: &mut Neighborhood) {
-        neighborhood.for_center2(|_cell, next_cell| {
-            let mut next_substance = next_cell.substance.get_or_insert(
+        neighborhood.for_center(|_cell, next_cell| {
+            let next_substance = next_cell.substance.get_or_insert(
                 Substance::new(self.color, 0.0));
             if next_substance.color == self.color {
                 next_substance.amount += -0.11 * self.amount;
             }
         });
 
-        neighborhood.for_all_neighbors2(|neighbor, next_neighbor| {
-            let mut next_substance = next_neighbor.substance.get_or_insert(
+        neighborhood.for_all_neighbors(|_neighbor, next_neighbor| {
+            let next_substance = next_neighbor.substance.get_or_insert(
                 Substance::new(self.color, 0.0));
             if next_substance.color == self.color {
                 next_substance.amount += (0.1 / 8.0) * self.amount;
             }
         });
     }
-
-    fn calc_neighborhood_deltas(&self, neighborhood: &Neighborhood, deltas: &mut NeighborhoodDeltas) {
-        neighborhood.for_all_neighbors(deltas, |neighbor, neighbor_delta| {
-            if neighbor.substance.is_none() || neighbor.substance.unwrap().color == self.color {
-                neighbor_delta.substance = Some(SubstanceDelta {
-                    color: self.color,
-                    amount: (0.1 / 8.0) * self.amount,
-                });
-            }
-        });
-
-        neighborhood.for_center(deltas, |_cell, cell_delta| {
-            cell_delta.substance = Some(SubstanceDelta {
-                color: self.color,
-                amount: -0.11 * self.amount,
-            });
-        });
-    }
-
-    fn apply_delta(&mut self, delta: &SubstanceDelta) {
-        self.color = delta.color;
-        self.set_amount_clamped(self.amount + delta.amount);
-    }
-
-    fn set_amount_clamped(&mut self, val: f32) {
-        self.amount = val.clamp(0.0, 1.0);
-    }
-}
-
-struct NeighborhoodDeltas {
-    array: [GridCellDelta; 9],
-}
-
-impl NeighborhoodDeltas {
-    fn new() -> Self {
-        Self {
-            array: [GridCellDelta::default(); 9],
-        }
-    }
-
-    fn get(&self, row: usize, column: usize) -> Option<&GridCellDelta> {
-        Some(&self.array[Self::get_index(row, column)?])
-    }
-
-    fn get_mut(&mut self, row: usize, column: usize) -> Option<&mut GridCellDelta> {
-        Some(&mut self.array[Self::get_index(row, column)?])
-    }
-
-    fn get_index(row: usize, column: usize) -> Option<usize> {
-        if row < 3 && column < 3 {
-            Some(row * 3 + column)
-        } else {
-            None
-        }
-    }
-}
-
-impl Index<(usize, usize)> for NeighborhoodDeltas {
-    type Output = GridCellDelta;
-
-    fn index(&self, (row, column): (usize, usize)) -> &Self::Output {
-        self.get(row, column)
-            .unwrap_or_else(|| panic!("Index indices {}, {} out of bounds", row, column))
-    }
-}
-
-impl IndexMut<(usize, usize)> for NeighborhoodDeltas {
-    fn index_mut(&mut self, (row, column): (usize, usize)) -> &mut Self::Output {
-        self.get_mut(row, column)
-            .unwrap_or_else(|| panic!("IndexMut indices {}, {} out of bounds", row, column))
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-struct GridCellDelta {
-    pub creature: Option<CreatureDelta>,
-    pub substance: Option<SubstanceDelta>,
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-struct CreatureDelta {
-    pub color: [u8; 3],
-}
-
-#[derive(Clone, Copy, Debug, Default)]
-struct SubstanceDelta {
-    pub color: [u8; 3],
-    pub amount: f32,
 }
