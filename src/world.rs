@@ -2,16 +2,12 @@
 #![forbid(unsafe_code)]
 
 use std::mem;
-use std::ops::Index;
 
 use array2d::{Array2D /*, Error */};
 
 #[derive(Clone, Debug)]
 pub struct WorldGrid {
     cells: Array2D<GridCell>,
-    // Should always be the same size as `cells`. When updating, we read from
-    // `cells` and write to `next_cells`, then swap. Otherwise, it's not in
-    // use, and `cells` should be updated directly.
     next_cells: Array2D<GridCell>,
 }
 
@@ -53,10 +49,6 @@ impl WorldGrid {
         self.cells.num_elements()
     }
 
-    fn get_cell(&self, row: usize, col: usize) -> Option<&GridCell> {
-        self.cells.get(row, col)
-    }
-
     pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item=&GridCell> + Clone {
         self.cells.elements_row_major_iter()
     }
@@ -68,6 +60,8 @@ impl WorldGrid {
     }
 
     fn copy_cells_into_next_cells(&mut self) {
+        // TODO self.next_cells.copy_from_slice(&self.cells);
+
         for i in 0..self.cells.num_elements() {
             let cell = self.cells.get_row_major(i).unwrap();
             let next_cell = self.next_cells.get_mut_row_major(i).unwrap();
@@ -92,29 +86,22 @@ impl WorldGrid {
     }
 }
 
-impl Index<(usize, usize)> for WorldGrid {
-    type Output = GridCell;
-
-    fn index(&self, (row, column): (usize, usize)) -> &Self::Output {
-        self.get_cell(row, column)
-            .unwrap_or_else(|| panic!("Index indices {}, {} out of bounds", row, column))
-    }
-}
-
 struct Neighborhood<'a> {
     cells: &'a Array2D<GridCell>,
     next_cells: &'a mut Array2D<GridCell>,
-    center_row: usize,
-    center_col: usize,
+    rows: [usize; 3],
+    cols: [usize; 3],
 }
 
 impl<'a> Neighborhood<'a> {
     fn new(grid: &'a mut WorldGrid, center_row: usize, center_col: usize) -> Self {
+        let (row_above, row_below) = adjacent_indexes(center_row, grid.height());
+        let (col_left, col_right) = adjacent_indexes(center_col, grid.width());
         Self {
             cells: &grid.cells,
             next_cells: &mut grid.next_cells,
-            center_row,
-            center_col,
+            rows: [row_above, center_row, row_below],
+            cols: [col_left, center_col, col_right],
         }
     }
 
@@ -122,26 +109,23 @@ impl<'a> Neighborhood<'a> {
     where
         F: Fn(&GridCell, &mut GridCell),
     {
-        self.for_cell(self.center_row, self.center_col, &f);
+        self.for_cell(self.rows[1], self.cols[1], &f);
     }
 
-    fn for_all_neighbors<F>(&mut self, f: F)
+    fn for_neighbors<F>(&mut self, f: F)
     where
         F: Fn(&GridCell, &mut GridCell),
     {
-        let (row_above, row_below) = adjacent_indexes(self.center_row, self.cells.num_rows());
-        let (col_left, col_right) = adjacent_indexes(self.center_col, self.cells.num_columns());
+        self.for_cell(self.rows[0], self.cols[0], &f);
+        self.for_cell(self.rows[0], self.cols[1], &f);
+        self.for_cell(self.rows[0], self.cols[2], &f);
 
-        self.for_cell(row_above, col_left, &f);
-        self.for_cell(row_above, self.center_col, &f);
-        self.for_cell(row_above, col_right, &f);
+        self.for_cell(self.rows[1], self.cols[0], &f);
+        self.for_cell(self.rows[1], self.cols[2], &f);
 
-        self.for_cell(self.center_row, col_left, &f);
-        self.for_cell(self.center_row, col_right, &f);
-
-        self.for_cell(row_below, col_left, &f);
-        self.for_cell(row_below, self.center_col, &f);
-        self.for_cell(row_below, col_right, &f);
+        self.for_cell(self.rows[2], self.cols[0], &f);
+        self.for_cell(self.rows[2], self.cols[1], &f);
+        self.for_cell(self.rows[2], self.cols[2], &f);
     }
 
     fn for_cell<F>(&mut self, row: usize, col: usize, f: &F)
@@ -226,7 +210,7 @@ impl Substance {
             }
         });
 
-        neighborhood.for_all_neighbors(|_neighbor, next_neighbor| {
+        neighborhood.for_neighbors(|_neighbor, next_neighbor| {
             let next_substance = next_neighbor.substance.get_or_insert(
                 Substance::new(self.color, 0.0));
             if next_substance.color == self.color {
