@@ -2,13 +2,12 @@
 #![forbid(unsafe_code)]
 
 use std::mem;
-
-use array2d::{Array2D /*, Error */};
+use std::ops::{Index, IndexMut};
 
 #[derive(Clone, Debug)]
 pub struct World {
-    cells: Array2D<GridCell>,
-    next_cells: Array2D<GridCell>,
+    cells: WorldGrid,
+    next_cells: WorldGrid,
 }
 
 impl World {
@@ -24,8 +23,8 @@ impl World {
     fn new_empty(width: usize, height: usize) -> Self {
         assert!(width != 0 && height != 0);
         Self {
-            cells: Array2D::filled_with(GridCell::default(), height, width),
-            next_cells: Array2D::filled_with(GridCell::default(), height, width),
+            cells: WorldGrid::new(width, height),
+            next_cells: WorldGrid::new(width, height),
         }
     }
 
@@ -38,35 +37,25 @@ impl World {
     }
 
     pub fn width(&self) -> usize {
-        self.cells.num_columns()
+        self.cells.width()
     }
 
     pub fn height(&self) -> usize {
-        self.cells.num_rows()
+        self.cells.height()
     }
 
     pub fn num_cells(&self) -> usize {
-        self.cells.num_elements()
+        self.cells.num_cells()
     }
 
     pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item=&GridCell> + Clone {
-        self.cells.elements_row_major_iter()
+        self.cells.cells_iter()
     }
 
     pub fn update(&mut self) {
-        self.copy_cells_into_next_cells();
+        self.next_cells.copy_from(&self.cells);
         self.update_next_cells();
         mem::swap(&mut self.next_cells, &mut self.cells);
-    }
-
-    fn copy_cells_into_next_cells(&mut self) {
-        // TODO self.next_cells.copy_from_slice(&self.cells);
-
-        for i in 0..self.cells.num_elements() {
-            let cell = self.cells.get_row_major(i).unwrap();
-            let next_cell = self.next_cells.get_mut_row_major(i).unwrap();
-            *next_cell = *cell;
-        }
     }
 
     fn update_next_cells(&mut self) {
@@ -86,9 +75,81 @@ impl World {
     }
 }
 
+#[derive(Clone, Debug)]
+struct WorldGrid {
+    cells: Vec<GridCell>,
+    width: usize,
+    height: usize,
+}
+
+impl WorldGrid {
+    fn new(width: usize, height: usize) -> Self {
+        assert!(width != 0 && height != 0);
+        Self {
+            cells: vec![GridCell::default(); width * height],
+            width,
+            height,
+        }
+    }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn height(&self) -> usize {
+        self.height
+    }
+
+    pub fn num_cells(&self) -> usize {
+        self.cells.len()
+    }
+
+    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item=&GridCell> + Clone {
+        self.cells.iter()
+    }
+
+    fn get(&self, row: usize, col: usize) -> Option<&GridCell> {
+        self.get_index(row, col)
+            .map(|index| &self.cells[index])
+    }
+
+    fn get_mut(&mut self, row: usize, col: usize) -> Option<&mut GridCell> {
+        self.get_index(row, col)
+            .map(|index| &mut self.cells[index])
+    }
+
+    fn copy_from(&mut self, source: &Self) {
+        self.cells.copy_from_slice(&source.cells);
+    }
+
+    fn get_index(&self, row: usize, col: usize) -> Option<usize> {
+        if row < self.height && col < self.width {
+            Some(row * self.width + col)
+        } else {
+            None
+        }
+    }
+}
+
+impl Index<(usize, usize)> for WorldGrid {
+    type Output = GridCell;
+
+    fn index(&self, (row, column): (usize, usize)) -> &Self::Output {
+        self.get(row, column)
+            .unwrap_or_else(|| panic!("Index indices {}, {} out of bounds", row, column))
+    }
+}
+
+impl IndexMut<(usize, usize)> for WorldGrid {
+    fn index_mut(&mut self, (row, column): (usize, usize)) -> &mut Self::Output {
+        self.get_mut(row, column)
+            .unwrap_or_else(|| panic!("Index_mut indices {}, {} out of bounds", row, column))
+    }
+}
+
 struct Neighborhood<'a> {
-    cells: &'a Array2D<GridCell>,
-    next_cells: &'a mut Array2D<GridCell>,
+    cells: &'a WorldGrid,
+    next_cells: &'a mut WorldGrid,
     rows: [usize; 3],
     cols: [usize; 3],
 }
