@@ -6,12 +6,12 @@ use std::mem;
 use array2d::{Array2D /*, Error */};
 
 #[derive(Clone, Debug)]
-pub struct WorldGrid {
+pub struct World {
     cells: Array2D<GridCell>,
     next_cells: Array2D<GridCell>,
 }
 
-impl WorldGrid {
+impl World {
     pub fn new(width: usize, height: usize) -> Self {
         let mut result = Self::new_empty(width, height);
         result.init_cell_square(0, 0, 10, [0xff, 0x00, 0xff]);
@@ -94,7 +94,7 @@ struct Neighborhood<'a> {
 }
 
 impl<'a> Neighborhood<'a> {
-    fn new(grid: &'a mut WorldGrid, center_row: usize, center_col: usize) -> Self {
+    fn new(grid: &'a mut World, center_row: usize, center_col: usize) -> Self {
         let (row_above, row_below) = adjacent_indexes(center_row, grid.height());
         let (col_left, col_right) = adjacent_indexes(center_col, grid.width());
         Self {
