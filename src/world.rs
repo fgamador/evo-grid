@@ -156,8 +156,8 @@ struct Neighborhood<'a> {
 
 impl<'a> Neighborhood<'a> {
     fn new(grid: &'a mut World, center_row: usize, center_col: usize) -> Self {
-        let (row_above, row_below) = adjacent_indexes(center_row, grid.height());
-        let (col_left, col_right) = adjacent_indexes(center_col, grid.width());
+        let (row_above, row_below) = Self::adjacent_indexes(center_row, grid.height());
+        let (col_left, col_right) = Self::adjacent_indexes(center_col, grid.width());
         Self {
             cells: &grid.cells,
             next_cells: &mut grid.next_cells,
@@ -195,13 +195,13 @@ impl<'a> Neighborhood<'a> {
     {
         f(&self.cells[(row, col)], &mut self.next_cells[(row, col)]);
     }
-}
 
-fn adjacent_indexes(cell_index: usize, max: usize) -> (usize, usize) {
-    (
-        (cell_index as i64 - 1).rem_euclid(max as i64) as usize,
-        (cell_index as i64 + 1).rem_euclid(max as i64) as usize,
-    )
+    fn adjacent_indexes(cell_index: usize, max: usize) -> (usize, usize) {
+        (
+            (cell_index as i64 - 1).rem_euclid(max as i64) as usize,
+            (cell_index as i64 + 1).rem_euclid(max as i64) as usize,
+        )
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
