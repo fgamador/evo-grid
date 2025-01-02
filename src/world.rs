@@ -234,7 +234,7 @@ pub struct GridCell {
 }
 
 impl GridCell {
-    fn new(creature: Option<Creature>, substance: Option<Substance>) -> Self {
+    fn _new(creature: Option<Creature>, substance: Option<Substance>) -> Self {
         Self {
             creature,
             substance,
@@ -286,11 +286,14 @@ impl Substance {
     }
 
     fn update_neighborhood(&self, neighborhood: &mut Neighborhood) {
+        const DONATE_FRACTION:f32 = 0.1;
+        const DECAY_FRACTION:f32 = 0.01;
+
         neighborhood.for_center(|_cell, next_cell| {
             let next_substance = next_cell.substance.get_or_insert(
                 Substance::new(self.color, 0.0));
             if next_substance.color == self.color {
-                next_substance.amount += -0.11 * self.amount;
+                next_substance.amount += -(DONATE_FRACTION + DECAY_FRACTION) * self.amount;
             }
         });
 
@@ -298,7 +301,7 @@ impl Substance {
             let next_substance = next_neighbor.substance.get_or_insert(
                 Substance::new(self.color, 0.0));
             if next_substance.color == self.color {
-                next_substance.amount += (0.1 / 8.0) * self.amount;
+                next_substance.amount += (DONATE_FRACTION / 8.0) * self.amount;
             }
         });
     }
