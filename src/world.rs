@@ -4,19 +4,25 @@
 use std::mem;
 use std::ops::{Index, IndexMut};
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct World {
     cells: WorldGrid,
     next_cells: WorldGrid,
+    sources: Vec<SubstanceSource>,
 }
 
 impl World {
     pub fn new(width: usize, height: usize) -> Self {
         let mut result = Self::new_empty(width, height);
+
+        result.sources.push(SubstanceSource::new(height / 4, width / 4, 3 * (width / 4),
+                                                 Substance::new([0xff, 0, 0], 1.0)));
+
         result.init_cell_square(0, 0, 10, [0xff, 0x00, 0xff]);
         result.init_cell_square(height / 2, width / 2, 10, [0xff, 0, 0]);
         result.init_cell_square(height / 2, (width / 2) - 20, 10, [0, 0xff, 0]);
         result.init_cell_square(height / 2, (width / 2) + 20, 10, [0, 0, 0xff]);
+
         result
     }
 
@@ -25,6 +31,7 @@ impl World {
         Self {
             cells: WorldGrid::new(width, height),
             next_cells: WorldGrid::new(width, height),
+            sources: vec![],
         }
     }
 
@@ -59,6 +66,8 @@ impl World {
     }
 
     fn update_next_cells(&mut self) {
+        self.sources.iter().for_each(|source| source.update_cell(&mut self.next_cells));
+
         for row in 0..self.height() {
             for col in 0..self.width() {
                 self.update_neighborhood(row, col);
@@ -144,6 +153,33 @@ impl IndexMut<(usize, usize)> for WorldGrid {
     fn index_mut(&mut self, (row, column): (usize, usize)) -> &mut Self::Output {
         self.get_mut(row, column)
             .unwrap_or_else(|| panic!("Index_mut indices {}, {} out of bounds", row, column))
+    }
+}
+
+#[derive(Debug)]
+struct SubstanceSource {
+    row: usize,
+    min_col: usize,
+    max_col: usize,
+    substance: Substance,
+}
+
+impl SubstanceSource {
+    fn new(row: usize, min_col: usize, max_col: usize, substance: Substance) -> Self {
+        Self {
+            row,
+            min_col,
+            max_col,
+            substance,
+        }
+    }
+
+    fn update_cell(&self, grid: &mut WorldGrid)
+    {
+        for col in self.min_col..self.max_col {
+            let substance = grid[(self.row, col)].substance.get_or_insert_default();
+            *substance = self.substance;
+        }
     }
 }
 
