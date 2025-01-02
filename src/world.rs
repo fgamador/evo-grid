@@ -18,11 +18,6 @@ impl World {
         result.sources.push(SubstanceSource::new(height / 4, width / 4, 3 * (width / 4),
                                                  Substance::new([0xff, 0, 0], 1.0)));
 
-        result.init_cell_square(0, 0, 10, [0xff, 0x00, 0xff]);
-        result.init_cell_square(height / 2, width / 2, 10, [0xff, 0, 0]);
-        result.init_cell_square(height / 2, (width / 2) - 20, 10, [0, 0xff, 0]);
-        result.init_cell_square(height / 2, (width / 2) + 20, 10, [0, 0, 0xff]);
-
         result
     }
 
@@ -32,14 +27,6 @@ impl World {
             cells: WorldGrid::new(width, height),
             next_cells: WorldGrid::new(width, height),
             sources: vec![],
-        }
-    }
-
-    fn init_cell_square(&mut self, row0: usize, col0: usize, side: usize, color: [u8; 3]) {
-        for row in row0..=(row0 + side) {
-            for col in col0..=(col0 + side) {
-                self.cells[(row, col)] = GridCell::new(None, Some(Substance::new(color, 1.0)));
-            }
         }
     }
 
