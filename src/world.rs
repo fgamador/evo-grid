@@ -18,6 +18,8 @@ impl World {
         result.sources.push(SubstanceSource::new(height / 4, width / 4, 3 * (width / 4),
                                                  Substance::new([0xff, 0, 0], 1.0)));
 
+        result.cells[(20 + height / 4, width / 3)].creature = Some(Creature::new([0, 0xff, 0]));
+
         result
     }
 
@@ -193,30 +195,31 @@ impl<'a> Neighborhood<'a> {
     where
         F: Fn(&GridCell, &mut GridCell),
     {
-        self.for_cell(self.rows[1], self.cols[1], &f);
+        self.for_cell(1, 1, &f);
     }
 
     fn for_neighbors<F>(&mut self, f: F)
     where
         F: Fn(&GridCell, &mut GridCell),
     {
-        self.for_cell(self.rows[0], self.cols[0], &f);
-        self.for_cell(self.rows[0], self.cols[1], &f);
-        self.for_cell(self.rows[0], self.cols[2], &f);
+        self.for_cell(0, 0, &f);
+        self.for_cell(0, 1, &f);
+        self.for_cell(0, 2, &f);
 
-        self.for_cell(self.rows[1], self.cols[0], &f);
-        self.for_cell(self.rows[1], self.cols[2], &f);
+        self.for_cell(1, 0, &f);
+        self.for_cell(1, 2, &f);
 
-        self.for_cell(self.rows[2], self.cols[0], &f);
-        self.for_cell(self.rows[2], self.cols[1], &f);
-        self.for_cell(self.rows[2], self.cols[2], &f);
+        self.for_cell(2, 0, &f);
+        self.for_cell(2, 1, &f);
+        self.for_cell(2, 2, &f);
     }
 
     fn for_cell<F>(&mut self, row: usize, col: usize, f: &F)
     where
         F: Fn(&GridCell, &mut GridCell),
     {
-        f(&self.cells[(row, col)], &mut self.next_cells[(row, col)]);
+        let grid_index = (self.rows[row], self.cols[col]);
+        f(&self.cells[grid_index], &mut self.next_cells[grid_index]);
     }
 
     fn adjacent_indexes(cell_index: usize, max: usize) -> (usize, usize) {
@@ -234,13 +237,6 @@ pub struct GridCell {
 }
 
 impl GridCell {
-    fn _new(creature: Option<Creature>, substance: Option<Substance>) -> Self {
-        Self {
-            creature,
-            substance,
-        }
-    }
-
     fn is_empty(&self) -> bool {
         self.creature.is_none() && self.substance.is_none()
     }
@@ -262,12 +258,14 @@ pub struct Creature {
 }
 
 impl Creature {
-    fn _new(color: [u8; 3]) -> Self {
+    fn new(color: [u8; 3]) -> Self {
         Self { color }
     }
 
-    fn update_neighborhood(&self, _neighborhood: &mut Neighborhood) {
-        // TODO
+    fn update_neighborhood(&self, neighborhood: &mut Neighborhood) {
+        neighborhood.for_cell(0, 1, &|_cell, next_cell| {
+            next_cell.creature = Some(*self);
+        });
     }
 }
 
@@ -286,8 +284,8 @@ impl Substance {
     }
 
     fn update_neighborhood(&self, neighborhood: &mut Neighborhood) {
-        const DONATE_FRACTION:f32 = 0.1;
-        const DECAY_FRACTION:f32 = 0.01;
+        const DONATE_FRACTION: f32 = 0.1;
+        const DECAY_FRACTION: f32 = 0.01;
 
         neighborhood.for_center(|_cell, next_cell| {
             let next_substance = next_cell.substance.get_or_insert(
