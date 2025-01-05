@@ -20,6 +20,8 @@ impl World {
 
         result.cells[(20 + height / 4, width / 3)].creature = Some(Creature::new([0, 0xff, 0]));
 
+        // result.cells[(1 + height / 4, width / 2)].debug_selected = true;
+
         result
     }
 
@@ -66,6 +68,9 @@ impl World {
 
     fn update_neighborhood(&mut self, row: usize, col: usize) {
         let cell = self.cells[(row, col)];
+        if cell.debug_selected {
+            println!("{:?}", cell);
+        }
         if !cell.is_empty() {
             let mut neighborhood = Neighborhood::new(self, row, col);
             cell.update_neighborhood(&mut neighborhood);
@@ -234,6 +239,7 @@ impl<'a> Neighborhood<'a> {
 pub struct GridCell {
     pub creature: Option<Creature>,
     pub substance: Option<Substance>,
+    pub debug_selected: bool,
 }
 
 impl GridCell {
@@ -255,17 +261,39 @@ impl GridCell {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Creature {
     pub color: [u8; 3],
+    pub age: u64,
 }
 
 impl Creature {
     fn new(color: [u8; 3]) -> Self {
-        Self { color }
+        Self {
+            color,
+            age: 0,
+        }
     }
 
     fn update_neighborhood(&self, neighborhood: &mut Neighborhood) {
-        neighborhood.for_cell(0, 1, &|_cell, next_cell| {
-            next_cell.creature = Some(*self);
+        neighborhood.for_center(|_cell, next_cell| {
+            next_cell.creature = if self.age < 4 {
+                Some(self.older_by(1))
+            } else {
+                None
+            };
         });
+
+        if self.age == 0 {
+            neighborhood.for_cell(0, 2, &|_neighbor, next_neighbor| {
+                let mut next_creature = *self;
+                next_creature.age = 0;
+                next_neighbor.creature = Some(next_creature);
+            });
+        }
+    }
+
+    fn older_by(&self, age_increment: u64) -> Self {
+        let mut next_self = *self;
+        next_self.age += age_increment;
+        next_self
     }
 }
 
