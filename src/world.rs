@@ -301,6 +301,10 @@ pub struct Substance {
 }
 
 impl Substance {
+    const DONATE_FRACTION: f32 = 0.1;
+    const DECAY_FRACTION: f32 = 0.01;
+    const MIN_AMOUNT: f32 = 0.01;
+
     fn new(color: [u8; 3], amount: f32) -> Self {
         Self {
             color,
@@ -309,25 +313,21 @@ impl Substance {
     }
 
     fn update_neighborhood(&self, neighborhood: &mut Neighborhood) {
-        const DONATE_FRACTION: f32 = 0.1;
-        const DECAY_FRACTION: f32 = 0.01;
-        const MIN_AMOUNT: f32 = 0.01;
-
         neighborhood.for_center(|_cell, next_cell| {
-            if self.amount < MIN_AMOUNT {
+            if self.amount < Self::MIN_AMOUNT {
                 next_cell.substance = None;
             } else {
                 let next_substance = next_cell.substance.as_mut().unwrap();
-                next_substance.amount -= (DONATE_FRACTION + DECAY_FRACTION) * self.amount;
+                next_substance.amount -= (Self::DONATE_FRACTION + Self::DECAY_FRACTION) * self.amount;
             }
         });
 
-        if self.amount >= MIN_AMOUNT {
+        if self.amount >= Self::MIN_AMOUNT {
             neighborhood.for_neighbors(|_neighbor, next_neighbor| {
                 let next_substance = next_neighbor.substance.get_or_insert(
                     Substance::new(self.color, 0.0));
                 if next_substance.color == self.color {
-                    next_substance.amount += (DONATE_FRACTION / 8.0) * self.amount;
+                    next_substance.amount += (Self::DONATE_FRACTION / 8.0) * self.amount;
                 }
             });
         }
