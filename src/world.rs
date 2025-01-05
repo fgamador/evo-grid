@@ -57,7 +57,7 @@ impl World {
     }
 
     fn update_next_cells(&mut self) {
-        self.sources.iter().for_each(|source| source.update_cell(&mut self.next_cells));
+        self.sources.iter().for_each(|source| source.update_cells(&mut self.next_cells));
 
         for row in 0..self.height() {
             for col in 0..self.width() {
@@ -168,7 +168,7 @@ impl SubstanceSource {
         }
     }
 
-    fn update_cell(&self, grid: &mut WorldGrid)
+    fn update_cells(&self, grid: &mut WorldGrid)
     {
         for col in self.min_col..self.max_col {
             let substance = grid[(self.row, col)].substance.get_or_insert_default();
@@ -316,11 +316,8 @@ impl Substance {
         const DECAY_FRACTION: f32 = 0.01;
 
         neighborhood.for_center(|_cell, next_cell| {
-            let next_substance = next_cell.substance.get_or_insert(
-                Substance::new(self.color, 0.0));
-            if next_substance.color == self.color {
-                next_substance.amount += -(DONATE_FRACTION + DECAY_FRACTION) * self.amount;
-            }
+            let next_substance = next_cell.substance.as_mut().unwrap();
+            next_substance.amount -= (DONATE_FRACTION + DECAY_FRACTION) * self.amount;
         });
 
         neighborhood.for_neighbors(|_neighbor, next_neighbor| {
