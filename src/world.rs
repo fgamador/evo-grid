@@ -274,26 +274,21 @@ impl Creature {
 
     fn update_neighborhood(&self, neighborhood: &mut Neighborhood) {
         neighborhood.for_center(|_cell, next_cell| {
-            next_cell.creature = if self.age < 4 {
-                Some(self.older_by(1))
+            let next_creature = next_cell.creature.as_mut().unwrap();
+            if next_creature.age > 3 {
+                next_cell.creature = None;
             } else {
-                None
-            };
+                next_creature.age += 1;
+            }
         });
 
         if self.age == 0 {
             neighborhood.for_cell(0, 2, &|_neighbor, next_neighbor| {
-                let mut next_creature = *self;
-                next_creature.age = 0;
-                next_neighbor.creature = Some(next_creature);
+                if next_neighbor.creature.is_none() {
+                    next_neighbor.creature = Some(Creature::new(self.color));
+                }
             });
         }
-    }
-
-    fn older_by(&self, age_increment: u64) -> Self {
-        let mut next_self = *self;
-        next_self.age += age_increment;
-        next_self
     }
 }
 
