@@ -14,16 +14,9 @@ pub struct World {
 impl World {
     pub fn new(width: usize, height: usize) -> Self {
         let mut result = Self::new_empty(width, height);
-
-        result.sources.push(SubstanceSource::new(height / 4, width / 4, 3 * (width / 4),
-                                                 Substance::new([0xff, 0, 0], 1.0)));
-        // result.sources.push(SubstanceSource::new(height / 4, width / 4, 1 + width / 4,
-        //                                          Substance::new([0xff, 0, 0], 1.0)));
-
-        result.cells[(20 + height / 4, width / 3)].creature = Some(Creature::new([0, 0xff, 0]));
-
+        result.add_substances(width, height);
+        result.add_creatures(width, height);
         // result.cells[(1 + height / 4, width / 2)].debug_selected = true;
-
         result
     }
 
@@ -34,6 +27,17 @@ impl World {
             next_cells: WorldGrid::new(width, height),
             sources: vec![],
         }
+    }
+
+    fn add_substances(&mut self, width: usize, height: usize) {
+        self.sources.push(SubstanceSource::new(height / 4, width / 4, 3 * (width / 4),
+                                               Substance::new([0xff, 0, 0], 1.0)));
+        // self.sources.push(SubstanceSource::new(height / 4, width / 4, 1 + width / 4,
+        //                                          Substance::new([0xff, 0, 0], 1.0)));
+    }
+
+    fn add_creatures(&mut self, width: usize, height: usize) {
+        self.cells[(20 + height / 4, width / 3)].creature = Some(Creature::new([0, 0xff, 0]));
     }
 
     pub fn width(&self) -> usize {
