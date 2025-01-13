@@ -324,10 +324,10 @@ impl Substance {
 
         if self.amount >= Self::MIN_AMOUNT {
             neighborhood.for_neighbors(|_neighbor, next_neighbor| {
-                let next_substance = next_neighbor.substance.get_or_insert(
+                let next_neighbor_substance = next_neighbor.substance.get_or_insert(
                     Substance::new(self.color, 0.0));
-                if next_substance.color == self.color {
-                    next_substance.amount += (Self::DONATE_FRACTION / 8.0) * self.amount;
+                if next_neighbor_substance.color == self.color {
+                    next_neighbor_substance.amount += (Self::DONATE_FRACTION / 8.0) * self.amount;
                 }
             });
         }
