@@ -38,12 +38,12 @@ impl World {
 
     fn add_substance_source_row(&mut self, row: usize, min_col: usize, max_col: usize, substance: Substance) {
         for col in min_col..max_col {
-            self.sources.push(SubstanceSource::new(row, col, substance));
+            self.sources.push(SubstanceSource::new(Loc::new(row, col), substance));
         }
     }
 
     fn add_creatures(&mut self, width: usize, height: usize) {
-        self.cells[(20 + height / 4, width / 3)].creature = Some(Creature::new([0, 0xff, 0]));
+        self.cells[Loc::new(20 + height / 4, width / 3)].creature = Some(Creature::new([0, 0xff, 0]));
     }
 
     pub fn width(&self) -> usize {
@@ -73,18 +73,18 @@ impl World {
 
         for row in 0..self.height() {
             for col in 0..self.width() {
-                self.update_neighborhood(row, col);
+                self.update_neighborhood(Loc::new(row, col));
             }
         }
     }
 
-    fn update_neighborhood(&mut self, row: usize, col: usize) {
-        let cell = self.cells[(row, col)];
+    fn update_neighborhood(&mut self, loc: Loc) {
+        let cell = self.cells[loc];
         if cell.debug_selected {
             println!("{:?}", cell);
         }
         if !cell.is_empty() {
-            let mut neighborhood = Neighborhood::new(self, row, col);
+            let mut neighborhood = Neighborhood::new(self, loc);
             cell.update_neighborhood(&mut neighborhood);
         }
     }
@@ -123,13 +123,13 @@ impl WorldGrid {
         self.cells.iter()
     }
 
-    fn get(&self, row: usize, col: usize) -> Option<&GridCell> {
-        self.get_index(row, col)
+    fn get(&self, loc: Loc) -> Option<&GridCell> {
+        self.get_index(loc)
             .map(|index| &self.cells[index])
     }
 
-    fn get_mut(&mut self, row: usize, col: usize) -> Option<&mut GridCell> {
-        self.get_index(row, col)
+    fn get_mut(&mut self, loc: Loc) -> Option<&mut GridCell> {
+        self.get_index(loc)
             .map(|index| &mut self.cells[index])
     }
 
@@ -137,50 +137,63 @@ impl WorldGrid {
         self.cells.copy_from_slice(&source.cells);
     }
 
-    fn get_index(&self, row: usize, col: usize) -> Option<usize> {
-        if row < self.height && col < self.width {
-            Some(row * self.width + col)
+    fn get_index(&self, loc: Loc) -> Option<usize> {
+        if loc.row < self.height && loc.col < self.width {
+            Some(loc.row * self.width + loc.col)
         } else {
             None
         }
     }
 }
 
-impl Index<(usize, usize)> for WorldGrid {
+impl Index<Loc> for WorldGrid {
     type Output = GridCell;
 
-    fn index(&self, (row, column): (usize, usize)) -> &Self::Output {
-        self.get(row, column)
-            .unwrap_or_else(|| panic!("Index indices {}, {} out of bounds", row, column))
+    fn index(&self, loc: Loc) -> &Self::Output {
+        self.get(loc)
+            .unwrap_or_else(|| panic!("Index indices {}, {} out of bounds", loc.row, loc.col))
     }
 }
 
-impl IndexMut<(usize, usize)> for WorldGrid {
-    fn index_mut(&mut self, (row, column): (usize, usize)) -> &mut Self::Output {
-        self.get_mut(row, column)
-            .unwrap_or_else(|| panic!("Index_mut indices {}, {} out of bounds", row, column))
+impl IndexMut<Loc> for WorldGrid {
+    fn index_mut(&mut self, loc: Loc) -> &mut Self::Output {
+        self.get_mut(loc)
+            .unwrap_or_else(|| panic!("Index_mut indices {}, {} out of bounds", loc.row, loc.col))
     }
 }
 
-#[derive(Debug)]
-struct SubstanceSource {
+#[derive(Clone, Copy, Debug)]
+struct Loc {
     row: usize,
     col: usize,
+}
+
+impl Loc {
+    fn new(row: usize, col: usize) -> Self {
+        Self {
+            row,
+            col,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct SubstanceSource {
+    loc: Loc,
     substance: Substance,
 }
 
 impl SubstanceSource {
-    fn new(row: usize, col: usize, substance: Substance) -> Self {
+    fn new(loc: Loc, substance: Substance) -> Self {
         Self {
-            row,
-            col,
+            loc,
             substance,
         }
     }
 
     fn update_cells(&self, grid: &mut WorldGrid)
     {
-        let substance = grid[(self.row, self.col)].substance.get_or_insert_default();
+        let substance = grid[self.loc].substance.get_or_insert_default();
         *substance = self.substance;
     }
 }
@@ -193,14 +206,14 @@ struct Neighborhood<'a> {
 }
 
 impl<'a> Neighborhood<'a> {
-    fn new(grid: &'a mut World, center_row: usize, center_col: usize) -> Self {
-        let (row_above, row_below) = Self::adjacent_indexes(center_row, grid.height());
-        let (col_left, col_right) = Self::adjacent_indexes(center_col, grid.width());
+    fn new(grid: &'a mut World, center: Loc) -> Self {
+        let (row_above, row_below) = Self::adjacent_indexes(center.row, grid.height());
+        let (col_left, col_right) = Self::adjacent_indexes(center.col, grid.width());
         Self {
             cells: &grid.cells,
             next_cells: &mut grid.next_cells,
-            rows: [row_above, center_row, row_below],
-            cols: [col_left, center_col, col_right],
+            rows: [row_above, center.row, row_below],
+            cols: [col_left, center.col, col_right],
         }
     }
 
@@ -231,7 +244,7 @@ impl<'a> Neighborhood<'a> {
     where
         F: Fn(&GridCell, &mut GridCell),
     {
-        let grid_index = (self.rows[row], self.cols[col]);
+        let grid_index = Loc::new(self.rows[row], self.cols[col]);
         f(&self.cells[grid_index], &mut self.next_cells[grid_index]);
     }
 
