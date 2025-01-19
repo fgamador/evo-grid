@@ -250,9 +250,13 @@ impl<'a> Neighborhood<'a> {
 
     fn adjacent_indexes(cell_index: usize, max: usize) -> (usize, usize) {
         (
-            (cell_index as i64 - 1).rem_euclid(max as i64) as usize,
-            (cell_index as i64 + 1).rem_euclid(max as i64) as usize,
+            Self::modulo(cell_index as i64 - 1, max),
+            Self::modulo(cell_index as i64 + 1, max),
         )
+    }
+
+    fn modulo(val: i64, max: usize) -> usize {
+        val.rem_euclid(max as i64) as usize
     }
 }
 
