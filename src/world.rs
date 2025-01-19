@@ -30,10 +30,16 @@ impl World {
     }
 
     fn add_substances(&mut self, width: usize, height: usize) {
-        self.sources.push(SubstanceSource::new(height / 4, width / 4, 3 * (width / 4),
-                                               Substance::new([0xff, 0, 0], 1.0)));
+        self.add_substance_source_row(height / 4, width / 4, 3 * (width / 4),
+                                      Substance::new([0xff, 0, 0], 1.0));
         // self.sources.push(SubstanceSource::new(height / 4, width / 4, 1 + width / 4,
         //                                          Substance::new([0xff, 0, 0], 1.0)));
+    }
+
+    fn add_substance_source_row(&mut self, row: usize, min_col: usize, max_col: usize, substance: Substance) {
+        for col in min_col..max_col {
+            self.sources.push(SubstanceSource::new(row, col, substance));
+        }
     }
 
     fn add_creatures(&mut self, width: usize, height: usize) {
@@ -159,27 +165,23 @@ impl IndexMut<(usize, usize)> for WorldGrid {
 #[derive(Debug)]
 struct SubstanceSource {
     row: usize,
-    min_col: usize,
-    max_col: usize,
+    col: usize,
     substance: Substance,
 }
 
 impl SubstanceSource {
-    fn new(row: usize, min_col: usize, max_col: usize, substance: Substance) -> Self {
+    fn new(row: usize, col: usize, substance: Substance) -> Self {
         Self {
             row,
-            min_col,
-            max_col,
+            col,
             substance,
         }
     }
 
     fn update_cells(&self, grid: &mut WorldGrid)
     {
-        for col in self.min_col..self.max_col {
-            let substance = grid[(self.row, col)].substance.get_or_insert_default();
-            *substance = self.substance;
-        }
+        let substance = grid[(self.row, self.col)].substance.get_or_insert_default();
+        *substance = self.substance;
     }
 }
 
