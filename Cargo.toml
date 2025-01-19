@@ -4,8 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-array2d = "0.3"
-byteorder = "1.5.0"
-clipline = "0.1.1"
-getrandom = "0.2.15"
-randomize = "3"
+rand = "0.8"

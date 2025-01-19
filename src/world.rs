@@ -2,48 +2,69 @@
 #![forbid(unsafe_code)]
 
 use std::mem;
-use std::ops::{Index, IndexMut};
+use std::ops::{Index, IndexMut, Range};
+
+use rand::prelude::*;
 
 #[derive(Debug)]
 pub struct World {
     cells: WorldGrid,
     next_cells: WorldGrid,
     sources: Vec<SubstanceSource>,
+    rand: Random,
 }
 
 impl World {
-    pub fn new(width: usize, height: usize) -> Self {
-        let mut result = Self::new_empty(width, height);
-        result.add_substances(width, height);
-        result.add_creatures(width, height);
+    pub fn new(width: usize, height: usize, rand: Random) -> Self {
+        let mut result = Self::new_empty(width, height, rand);
+        result.add_substances();
+        result.add_creatures();
         // result.cells[(1 + height / 4, width / 2)].debug_selected = true;
         result
     }
 
-    fn new_empty(width: usize, height: usize) -> Self {
+    fn new_empty(width: usize, height: usize, rand: Random) -> Self {
         assert!(width != 0 && height != 0);
         Self {
             cells: WorldGrid::new(width, height),
             next_cells: WorldGrid::new(width, height),
             sources: vec![],
+            rand,
         }
     }
 
-    fn add_substances(&mut self, width: usize, height: usize) {
-        self.add_substance_source_row(height / 4, width / 4, 3 * (width / 4),
-                                      Substance::new([0xff, 0, 0], 1.0));
+    fn add_substances(&mut self) {
+        self.add_substance_source_clusters(5);
+        // self.add_substance_source_row(height / 4, width / 4, 3 * (width / 4),
+        //                               Substance::new([0xff, 0, 0], 1.0));
         // self.sources.push(SubstanceSource::new(height / 4, width / 4, 1 + width / 4,
         //                                          Substance::new([0xff, 0, 0], 1.0)));
     }
 
-    fn add_substance_source_row(&mut self, row: usize, min_col: usize, max_col: usize, substance: Substance) {
+    fn add_substance_source_clusters(&mut self, count: usize) {
+        for _ in 0..count {
+            let row = self.rand.next_usize(0..self.height());
+            let col = self.rand.next_usize(0..self.width());
+            self.add_substance_source_cluster(Loc::new(row, col));
+        }
+    }
+
+    fn add_substance_source_cluster(&mut self, loc: Loc) {
+        // TODO gen random color
+        let substance = Substance::new([0xff, 0, 0], 1.0);
+        self.sources.push(SubstanceSource::new(loc, substance));
+        // TODO add random satellites
+    }
+
+    fn _add_substance_source_row(&mut self, row: usize, min_col: usize, max_col: usize, substance: Substance) {
         for col in min_col..max_col {
             self.sources.push(SubstanceSource::new(Loc::new(row, col), substance));
         }
     }
 
-    fn add_creatures(&mut self, width: usize, height: usize) {
-        self.cells[Loc::new(20 + height / 4, width / 3)].creature = Some(Creature::new([0, 0xff, 0]));
+    fn add_creatures(&mut self) {
+        let loc = Loc::new(20 + self.height() / 4, self.width() / 3);
+        self.cells[loc].creature = Some(Creature::new([0, 0xff, 0]));
     }
 
     pub fn width(&self) -> usize {
@@ -354,5 +375,22 @@ impl Substance {
                 }
             });
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct Random {
+    rng: ThreadRng,
+}
+
+impl Random {
+    pub fn new() -> Self {
+        Self {
+            rng: thread_rng(),
+        }
+    }
+
+    fn next_usize(&mut self, range: Range<usize>) -> usize {
+        self.rng.gen_range(range)
     }
 }
