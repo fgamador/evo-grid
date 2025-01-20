@@ -50,10 +50,14 @@ impl World {
     }
 
     fn add_substance_source_cluster(&mut self, loc: Loc) {
-        // TODO gen random color
-        let substance = Substance::new([0xff, 0, 0], 1.0);
+        let substance = Substance::new(self.random_color(), 1.0);
         self.sources.push(SubstanceSource::new(loc, substance));
         // TODO add random satellites
+    }
+
+    fn random_color(&mut self) -> [u8; 3] {
+        let result = [0xff, self.rand.next_u8(0..0xff), self.rand.next_u8(0..0x80)];
+        self.rand.shuffle_color_rgb(result)
     }
 
     fn _add_substance_source_row(&mut self, row: usize, min_col: usize, max_col: usize, substance: Substance) {
@@ -392,5 +396,14 @@ impl Random {
 
     fn next_usize(&mut self, range: Range<usize>) -> usize {
         self.rng.gen_range(range)
+    }
+
+    fn next_u8(&mut self, range: Range<u8>) -> u8 {
+        self.rng.gen_range(range)
+    }
+
+    fn shuffle_color_rgb(&mut self, mut color: [u8; 3]) -> [u8; 3] {
+        color.shuffle(&mut self.rng);
+        color
     }
 }
