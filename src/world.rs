@@ -59,8 +59,8 @@ impl World {
         self.rand.shuffle_color_rgb(result)
     }
 
-    fn random_offset(&mut self, index: usize, max: usize) -> usize {
-        let offset_range = -(max as i32)..max as i32;
+    fn random_offset(&mut self, index: usize, max_offset: usize) -> usize {
+        let offset_range = -(max_offset as i32)..max_offset as i32;
         (index as i32 + self.rand.next_i32(offset_range)) as usize
     }
 
