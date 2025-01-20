@@ -34,30 +34,38 @@ impl World {
     }
 
     fn add_substances(&mut self) {
-        self.add_substance_source_clusters(5);
+        self.add_substance_source_clusters(5, 10, 10);
         // self.add_substance_source_row(height / 4, width / 4, 3 * (width / 4),
         //                               Substance::new([0xff, 0, 0], 1.0));
         // self.sources.push(SubstanceSource::new(height / 4, width / 4, 1 + width / 4,
         //                                          Substance::new([0xff, 0, 0], 1.0)));
     }
 
-    fn add_substance_source_clusters(&mut self, count: usize) {
+    fn add_substance_source_clusters(&mut self, count: usize, radius: usize, size: usize) {
         for _ in 0..count {
-            let row = self.rand.next_usize(0..self.height());
-            let col = self.rand.next_usize(0..self.width());
-            self.add_substance_source_cluster(Loc::new(row, col));
+            let row = self.rand.next_usize(radius..(self.height() - radius));
+            let col = self.rand.next_usize(radius..(self.width() - radius));
+            self.add_substance_source_cluster(Loc::new(row, col), radius, size);
         }
     }
 
-    fn add_substance_source_cluster(&mut self, loc: Loc) {
+    fn add_substance_source_cluster(&mut self, center: Loc, radius: usize, size: usize) {
         let substance = Substance::new(self.random_color(), 1.0);
-        self.sources.push(SubstanceSource::new(loc, substance));
-        // TODO add random satellites
+        for _ in 0..size {
+            let loc = Loc::new(self.random_offset(center.row, radius),
+                               self.random_offset(center.col, radius));
+            self.sources.push(SubstanceSource::new(loc, substance));
+        }
     }
 
     fn random_color(&mut self) -> [u8; 3] {
         let result = [0xff, self.rand.next_u8(0..0xff), self.rand.next_u8(0..0x80)];
         self.rand.shuffle_color_rgb(result)
+    }
+
+    fn random_offset(&mut self, index: usize, max: usize) -> usize {
+        let offset_range = -(max as i32)..max as i32;
+        (index as i32 + self.rand.next_i32(offset_range)) as usize
     }
 
     fn _add_substance_source_row(&mut self, row: usize, min_col: usize, max_col: usize, substance: Substance) {
@@ -399,6 +407,10 @@ impl Random {
     }
 
     fn next_u8(&mut self, range: Range<u8>) -> u8 {
+        self.rng.gen_range(range)
+    }
+
+    fn next_i32(&mut self, range: Range<i32>) -> i32 {
         self.rng.gen_range(range)
     }
 
