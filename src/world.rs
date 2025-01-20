@@ -34,11 +34,7 @@ impl World {
     }
 
     fn add_substances(&mut self) {
-        self.add_substance_source_clusters(5, 10, 10);
-        // self.add_substance_source_row(height / 4, width / 4, 3 * (width / 4),
-        //                               Substance::new([0xff, 0, 0], 1.0));
-        // self.sources.push(SubstanceSource::new(height / 4, width / 4, 1 + width / 4,
-        //                                          Substance::new([0xff, 0, 0], 1.0)));
+        self.add_substance_source_clusters(40, 5, 10);
     }
 
     fn add_substance_source_clusters(&mut self, count: usize, radius: usize, size: usize) {
@@ -66,12 +62,6 @@ impl World {
     fn random_offset(&mut self, index: usize, max: usize) -> usize {
         let offset_range = -(max as i32)..max as i32;
         (index as i32 + self.rand.next_i32(offset_range)) as usize
-    }
-
-    fn _add_substance_source_row(&mut self, row: usize, min_col: usize, max_col: usize, substance: Substance) {
-        for col in min_col..max_col {
-            self.sources.push(SubstanceSource::new(Loc::new(row, col), substance));
-        }
     }
 
     fn add_creatures(&mut self) {
