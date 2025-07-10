@@ -240,14 +240,14 @@ impl<'a> Neighborhood<'a> {
         }
     }
 
-    fn for_center<F>(&mut self, f: F)
+    fn for_center_cell<F>(&mut self, f: F)
     where
         F: Fn(&GridCell, &mut GridCell),
     {
         self.for_cell(1, 1, &f);
     }
 
-    fn for_neighbors<F>(&mut self, f: F)
+    fn for_neighbor_cells<F>(&mut self, f: F)
     where
         F: Fn(&GridCell, &mut GridCell),
     {
@@ -380,7 +380,7 @@ impl Creature {
     }
 
     fn update_neighborhood(&self, neighborhood: &mut Neighborhood) {
-        neighborhood.for_center(|_cell, next_cell| {
+        neighborhood.for_center_cell(|_cell, next_cell| {
             let next_creature = next_cell.creature.as_mut().unwrap();
             if next_creature.age > 3 {
                 next_cell.creature = None;
@@ -418,7 +418,7 @@ impl Substance {
     }
 
     fn update_neighborhood(&self, neighborhood: &mut Neighborhood) {
-        neighborhood.for_center(|_cell, next_cell| {
+        neighborhood.for_center_cell(|_cell, next_cell| {
             if self.amount < Self::MIN_AMOUNT {
                 next_cell.substance = None;
             } else {
@@ -428,7 +428,7 @@ impl Substance {
         });
 
         if self.amount >= Self::MIN_AMOUNT {
-            neighborhood.for_neighbors(|_neighbor, next_neighbor| {
+            neighborhood.for_neighbor_cells(|_neighbor, next_neighbor| {
                 let next_neighbor_substance = next_neighbor.substance.get_or_insert(
                     Substance::new(self.color, 0.0));
                 if next_neighbor_substance.color == self.color {
