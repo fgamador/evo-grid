@@ -3,7 +3,6 @@ members = ["evo-grid", "evo-grid-pixels"]
 resolver = "3"
 
 [workspace.package]
-name = "evo-grid"
 version = "0.1.0"
 edition = "2021"
 authors = ["Franz Amador <franzamador@gmail.com>"]
