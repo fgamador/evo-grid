@@ -447,20 +447,20 @@ pub struct Random {
 impl Random {
     pub fn new() -> Self {
         Self {
-            rng: thread_rng(),
+            rng: rand::rng(),
         }
     }
 
     fn next_usize(&mut self, range: Range<usize>) -> usize {
-        self.rng.gen_range(range)
+        self.rng.random_range(range)
     }
 
     fn next_u8(&mut self, range: Range<u8>) -> u8 {
-        self.rng.gen_range(range)
+        self.rng.random_range(range)
     }
 
     fn next_i32(&mut self, range: Range<i32>) -> i32 {
-        self.rng.gen_range(range)
+        self.rng.random_range(range)
     }
 
     fn shuffle_color_rgb(&mut self, mut color: [u8; 3]) -> [u8; 3] {

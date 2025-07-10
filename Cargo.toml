@@ -8,4 +8,4 @@ edition = "2021"
 authors = ["Franz Amador <franzamador@gmail.com>"]
 
 [workspace.dependencies]
-rand = "0.8"
+rand = "0.9"
