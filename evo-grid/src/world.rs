@@ -314,19 +314,11 @@ impl GridCell {
 }
 
 fn render_cell_creature(cell_creature: Option<Creature>) -> [u8; 4] {
-    if let Some(creature) = cell_creature {
-        creature.color_rgba()
-    } else {
-        [0, 0, 0, 0]
-    }
+    cell_creature.map_or([0, 0, 0, 0], |creature| creature.color_rgba())
 }
 
 fn render_cell_substance(cell_substance: Option<Substance>) -> [u8; 4] {
-    if let Some(substance) = cell_substance {
-        substance.color_rgba()
-    } else {
-        [0, 0, 0, 0]
-    }
+    cell_substance.map_or([0, 0, 0, 0], |substance| substance.color_rgba())
 }
 
 // From https://en.wikipedia.org/wiki/Alpha_compositing
