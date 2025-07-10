@@ -315,8 +315,7 @@ impl GridCell {
 
 fn render_cell_creature(cell_creature: Option<Creature>) -> [u8; 4] {
     if let Some(creature) = cell_creature {
-        let color_rgb = creature.color;
-        [color_rgb[0], color_rgb[1], color_rgb[2], 0xff]
+        creature.color_rgba()
     } else {
         [0, 0, 0, 0]
     }
@@ -324,9 +323,7 @@ fn render_cell_creature(cell_creature: Option<Creature>) -> [u8; 4] {
 
 fn render_cell_substance(cell_substance: Option<Substance>) -> [u8; 4] {
     if let Some(substance) = cell_substance {
-        let color_rgb = substance.color;
-        let color_alpha = (substance.amount * 0xff as f32) as u8; // .max(0x99);
-        [color_rgb[0], color_rgb[1], color_rgb[2], color_alpha]
+        substance.color_rgba()
     } else {
         [0, 0, 0, 0]
     }
@@ -397,6 +394,11 @@ impl Creature {
             });
         }
     }
+
+    fn color_rgba(&self) -> [u8; 4] {
+        let color_rgb = self.color;
+        [color_rgb[0], color_rgb[1], color_rgb[2], 0xff]
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -436,6 +438,12 @@ impl Substance {
                 }
             });
         }
+    }
+
+    fn color_rgba(&self) -> [u8; 4] {
+        let color_rgb = self.color;
+        let color_alpha = (self.amount * 0xff as f32) as u8; // .max(0x99);
+        [color_rgb[0], color_rgb[1], color_rgb[2], color_alpha]
     }
 }
 
