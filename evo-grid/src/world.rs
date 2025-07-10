@@ -307,18 +307,18 @@ impl GridCell {
 
     pub fn color_rgba(&self) -> [u8; 4] {
         alpha_blend(
-            render_substance(self.substance),
-            render_creature(self.creature),
+            self.render_substance(),
+            self.render_creature(),
         )
     }
-}
 
-fn render_creature(creature: Option<Creature>) -> [u8; 4] {
-    creature.map_or([0, 0, 0, 0], |creature| creature.color_rgba())
-}
+    fn render_creature(&self) -> [u8; 4] {
+        self.creature.map_or([0, 0, 0, 0], |creature| creature.color_rgba())
+    }
 
-fn render_substance(substance: Option<Substance>) -> [u8; 4] {
-    substance.map_or([0, 0, 0, 0], |substance| substance.color_rgba())
+    fn render_substance(&self) -> [u8; 4] {
+        self.substance.map_or([0, 0, 0, 0], |substance| substance.color_rgba())
+    }
 }
 
 // From https://en.wikipedia.org/wiki/Alpha_compositing
