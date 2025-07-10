@@ -304,6 +304,65 @@ impl GridCell {
             substance.update_neighborhood(neighborhood);
         }
     }
+
+    pub fn color_rgba(&self) -> [u8; 4] {
+        alpha_blend(
+            render_cell_substance(self.substance),
+            render_cell_creature(self.creature),
+        )
+    }
+}
+
+fn render_cell_creature(cell_creature: Option<Creature>) -> [u8; 4] {
+    if let Some(creature) = cell_creature {
+        let color_rgb = creature.color;
+        [color_rgb[0], color_rgb[1], color_rgb[2], 0xff]
+    } else {
+        [0, 0, 0, 0]
+    }
+}
+
+fn render_cell_substance(cell_substance: Option<Substance>) -> [u8; 4] {
+    if let Some(substance) = cell_substance {
+        let color_rgb = substance.color;
+        let color_alpha = (substance.amount * 0xff as f32) as u8; // .max(0x99);
+        [color_rgb[0], color_rgb[1], color_rgb[2], color_alpha]
+    } else {
+        [0, 0, 0, 0]
+    }
+}
+
+// From https://en.wikipedia.org/wiki/Alpha_compositing
+fn alpha_blend(above: [u8; 4], below: [u8; 4]) -> [u8; 4] {
+    let above = color_as_fractions(above);
+    let below = color_as_fractions(below);
+
+    let above_alpha = above[3];
+    let below_alpha = below[3];
+    let result_alpha = above_alpha + below_alpha * (1.0 - above_alpha);
+
+    let mut result: [f32; 4] = [0.0, 0.0, 0.0, result_alpha];
+    for i in 0..=2 {
+        result[i] =
+            (above[i] * above_alpha + below[i] * below_alpha * (1.0 - above_alpha)) / result_alpha;
+    }
+    color_as_bytes(result)
+}
+
+fn color_as_fractions(color: [u8; 4]) -> [f32; 4] {
+    let mut result: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
+    for i in 0..=3 {
+        result[i] = color[i] as f32 / 0xff as f32;
+    }
+    result
+}
+
+fn color_as_bytes(color: [f32; 4]) -> [u8; 4] {
+    let mut result: [u8; 4] = [0, 0, 0, 0];
+    for i in 0..=3 {
+        result[i] = (color[i] * 0xff as f32) as u8;
+    }
+    result
 }
 
 #[derive(Clone, Copy, Debug, Default)]
