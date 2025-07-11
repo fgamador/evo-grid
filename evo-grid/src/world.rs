@@ -229,12 +229,12 @@ struct Neighborhood<'a> {
 }
 
 impl<'a> Neighborhood<'a> {
-    fn new(grid: &'a mut World, center: Loc) -> Self {
-        let (row_above, row_below) = Self::adjacent_indexes(center.row, grid.height());
-        let (col_left, col_right) = Self::adjacent_indexes(center.col, grid.width());
+    fn new(world: &'a mut World, center: Loc) -> Self {
+        let (row_above, row_below) = Self::adjacent_indexes(center.row, world.height());
+        let (col_left, col_right) = Self::adjacent_indexes(center.col, world.width());
         Self {
-            cells: &grid.cells,
-            next_cells: &mut grid.next_cells,
+            cells: &world.cells,
+            next_cells: &mut world.next_cells,
             rows: [row_above, center.row, row_below],
             cols: [col_left, center.col, col_right],
         }
