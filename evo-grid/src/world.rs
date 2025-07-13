@@ -122,8 +122,10 @@ impl World {
         if cell.debug_selected {
             println!("{:?}", cell);
         }
+
         let neighborhood = Neighborhood2::new(&self.cells, loc);
-        cell.update_next_cell(&neighborhood, &mut self.next_cells[loc]);
+        let next_cell = &mut self.next_cells[loc];
+        cell.update_next_cell(&neighborhood, next_cell);
     }
 }
 
@@ -375,6 +377,13 @@ impl GridCell {
     fn update_next_cell(&self, neighborhood: &Neighborhood2, next_cell: &mut GridCell) {
         if let Some(creature) = self.creature {
             creature.update_next_cell(neighborhood, next_cell);
+        } else {
+            let sw_neighbor = neighborhood.cell(2, 0);
+            if let Some(sw_creature) = sw_neighbor.creature {
+                if sw_creature.age == 0 {
+                    next_cell.creature = Some(Creature::new(sw_creature.color));
+                }
+            }
         }
 
         if let Some(substance) = self.substance {
@@ -461,21 +470,11 @@ impl Creature {
     }
 
     fn update_next_cell(&self, neighborhood: &Neighborhood2, next_cell: &mut GridCell) {
-        let cell = neighborhood.center_cell();
-        if let Some(creature) = cell.creature {
-            if creature.age > 3 {
-                next_cell.creature = None;
-            } else {
-                let next_creature = next_cell.creature.as_mut().unwrap();
-                next_creature.age += 1;
-            }
+        if self.age > 3 {
+            next_cell.creature = None;
         } else {
-            let sw_neighbor = neighborhood.cell(2, 0);
-            if let Some(sw_creature) = sw_neighbor.creature {
-                if sw_creature.age == 0 {
-                    next_cell.creature = Some(Creature::new(sw_creature.color));
-                }
-            }
+            let next_creature = next_cell.creature.as_mut().unwrap();
+            next_creature.age += 1;
         }
     }
 
