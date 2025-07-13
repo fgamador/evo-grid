@@ -48,8 +48,10 @@ impl World {
     fn add_substance_source_cluster(&mut self, center: Loc, radius: usize, size: usize) {
         let substance = Substance::new(self.random_color(), 1.0);
         for _ in 0..size {
-            let loc = Loc::new(self.random_offset(center.row, radius),
-                               self.random_offset(center.col, radius));
+            let loc = Loc::new(
+                self.random_offset(center.row, radius),
+                self.random_offset(center.col, radius),
+            );
             self.sources.push(SubstanceSource::new(loc, substance));
         }
     }
@@ -81,7 +83,7 @@ impl World {
         self.cells.num_cells()
     }
 
-    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item=&GridCell> + Clone {
+    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &GridCell> + Clone {
         self.cells.cells_iter()
     }
 
@@ -92,7 +94,9 @@ impl World {
     }
 
     fn update_next_cells(&mut self) {
-        self.sources.iter().for_each(|source| source.update_cells(&mut self.next_cells));
+        self.sources
+            .iter()
+            .for_each(|source| source.update_cells(&mut self.next_cells));
 
         for row in 0..self.height() {
             for col in 0..self.width() {
@@ -142,18 +146,16 @@ impl WorldGrid {
         self.cells.len()
     }
 
-    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item=&GridCell> + Clone {
+    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &GridCell> + Clone {
         self.cells.iter()
     }
 
     fn get(&self, loc: Loc) -> Option<&GridCell> {
-        self.get_index(loc)
-            .map(|index| &self.cells[index])
+        self.get_index(loc).map(|index| &self.cells[index])
     }
 
     fn get_mut(&mut self, loc: Loc) -> Option<&mut GridCell> {
-        self.get_index(loc)
-            .map(|index| &mut self.cells[index])
+        self.get_index(loc).map(|index| &mut self.cells[index])
     }
 
     fn copy_from(&mut self, source: &Self) {
@@ -193,10 +195,7 @@ struct Loc {
 
 impl Loc {
     fn new(row: usize, col: usize) -> Self {
-        Self {
-            row,
-            col,
-        }
+        Self { row, col }
     }
 }
 
@@ -208,14 +207,10 @@ struct SubstanceSource {
 
 impl SubstanceSource {
     fn new(loc: Loc, substance: Substance) -> Self {
-        Self {
-            loc,
-            substance,
-        }
+        Self { loc, substance }
     }
 
-    fn update_cells(&self, grid: &mut WorldGrid)
-    {
+    fn update_cells(&self, grid: &mut WorldGrid) {
         let substance = grid[self.loc].substance.get_or_insert_default();
         *substance = self.substance;
     }
@@ -283,6 +278,75 @@ impl<'a> Neighborhood<'a> {
     }
 }
 
+struct Neighborhood2<'a> {
+    cells: &'a WorldGrid,
+    rows: [usize; 3],
+    cols: [usize; 3],
+}
+
+impl<'a> Neighborhood2<'a> {
+    fn new(cells: &'a WorldGrid, center: Loc) -> Self {
+        let (row_above, row_below) = Self::adjacent_indexes(center.row, cells.height());
+        let (col_left, col_right) = Self::adjacent_indexes(center.col, cells.width());
+        Self {
+            cells,
+            rows: [row_above, center.row, row_below],
+            cols: [col_left, center.col, col_right],
+        }
+    }
+
+    fn center_cell(&self) -> &GridCell {
+        self.cell(1, 1)
+    }
+
+    fn cell(&self, row: usize, col: usize) -> &GridCell {
+        let grid_index = Loc::new(self.rows[row], self.cols[col]);
+        &self.cells[grid_index]
+    }
+
+    fn for_center_cell<F>(&self, mut f: F)
+    where
+        F: FnMut(&GridCell),
+    {
+        self.for_cell(1, 1, &mut f);
+    }
+
+    fn for_neighbor_cells<F>(&self, mut f: F)
+    where
+        F: FnMut(&GridCell),
+    {
+        self.for_cell(0, 0, &mut f);
+        self.for_cell(0, 1, &mut f);
+        self.for_cell(0, 2, &mut f);
+
+        self.for_cell(1, 0, &mut f);
+        self.for_cell(1, 2, &mut f);
+
+        self.for_cell(2, 0, &mut f);
+        self.for_cell(2, 1, &mut f);
+        self.for_cell(2, 2, &mut f);
+    }
+
+    fn for_cell<F>(&self, row: usize, col: usize, f: &mut F)
+    where
+        F: FnMut(&GridCell),
+    {
+        let grid_index = Loc::new(self.rows[row], self.cols[col]);
+        f(&self.cells[grid_index]);
+    }
+
+    fn adjacent_indexes(cell_index: usize, max: usize) -> (usize, usize) {
+        (
+            Self::modulo(cell_index as i64 - 1, max),
+            Self::modulo(cell_index as i64 + 1, max),
+        )
+    }
+
+    fn modulo(val: i64, max: usize) -> usize {
+        val.rem_euclid(max as i64) as usize
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default)]
 pub struct GridCell {
     pub creature: Option<Creature>,
@@ -306,18 +370,17 @@ impl GridCell {
     }
 
     pub fn color_rgba(&self) -> [u8; 4] {
-        alpha_blend(
-            self.render_substance(),
-            self.render_creature(),
-        )
+        alpha_blend(self.render_substance(), self.render_creature())
     }
 
     fn render_creature(&self) -> [u8; 4] {
-        self.creature.map_or([0, 0, 0, 0], |creature| creature.color_rgba())
+        self.creature
+            .map_or([0, 0, 0, 0], |creature| creature.color_rgba())
     }
 
     fn render_substance(&self) -> [u8; 4] {
-        self.substance.map_or([0, 0, 0, 0], |substance| substance.color_rgba())
+        self.substance
+            .map_or([0, 0, 0, 0], |substance| substance.color_rgba())
     }
 }
 
@@ -362,10 +425,7 @@ pub struct Creature {
 
 impl Creature {
     fn new(color: [u8; 3]) -> Self {
-        Self {
-            color,
-            age: 0,
-        }
+        Self { color, age: 0 }
     }
 
     fn update_neighborhood(&self, neighborhood: &mut Neighborhood) {
@@ -384,6 +444,25 @@ impl Creature {
                     next_neighbor.creature = Some(Creature::new(self.color));
                 }
             });
+        }
+    }
+
+    fn update_cell(&self, neighborhood: &Neighborhood2, next_cell: &mut GridCell) {
+        let cell = neighborhood.center_cell();
+        if let Some(creature) = cell.creature {
+            if creature.age > 3 {
+                next_cell.creature = None;
+            } else {
+                let next_creature = next_cell.creature.as_mut().unwrap();
+                next_creature.age += 1;
+            }
+        } else {
+            let sw_neighbor = neighborhood.cell(2, 0);
+            if let Some(sw_creature) = sw_neighbor.creature {
+                if sw_creature.age == 0 {
+                    next_cell.creature = Some(Creature::new(sw_creature.color));
+                }
+            }
         }
     }
 
@@ -417,14 +496,16 @@ impl Substance {
                 next_cell.substance = None;
             } else {
                 let next_substance = next_cell.substance.as_mut().unwrap();
-                next_substance.amount -= (Self::DONATE_FRACTION + Self::DECAY_FRACTION) * self.amount;
+                next_substance.amount -=
+                    (Self::DONATE_FRACTION + Self::DECAY_FRACTION) * self.amount;
             }
         });
 
         if self.amount >= Self::MIN_AMOUNT {
             neighborhood.for_neighbor_cells(|_neighbor, next_neighbor| {
-                let next_neighbor_substance = next_neighbor.substance.get_or_insert(
-                    Substance::new(self.color, 0.0));
+                let next_neighbor_substance = next_neighbor
+                    .substance
+                    .get_or_insert(Substance::new(self.color, 0.0));
                 if next_neighbor_substance.color == self.color {
                     next_neighbor_substance.amount += (Self::DONATE_FRACTION / 8.0) * self.amount;
                 }
@@ -446,9 +527,7 @@ pub struct Random {
 
 impl Random {
     pub fn new() -> Self {
-        Self {
-            rng: rand::rng(),
-        }
+        Self { rng: rand::rng() }
     }
 
     fn next_usize(&mut self, range: Range<usize>) -> usize {
