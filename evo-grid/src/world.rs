@@ -101,6 +101,7 @@ impl World {
         for row in 0..self.height() {
             for col in 0..self.width() {
                 self.update_neighborhood(Loc::new(row, col));
+                // self.update_next_cell(Loc::new(row, col));
             }
         }
     }
@@ -114,6 +115,15 @@ impl World {
             let mut neighborhood = Neighborhood::new(self, loc);
             cell.update_neighborhood(&mut neighborhood);
         }
+    }
+
+    fn update_next_cell(&mut self, loc: Loc) {
+        let cell = &self.cells[loc];
+        if cell.debug_selected {
+            println!("{:?}", cell);
+        }
+        let neighborhood = Neighborhood2::new(&self.cells, loc);
+        cell.update_next_cell(&neighborhood, &mut self.next_cells[loc]);
     }
 }
 
@@ -304,13 +314,6 @@ impl<'a> Neighborhood2<'a> {
         &self.cells[grid_index]
     }
 
-    fn for_center_cell<F>(&self, mut f: F)
-    where
-        F: FnMut(&GridCell),
-    {
-        self.for_cell(1, 1, &mut f);
-    }
-
     fn for_neighbor_cells<F>(&self, mut f: F)
     where
         F: FnMut(&GridCell),
@@ -366,6 +369,16 @@ impl GridCell {
 
         if let Some(substance) = self.substance {
             substance.update_neighborhood(neighborhood);
+        }
+    }
+
+    fn update_next_cell(&self, neighborhood: &Neighborhood2, next_cell: &mut GridCell) {
+        if let Some(creature) = self.creature {
+            creature.update_next_cell(neighborhood, next_cell);
+        }
+
+        if let Some(substance) = self.substance {
+            substance.update_next_cell(neighborhood, next_cell);
         }
     }
 
@@ -447,7 +460,7 @@ impl Creature {
         }
     }
 
-    fn update_cell(&self, neighborhood: &Neighborhood2, next_cell: &mut GridCell) {
+    fn update_next_cell(&self, neighborhood: &Neighborhood2, next_cell: &mut GridCell) {
         let cell = neighborhood.center_cell();
         if let Some(creature) = cell.creature {
             if creature.age > 3 {
@@ -513,7 +526,7 @@ impl Substance {
         }
     }
 
-    fn update_cell(&self, neighborhood: &Neighborhood2, next_cell: &mut GridCell) {
+    fn update_next_cell(&self, neighborhood: &Neighborhood2, next_cell: &mut GridCell) {
         let next_substance = next_cell.substance.as_mut().unwrap();
 
         neighborhood.for_neighbor_cells(|neighbor| {
@@ -527,7 +540,7 @@ impl Substance {
             }
         });
 
-        if self.amount < Self::MIN_AMOUNT {
+        if next_substance.amount < Self::MIN_AMOUNT {
             next_cell.substance = None;
         } else {
             next_substance.amount -= (Self::DONATE_FRACTION + Self::DECAY_FRACTION) * self.amount;
