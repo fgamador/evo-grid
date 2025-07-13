@@ -513,6 +513,27 @@ impl Substance {
         }
     }
 
+    fn update_cell(&self, neighborhood: &Neighborhood2, next_cell: &mut GridCell) {
+        let next_substance = next_cell.substance.as_mut().unwrap();
+
+        neighborhood.for_neighbor_cells(|neighbor| {
+            if let Some(neighbor_substance) = neighbor.substance {
+                if neighbor_substance.amount >= Self::MIN_AMOUNT
+                    && neighbor_substance.color == self.color
+                {
+                    next_substance.amount +=
+                        (Self::DONATE_FRACTION / 8.0) * neighbor_substance.amount;
+                }
+            }
+        });
+
+        if self.amount < Self::MIN_AMOUNT {
+            next_cell.substance = None;
+        } else {
+            next_substance.amount -= (Self::DONATE_FRACTION + Self::DECAY_FRACTION) * self.amount;
+        }
+    }
+
     fn color_rgba(&self) -> [u8; 4] {
         let color_rgb = self.color;
         let color_alpha = (self.amount * 0xff as f32) as u8; // .max(0x99);
