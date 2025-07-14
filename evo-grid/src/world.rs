@@ -375,6 +375,11 @@ impl GridCell {
     }
 
     fn update_next_cell(&self, neighborhood: &Neighborhood2, next_cell: &mut GridCell) {
+        self.update_next_creature(neighborhood, next_cell);
+        self.update_next_substance(neighborhood, next_cell);
+    }
+
+    fn update_next_creature(&self, neighborhood: &Neighborhood2, next_cell: &mut GridCell) {
         if let Some(creature) = self.creature {
             creature.update_next_cell(neighborhood, next_cell);
         } else {
@@ -385,7 +390,9 @@ impl GridCell {
                 }
             }
         }
+    }
 
+    fn update_next_substance(&self, neighborhood: &Neighborhood2, next_cell: &mut GridCell) {
         if let Some(substance) = self.substance {
             substance.update_next_cell(neighborhood, next_cell);
         }
@@ -528,22 +535,27 @@ impl Substance {
     fn update_next_cell(&self, neighborhood: &Neighborhood2, next_cell: &mut GridCell) {
         let next_substance = next_cell.substance.as_mut().unwrap();
 
-        neighborhood.for_neighbor_cells(|neighbor| {
-            if let Some(neighbor_substance) = neighbor.substance {
-                if neighbor_substance.amount >= Self::MIN_AMOUNT
-                    && neighbor_substance.color == self.color
-                {
-                    next_substance.amount +=
-                        (Self::DONATE_FRACTION / 8.0) * neighbor_substance.amount;
-                }
-            }
-        });
+        next_substance.amount += Self::sum_donations(neighborhood, self.color);
 
         if next_substance.amount < Self::MIN_AMOUNT {
             next_cell.substance = None;
         } else {
             next_substance.amount -= (Self::DONATE_FRACTION + Self::DECAY_FRACTION) * self.amount;
         }
+    }
+
+    fn sum_donations(neighborhood: &Neighborhood2, color: [u8; 3]) -> f32 {
+        let mut donated: f32 = 0.0;
+        neighborhood.for_neighbor_cells(|neighbor| {
+            if let Some(neighbor_substance) = neighbor.substance {
+                if neighbor_substance.amount >= Self::MIN_AMOUNT
+                    && neighbor_substance.color == color
+                {
+                    donated += (Self::DONATE_FRACTION / 8.0) * neighbor_substance.amount;
+                }
+            }
+        });
+        donated
     }
 
     fn color_rgba(&self) -> [u8; 4] {
