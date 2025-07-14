@@ -83,7 +83,7 @@ impl World {
         self.cells.num_cells()
     }
 
-    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &GridCell> + Clone {
+    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &EvoGridCell> + Clone {
         self.cells.cells_iter()
     }
 
@@ -119,7 +119,7 @@ impl World {
 
 #[derive(Clone, Debug)]
 struct WorldGrid {
-    cells: Vec<GridCell>,
+    cells: Vec<EvoGridCell>,
     width: usize,
     height: usize,
 }
@@ -128,7 +128,7 @@ impl WorldGrid {
     fn new(width: usize, height: usize) -> Self {
         assert!(width != 0 && height != 0);
         Self {
-            cells: vec![GridCell::default(); width * height],
+            cells: vec![EvoGridCell::default(); width * height],
             width,
             height,
         }
@@ -146,15 +146,15 @@ impl WorldGrid {
         self.cells.len()
     }
 
-    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &GridCell> + Clone {
+    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &EvoGridCell> + Clone {
         self.cells.iter()
     }
 
-    fn get(&self, loc: Loc) -> Option<&GridCell> {
+    fn get(&self, loc: Loc) -> Option<&EvoGridCell> {
         self.get_index(loc).map(|index| &self.cells[index])
     }
 
-    fn get_mut(&mut self, loc: Loc) -> Option<&mut GridCell> {
+    fn get_mut(&mut self, loc: Loc) -> Option<&mut EvoGridCell> {
         self.get_index(loc).map(|index| &mut self.cells[index])
     }
 
@@ -172,7 +172,7 @@ impl WorldGrid {
 }
 
 impl Index<Loc> for WorldGrid {
-    type Output = GridCell;
+    type Output = EvoGridCell;
 
     fn index(&self, loc: Loc) -> &Self::Output {
         self.get(loc)
@@ -233,14 +233,14 @@ impl<'a> Neighborhood<'a> {
         }
     }
 
-    fn cell(&self, row: usize, col: usize) -> &GridCell {
+    fn cell(&self, row: usize, col: usize) -> &EvoGridCell {
         let grid_index = Loc::new(self.rows[row], self.cols[col]);
         &self.cells[grid_index]
     }
 
     fn for_neighbor_cells<F>(&self, mut f: F)
     where
-        F: FnMut(&GridCell),
+        F: FnMut(&EvoGridCell),
     {
         self.for_cell(0, 0, &mut f);
         self.for_cell(0, 1, &mut f);
@@ -256,7 +256,7 @@ impl<'a> Neighborhood<'a> {
 
     fn for_cell<F>(&self, row: usize, col: usize, f: &mut F)
     where
-        F: FnMut(&GridCell),
+        F: FnMut(&EvoGridCell),
     {
         let grid_index = Loc::new(self.rows[row], self.cols[col]);
         f(&self.cells[grid_index]);
@@ -274,20 +274,24 @@ impl<'a> Neighborhood<'a> {
     }
 }
 
+pub trait GridCell {
+    fn color_rgba(&self) -> [u8; 4];
+}
+
 #[derive(Clone, Copy, Debug, Default)]
-pub struct GridCell {
+pub struct EvoGridCell {
     pub creature: Option<Creature>,
     pub substance: Option<Substance>,
     pub debug_selected: bool,
 }
 
-impl GridCell {
-    fn update_next_cell(&self, neighborhood: &Neighborhood, next_cell: &mut GridCell) {
+impl EvoGridCell {
+    fn update_next_cell(&self, neighborhood: &Neighborhood, next_cell: &mut EvoGridCell) {
         self.update_next_creature(neighborhood, next_cell);
         self.update_next_substance(neighborhood, next_cell);
     }
 
-    fn update_next_creature(&self, neighborhood: &Neighborhood, next_cell: &mut GridCell) {
+    fn update_next_creature(&self, neighborhood: &Neighborhood, next_cell: &mut EvoGridCell) {
         if let Some(creature) = self.creature {
             creature.update_next_cell(neighborhood, next_cell);
         } else {
@@ -300,14 +304,10 @@ impl GridCell {
         }
     }
 
-    fn update_next_substance(&self, neighborhood: &Neighborhood, next_cell: &mut GridCell) {
+    fn update_next_substance(&self, neighborhood: &Neighborhood, next_cell: &mut EvoGridCell) {
         if let Some(substance) = self.substance {
             substance.update_next_cell(neighborhood, next_cell);
         }
-    }
-
-    pub fn color_rgba(&self) -> [u8; 4] {
-        alpha_blend(self.render_substance(), self.render_creature())
     }
 
     fn render_creature(&self) -> [u8; 4] {
@@ -318,6 +318,12 @@ impl GridCell {
     fn render_substance(&self) -> [u8; 4] {
         self.substance
             .map_or([0, 0, 0, 0], |substance| substance.color_rgba())
+    }
+}
+
+impl GridCell for EvoGridCell {
+    fn color_rgba(&self) -> [u8; 4] {
+        alpha_blend(self.render_substance(), self.render_creature())
     }
 }
 
@@ -365,7 +371,7 @@ impl Creature {
         Self { color, age: 0 }
     }
 
-    fn update_next_cell(&self, _neighborhood: &Neighborhood, next_cell: &mut GridCell) {
+    fn update_next_cell(&self, _neighborhood: &Neighborhood, next_cell: &mut EvoGridCell) {
         if self.age > 3 {
             next_cell.creature = None;
         } else {
@@ -398,7 +404,7 @@ impl Substance {
         }
     }
 
-    fn update_next_cell(&self, neighborhood: &Neighborhood, next_cell: &mut GridCell) {
+    fn update_next_cell(&self, neighborhood: &Neighborhood, next_cell: &mut EvoGridCell) {
         let next_substance = next_cell.substance.as_mut().unwrap();
 
         next_substance.amount += Self::sum_donations(neighborhood, self.color);

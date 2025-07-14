@@ -2,7 +2,7 @@
 #![forbid(unsafe_code)]
 
 use error_iter::ErrorIter as _;
-use evo_grid::world::World;
+use evo_grid::world::{GridCell, World};
 use log::{/* debug, */ error};
 use pixels::wgpu::Color;
 use pixels::{Error, Pixels, PixelsBuilder, SurfaceTexture};
