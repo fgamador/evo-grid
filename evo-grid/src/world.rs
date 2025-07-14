@@ -8,8 +8,8 @@ use rand::prelude::*;
 
 #[derive(Debug)]
 pub struct World {
-    cells: WorldGrid,
-    next_cells: WorldGrid,
+    cells: WorldGrid<EvoGridCell>,
+    next_cells: WorldGrid<EvoGridCell>,
     sources: Vec<SubstanceSource>,
     rand: Random,
 }
@@ -118,17 +118,23 @@ impl World {
 }
 
 #[derive(Clone, Debug)]
-struct WorldGrid {
-    cells: Vec<EvoGridCell>,
+struct WorldGrid<C>
+where
+    C: Clone + GridCell,
+{
+    cells: Vec<C>,
     width: usize,
     height: usize,
 }
 
-impl WorldGrid {
+impl<C> WorldGrid<C>
+where
+    C: Clone + Copy + Default + GridCell,
+{
     fn new(width: usize, height: usize) -> Self {
         assert!(width != 0 && height != 0);
         Self {
-            cells: vec![EvoGridCell::default(); width * height],
+            cells: vec![C::default(); width * height],
             width,
             height,
         }
@@ -146,15 +152,15 @@ impl WorldGrid {
         self.cells.len()
     }
 
-    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &EvoGridCell> + Clone {
+    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &C> + Clone {
         self.cells.iter()
     }
 
-    fn get(&self, loc: Loc) -> Option<&EvoGridCell> {
+    fn get(&self, loc: Loc) -> Option<&C> {
         self.get_index(loc).map(|index| &self.cells[index])
     }
 
-    fn get_mut(&mut self, loc: Loc) -> Option<&mut EvoGridCell> {
+    fn get_mut(&mut self, loc: Loc) -> Option<&mut C> {
         self.get_index(loc).map(|index| &mut self.cells[index])
     }
 
@@ -171,8 +177,11 @@ impl WorldGrid {
     }
 }
 
-impl Index<Loc> for WorldGrid {
-    type Output = EvoGridCell;
+impl<C> Index<Loc> for WorldGrid<C>
+where
+    C: Clone + Copy + Default + GridCell,
+{
+    type Output = C;
 
     fn index(&self, loc: Loc) -> &Self::Output {
         self.get(loc)
@@ -180,7 +189,10 @@ impl Index<Loc> for WorldGrid {
     }
 }
 
-impl IndexMut<Loc> for WorldGrid {
+impl<C> IndexMut<Loc> for WorldGrid<C>
+where
+    C: Clone + Copy + Default + GridCell,
+{
     fn index_mut(&mut self, loc: Loc) -> &mut Self::Output {
         self.get_mut(loc)
             .unwrap_or_else(|| panic!("Index_mut indices {}, {} out of bounds", loc.row, loc.col))
@@ -210,20 +222,20 @@ impl SubstanceSource {
         Self { loc, substance }
     }
 
-    fn update_cells(&self, grid: &mut WorldGrid) {
+    fn update_cells(&self, grid: &mut WorldGrid<EvoGridCell>) {
         let substance = grid[self.loc].substance.get_or_insert_default();
         *substance = self.substance;
     }
 }
 
 struct Neighborhood<'a> {
-    cells: &'a WorldGrid,
+    cells: &'a WorldGrid<EvoGridCell>,
     rows: [usize; 3],
     cols: [usize; 3],
 }
 
 impl<'a> Neighborhood<'a> {
-    fn new(cells: &'a WorldGrid, center: Loc) -> Self {
+    fn new(cells: &'a WorldGrid<EvoGridCell>, center: Loc) -> Self {
         let (row_above, row_below) = Self::adjacent_indexes(center.row, cells.height());
         let (col_left, col_right) = Self::adjacent_indexes(center.col, cells.width());
         Self {
