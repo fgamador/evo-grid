@@ -218,6 +218,10 @@ impl Random {
         Self { rng: rand::rng() }
     }
 
+    pub fn next_bool(&mut self, p: f64) -> bool {
+        self.rng.random_bool(p)
+    }
+
     pub fn next_usize(&mut self, range: Range<usize>) -> usize {
         self.rng.random_range(range)
     }
