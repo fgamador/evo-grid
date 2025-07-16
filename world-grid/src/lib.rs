@@ -122,23 +122,17 @@ where
     }
 
     fn get(&self, loc: Loc) -> Option<&C> {
-        self.get_index(loc).map(|index| &self.cells[index])
+        loc.grid_index(self.width, self.height)
+            .map(|index| &self.cells[index])
     }
 
     fn get_mut(&mut self, loc: Loc) -> Option<&mut C> {
-        self.get_index(loc).map(|index| &mut self.cells[index])
+        loc.grid_index(self.width, self.height)
+            .map(|index| &mut self.cells[index])
     }
 
     pub fn copy_from(&mut self, source: &Self) {
         self.cells.copy_from_slice(&source.cells);
-    }
-
-    fn get_index(&self, loc: Loc) -> Option<usize> {
-        if loc.row < self.height && loc.col < self.width {
-            Some(loc.row * self.width + loc.col)
-        } else {
-            None
-        }
     }
 }
 
@@ -279,6 +273,14 @@ pub struct Loc {
 impl Loc {
     pub fn new(row: usize, col: usize) -> Self {
         Self { row, col }
+    }
+
+    pub fn grid_index(&self, width: usize, height: usize) -> Option<usize> {
+        if self.row < height && self.col < width {
+            Some(self.row * width + self.col)
+        } else {
+            None
+        }
     }
 }
 
