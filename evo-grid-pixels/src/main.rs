@@ -3,7 +3,7 @@
 
 use evo_grid::world::EvoWorld;
 use pixels::Error;
-use pixels_main_support::{animate, ViewModel};
+use pixels_main_support::animate;
 
 const WIDTH: usize = 400;
 const HEIGHT: usize = 300;
@@ -11,5 +11,5 @@ const HEIGHT: usize = 300;
 fn main() -> Result<(), Error> {
     env_logger::init();
     let mut world = EvoWorld::new(WIDTH, HEIGHT, evo_grid::world::Random::new());
-    animate(ViewModel::new(&mut world))
+    animate(&mut world)
 }

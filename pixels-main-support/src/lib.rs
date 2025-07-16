@@ -16,48 +16,20 @@ use winit::{
 };
 use winit_input_helper::WinitInputHelper;
 
-pub struct ViewModel<'a, W: World> {
-    pub world: &'a mut W,
-}
-
-impl<'a, W: World> ViewModel<'a, W> {
-    pub fn new(world: &'a mut W) -> Self {
-        Self { world }
-    }
-
-    fn width(&self) -> usize {
-        self.world.width()
-    }
-
-    fn height(&self) -> usize {
-        self.world.height()
-    }
-
-    pub fn update(&mut self) {
-        self.world.update();
-    }
-
-    pub fn draw(&self, screen: &mut [u8]) {
-        debug_assert_eq!(screen.len(), 4 * self.world.num_cells());
-        for (cell, pixel) in self.world.cells_iter().zip(screen.chunks_exact_mut(4)) {
-            pixel.copy_from_slice(&cell.color_rgba());
-        }
-    }
-}
-
-pub fn animate<W: World>(mut view_model: ViewModel<W>) -> Result<(), Error> {
+pub fn animate<W: World>(world: &mut W) -> Result<(), Error> {
     let event_loop = EventLoop::new().unwrap();
     let window = build_window(
-        view_model.width() as f64,
-        view_model.height() as f64,
+        world.width() as f64,
+        world.height() as f64,
         &event_loop,
     );
     let mut pixels = build_pixels(
-        view_model.width() as u32,
-        view_model.height() as u32,
+        world.width() as u32,
+        world.height() as u32,
         &window,
     )?;
 
+    let mut view_model = ViewModel::new(world);
     let mut input = WinitInputHelper::new();
     let mut paused = false;
 
@@ -132,5 +104,26 @@ fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {
     error!("{method_name}() failed: {err}");
     for source in err.sources().skip(1) {
         error!("  Caused by: {source}");
+    }
+}
+
+pub struct ViewModel<'a, W: World> {
+    pub world: &'a mut W,
+}
+
+impl<'a, W: World> ViewModel<'a, W> {
+    pub fn new(world: &'a mut W) -> Self {
+        Self { world }
+    }
+
+    pub fn update(&mut self) {
+        self.world.update();
+    }
+
+    pub fn draw(&self, screen: &mut [u8]) {
+        debug_assert_eq!(screen.len(), 4 * self.world.num_cells());
+        for (cell, pixel) in self.world.cells_iter().zip(screen.chunks_exact_mut(4)) {
+            pixel.copy_from_slice(&cell.color_rgba());
+        }
     }
 }
