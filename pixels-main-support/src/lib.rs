@@ -107,7 +107,7 @@ fn log_error<E: std::error::Error + 'static>(method_name: &str, err: E) {
     }
 }
 
-pub struct ViewModel<'a, W: World> {
+struct ViewModel<'a, W: World> {
     pub world: &'a mut W,
 }
 
