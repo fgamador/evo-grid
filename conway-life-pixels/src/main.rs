@@ -47,15 +47,15 @@ impl ConwayWorld {
         }
     }
 
-    fn update_next_cells(&mut self) {
+    fn update_cells(&mut self) {
         for row in 0..self.height() {
             for col in 0..self.width() {
-                self.update_next_cell(Loc::new(row, col));
+                self.update_cell(Loc::new(row, col));
             }
         }
     }
 
-    fn update_next_cell(&mut self, loc: Loc) {
+    fn update_cell(&mut self, loc: Loc) {
         let cell = &self.cells[loc];
         if cell.debug_selected {
             println!("{:?}", cell);
@@ -63,7 +63,7 @@ impl ConwayWorld {
 
         let neighborhood = Neighborhood::new(&self.cells, loc);
         let next_cell = &mut self.next_cells[loc];
-        cell.update_next_cell(&neighborhood, next_cell);
+        cell.update(&neighborhood, next_cell);
     }
 }
 
@@ -86,7 +86,7 @@ impl World for ConwayWorld {
 
     fn update(&mut self) {
         self.next_cells.copy_from(&self.cells);
-        self.update_next_cells();
+        self.update_cells();
         mem::swap(&mut self.next_cells, &mut self.cells);
     }
 }
@@ -118,7 +118,7 @@ impl GridCell for ConwayGridCell {
         }
     }
 
-    fn update_next_cell(
+    fn update(
         &self,
         neighborhood: &Neighborhood<ConwayGridCell>,
         next_cell: &mut ConwayGridCell,

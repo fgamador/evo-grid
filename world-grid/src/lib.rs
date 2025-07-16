@@ -171,11 +171,12 @@ where
     }
 }
 
-pub trait GridCell {
+pub trait GridCell
+where
+    Self: Copy + Default,
+{
     fn color_rgba(&self) -> [u8; 4];
-    fn update_next_cell(&self, neighborhood: &Neighborhood<Self>, next_cell: &mut Self)
-    where
-        Self: Copy + Default;
+    fn update(&self, neighborhood: &Neighborhood<Self>, next_cell: &mut Self);
 }
 
 // From https://en.wikipedia.org/wiki/Alpha_compositing
