@@ -1,7 +1,7 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-use evo_grid::world::EvoWorld;
+use evo_grid::EvoWorld;
 use pixels::Error;
 use pixels_main_support::animate;
 use world_grid::Random;
