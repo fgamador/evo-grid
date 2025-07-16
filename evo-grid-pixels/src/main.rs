@@ -16,14 +16,14 @@ use winit::{
 };
 use winit_input_helper::WinitInputHelper;
 
-const WIDTH: u32 = 400;
-const HEIGHT: u32 = 300;
+const WIDTH: usize = 400;
+const HEIGHT: usize = 300;
 
 fn main() -> Result<(), Error> {
     env_logger::init();
     let mut world = EvoWorld::new(
-        WIDTH as usize,
-        HEIGHT as usize,
+        WIDTH,
+        HEIGHT,
         evo_grid::world::Random::new(),
     );
     animate(ViewModel::new(&mut world))
