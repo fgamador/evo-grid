@@ -83,7 +83,7 @@ impl World {
         self.cells.num_cells()
     }
 
-    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &EvoGridCell> + Clone {
+    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &impl GridCell> + Clone {
         self.cells.cells_iter()
     }
 
