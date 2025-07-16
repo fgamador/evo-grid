@@ -442,12 +442,10 @@ name = "evo-grid-pixels"
 version = "0.1.0"
 dependencies = [
  "env_logger",
- "error-iter",
  "evo-grid",
  "log",
  "pixels",
- "winit",
- "winit_input_helper",
+ "pixels-main-support",
 ]
 
 [[package]]
@@ -1047,7 +1045,6 @@ dependencies = [
 name = "pixels-main-support"
 version = "0.1.0"
 dependencies = [
- "env_logger",
  "error-iter",
  "evo-grid",
  "log",
