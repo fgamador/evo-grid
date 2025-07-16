@@ -31,7 +31,7 @@ where
     C: Clone + Debug + GridCell,
 {
     pub fn new(width: usize, height: usize) -> Self {
-        assert!(width != 0 && height != 0);
+        assert!(width > 0 && height > 0);
         Self {
             width,
             height,
