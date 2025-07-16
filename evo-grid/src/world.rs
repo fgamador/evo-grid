@@ -1,13 +1,13 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-use std::mem;
-use world_grid::{alpha_blend, GridCell, Loc, Neighborhood, Random, World, WorldGridCells};
+use world_grid::{
+    alpha_blend, GridCell, Loc, Neighborhood, Random, World, WorldGrid, WorldGridCells,
+};
 
 #[derive(Debug)]
 pub struct EvoWorld {
-    cells: WorldGridCells<EvoGridCell>,
-    next_cells: WorldGridCells<EvoGridCell>,
+    grid: WorldGrid<EvoGridCell>,
     sources: Vec<SubstanceSource>,
     rand: Random,
 }
@@ -24,8 +24,7 @@ impl EvoWorld {
     fn new_empty(width: usize, height: usize, rand: Random) -> Self {
         assert!(width != 0 && height != 0);
         Self {
-            cells: WorldGridCells::new(width, height),
-            next_cells: WorldGridCells::new(width, height),
+            grid: WorldGrid::new(width, height),
             sources: vec![],
             rand,
         }
@@ -66,54 +65,33 @@ impl EvoWorld {
 
     fn add_creatures(&mut self) {
         let loc = Loc::new(20 + self.height() / 4, self.width() / 3);
-        self.cells[loc].creature = Some(Creature::new([0, 0xff, 0]));
-    }
-
-    fn update_cells(&mut self) {
-        self.sources
-            .iter()
-            .for_each(|source| source.update_cells(&mut self.next_cells));
-
-        for row in 0..self.height() {
-            for col in 0..self.width() {
-                self.update_cell(Loc::new(row, col));
-            }
-        }
-    }
-
-    fn update_cell(&mut self, loc: Loc) {
-        let cell = &self.cells[loc];
-        if cell.debug_selected {
-            println!("{:?}", cell);
-        }
-
-        let neighborhood = Neighborhood::new(&self.cells, loc);
-        let next_cell = &mut self.next_cells[loc];
-        cell.update(&neighborhood, next_cell);
+        self.grid.cells[loc].creature = Some(Creature::new([0, 0xff, 0]));
     }
 }
 
 impl World for EvoWorld {
     fn width(&self) -> usize {
-        self.cells.width()
+        self.grid.width()
     }
 
     fn height(&self) -> usize {
-        self.cells.height()
+        self.grid.height()
     }
 
     fn num_cells(&self) -> usize {
-        self.cells.num_cells()
+        self.grid.num_cells()
     }
 
     fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &impl GridCell> + Clone {
-        self.cells.cells_iter()
+        self.grid.cells_iter()
     }
 
     fn update(&mut self) {
-        self.next_cells.copy_from(&self.cells);
-        self.update_cells();
-        mem::swap(&mut self.next_cells, &mut self.cells);
+        self.grid.update(|grid| {
+            self.sources
+                .iter()
+                .for_each(|source| source.update_cells(&mut grid.next_cells));
+        });
     }
 }
 
@@ -128,8 +106,8 @@ impl SubstanceSource {
         Self { loc, substance }
     }
 
-    fn update_cells(&self, grid: &mut WorldGridCells<EvoGridCell>) {
-        let substance = grid[self.loc].substance.get_or_insert_default();
+    fn update_cells(&self, cells: &mut WorldGridCells<EvoGridCell>) {
+        let substance = cells[self.loc].substance.get_or_insert_default();
         *substance = self.substance;
     }
 }
@@ -189,11 +167,7 @@ impl GridCell for EvoGridCell {
         alpha_blend(self.render_substance(), self.render_creature())
     }
 
-    fn update(
-        &self,
-        neighborhood: &Neighborhood<EvoGridCell>,
-        next_cell: &mut EvoGridCell,
-    ) {
+    fn update(&self, neighborhood: &Neighborhood<EvoGridCell>, next_cell: &mut EvoGridCell) {
         self.update_next_creature(neighborhood, next_cell);
         self.update_next_substance(neighborhood, next_cell);
     }

@@ -23,7 +23,7 @@ where
     width: usize,
     height: usize,
     pub cells: WorldGridCells<C>,
-    next_cells: WorldGridCells<C>,
+    pub next_cells: WorldGridCells<C>,
 }
 
 impl<C> WorldGrid<C>
