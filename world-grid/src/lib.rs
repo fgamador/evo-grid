@@ -22,7 +22,7 @@ where
 {
     width: usize,
     height: usize,
-    cells: WorldGridCells<C>,
+    pub cells: WorldGridCells<C>,
     next_cells: WorldGridCells<C>,
 }
 
