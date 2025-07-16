@@ -1,6 +1,8 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+use std::fmt::Debug;
+use std::mem;
 use std::ops::{Index, IndexMut, Range};
 
 use rand::prelude::*;
@@ -18,12 +20,79 @@ pub struct WorldGrid<C>
 where
     C: Clone + GridCell,
 {
+    width: usize,
+    height: usize,
+    cells: WorldGridCells<C>,
+    next_cells: WorldGridCells<C>,
+}
+
+impl<C> WorldGrid<C>
+where
+    C: Clone + Debug + GridCell,
+{
+    pub fn new(width: usize, height: usize) -> Self {
+        assert!(width != 0 && height != 0);
+        Self {
+            width,
+            height,
+            cells: WorldGridCells::new(width, height),
+            next_cells: WorldGridCells::new(width, height),
+        }
+    }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn height(&self) -> usize {
+        self.height
+    }
+
+    pub fn num_cells(&self) -> usize {
+        self.cells.num_cells()
+    }
+
+    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &C> + Clone {
+        self.cells.cells_iter()
+    }
+
+    pub fn update(&mut self) {
+        self.next_cells.copy_from(&self.cells);
+        self.update_cells();
+        mem::swap(&mut self.next_cells, &mut self.cells);
+    }
+
+    fn update_cells(&mut self) {
+        for row in 0..self.height() {
+            for col in 0..self.width() {
+                self.update_cell(Loc::new(row, col));
+            }
+        }
+    }
+
+    fn update_cell(&mut self, loc: Loc) {
+        let cell = &self.cells[loc];
+        if cell.debug_selected() {
+            println!("{:?}", cell);
+        }
+
+        let neighborhood = Neighborhood::new(&self.cells, loc);
+        let next_cell = &mut self.next_cells[loc];
+        cell.update(&neighborhood, next_cell);
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct WorldGridCells<C>
+where
+    C: Clone + GridCell,
+{
     cells: Vec<C>,
     width: usize,
     height: usize,
 }
 
-impl<C> WorldGrid<C>
+impl<C> WorldGridCells<C>
 where
     C: Clone + Copy + Default + GridCell,
 {
@@ -73,7 +142,7 @@ where
     }
 }
 
-impl<C> Index<Loc> for WorldGrid<C>
+impl<C> Index<Loc> for WorldGridCells<C>
 where
     C: Clone + Copy + Default + GridCell,
 {
@@ -85,7 +154,7 @@ where
     }
 }
 
-impl<C> IndexMut<Loc> for WorldGrid<C>
+impl<C> IndexMut<Loc> for WorldGridCells<C>
 where
     C: Clone + Copy + Default + GridCell,
 {
@@ -95,23 +164,11 @@ where
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct Loc {
-    pub row: usize,
-    pub col: usize,
-}
-
-impl Loc {
-    pub fn new(row: usize, col: usize) -> Self {
-        Self { row, col }
-    }
-}
-
 pub struct Neighborhood<'a, C>
 where
     C: Clone + Copy + Default + GridCell,
 {
-    cells: &'a WorldGrid<C>,
+    cells: &'a WorldGridCells<C>,
     rows: [usize; 3],
     cols: [usize; 3],
 }
@@ -120,7 +177,7 @@ impl<'a, C> Neighborhood<'a, C>
 where
     C: Clone + Copy + Default + GridCell,
 {
-    pub fn new(cells: &'a WorldGrid<C>, center: Loc) -> Self {
+    pub fn new(cells: &'a WorldGridCells<C>, center: Loc) -> Self {
         let (row_above, row_below) = Self::adjacent_indexes(center.row, cells.height());
         let (col_left, col_right) = Self::adjacent_indexes(center.col, cells.width());
         Self {
@@ -175,6 +232,7 @@ pub trait GridCell
 where
     Self: Copy + Default,
 {
+    fn debug_selected(&self) -> bool;
     fn color_rgba(&self) -> [u8; 4];
     fn update(&self, neighborhood: &Neighborhood<Self>, next_cell: &mut Self);
 }
@@ -210,6 +268,18 @@ fn color_as_bytes(color: [f32; 4]) -> [u8; 4] {
         result[i] = (color[i] * 0xff as f32) as u8;
     }
     result
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Loc {
+    pub row: usize,
+    pub col: usize,
+}
+
+impl Loc {
+    pub fn new(row: usize, col: usize) -> Self {
+        Self { row, col }
+    }
 }
 
 #[derive(Debug)]

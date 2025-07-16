@@ -4,7 +4,7 @@
 use pixels::Error;
 use pixels_main_support::animate;
 use std::mem;
-use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
+use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGridCells};
 
 const WIDTH: usize = 400;
 const HEIGHT: usize = 300;
@@ -17,8 +17,8 @@ fn main() -> Result<(), Error> {
 
 #[derive(Debug)]
 pub struct ConwayWorld {
-    cells: WorldGrid<ConwayGridCell>,
-    next_cells: WorldGrid<ConwayGridCell>,
+    cells: WorldGridCells<ConwayGridCell>,
+    next_cells: WorldGridCells<ConwayGridCell>,
     rand: Random,
 }
 
@@ -32,8 +32,8 @@ impl ConwayWorld {
     fn new_empty(width: usize, height: usize, rand: Random) -> Self {
         assert!(width > 0 && height > 0);
         Self {
-            cells: WorldGrid::new(width, height),
-            next_cells: WorldGrid::new(width, height),
+            cells: WorldGridCells::new(width, height),
+            next_cells: WorldGridCells::new(width, height),
             rand,
         }
     }
@@ -110,6 +110,10 @@ impl ConwayGridCell {
 }
 
 impl GridCell for ConwayGridCell {
+    fn debug_selected(&self) -> bool {
+        self.debug_selected
+    }
+
     fn color_rgba(&self) -> [u8; 4] {
         if self.alive {
             [0, 0, 0, 0xff]
@@ -118,11 +122,7 @@ impl GridCell for ConwayGridCell {
         }
     }
 
-    fn update(
-        &self,
-        neighborhood: &Neighborhood<ConwayGridCell>,
-        next_cell: &mut ConwayGridCell,
-    ) {
+    fn update(&self, neighborhood: &Neighborhood<ConwayGridCell>, next_cell: &mut ConwayGridCell) {
         let neighbors = Self::num_live_neighbors(neighborhood);
         next_cell.alive = if self.alive {
             2 <= neighbors && neighbors <= 3

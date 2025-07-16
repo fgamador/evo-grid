@@ -2,12 +2,12 @@
 #![forbid(unsafe_code)]
 
 use std::mem;
-use world_grid::{alpha_blend, GridCell, Loc, Neighborhood, Random, World, WorldGrid};
+use world_grid::{alpha_blend, GridCell, Loc, Neighborhood, Random, World, WorldGridCells};
 
 #[derive(Debug)]
 pub struct EvoWorld {
-    cells: WorldGrid<EvoGridCell>,
-    next_cells: WorldGrid<EvoGridCell>,
+    cells: WorldGridCells<EvoGridCell>,
+    next_cells: WorldGridCells<EvoGridCell>,
     sources: Vec<SubstanceSource>,
     rand: Random,
 }
@@ -24,8 +24,8 @@ impl EvoWorld {
     fn new_empty(width: usize, height: usize, rand: Random) -> Self {
         assert!(width != 0 && height != 0);
         Self {
-            cells: WorldGrid::new(width, height),
-            next_cells: WorldGrid::new(width, height),
+            cells: WorldGridCells::new(width, height),
+            next_cells: WorldGridCells::new(width, height),
             sources: vec![],
             rand,
         }
@@ -128,7 +128,7 @@ impl SubstanceSource {
         Self { loc, substance }
     }
 
-    fn update_cells(&self, grid: &mut WorldGrid<EvoGridCell>) {
+    fn update_cells(&self, grid: &mut WorldGridCells<EvoGridCell>) {
         let substance = grid[self.loc].substance.get_or_insert_default();
         *substance = self.substance;
     }
@@ -181,6 +181,10 @@ impl EvoGridCell {
 }
 
 impl GridCell for EvoGridCell {
+    fn debug_selected(&self) -> bool {
+        self.debug_selected
+    }
+
     fn color_rgba(&self) -> [u8; 4] {
         alpha_blend(self.render_substance(), self.render_creature())
     }
