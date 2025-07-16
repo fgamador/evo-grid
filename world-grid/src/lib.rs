@@ -121,12 +121,12 @@ where
         self.cells.iter()
     }
 
-    fn get(&self, loc: Loc) -> Option<&C> {
+    fn cell(&self, loc: Loc) -> Option<&C> {
         loc.grid_index(self.width, self.height)
             .map(|index| &self.cells[index])
     }
 
-    fn get_mut(&mut self, loc: Loc) -> Option<&mut C> {
+    fn cell_mut(&mut self, loc: Loc) -> Option<&mut C> {
         loc.grid_index(self.width, self.height)
             .map(|index| &mut self.cells[index])
     }
@@ -143,7 +143,7 @@ where
     type Output = C;
 
     fn index(&self, loc: Loc) -> &Self::Output {
-        self.get(loc)
+        self.cell(loc)
             .unwrap_or_else(|| panic!("Index indices {}, {} out of bounds", loc.row, loc.col))
     }
 }
@@ -153,7 +153,7 @@ where
     C: Clone + Copy + Default + GridCell,
 {
     fn index_mut(&mut self, loc: Loc) -> &mut Self::Output {
-        self.get_mut(loc)
+        self.cell_mut(loc)
             .unwrap_or_else(|| panic!("Index_mut indices {}, {} out of bounds", loc.row, loc.col))
     }
 }
