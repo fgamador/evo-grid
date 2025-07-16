@@ -63,7 +63,7 @@ impl World for ConwayWorld {
     }
 
     fn update(&mut self) {
-        self.grid.update();
+        self.grid.update(|_grid| {});
     }
 }
 

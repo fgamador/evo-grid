@@ -56,8 +56,12 @@ where
         self.cells.cells_iter()
     }
 
-    pub fn update(&mut self) {
+    pub fn update<F>(&mut self, mut other_update: F)
+    where
+        F: FnMut(&mut Self),
+    {
         self.next_cells.copy_from(&self.cells);
+        other_update(self);
         self.update_cells();
         mem::swap(&mut self.next_cells, &mut self.cells);
     }
