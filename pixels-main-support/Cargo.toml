@@ -1,0 +1,14 @@
+[package]
+name = "pixels-main-support"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[dependencies]
+env_logger = "0.10"
+error-iter = "0.4"
+evo-grid = { path = "../evo-grid" }
+log = "0.4"
+pixels = "0.14"
+winit = { version = "0.29", features = ["rwh_05"]}
+winit_input_helper = "0.15"

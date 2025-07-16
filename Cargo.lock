@@ -1044,6 +1044,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "pixels-main-support"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "error-iter",
+ "evo-grid",
+ "log",
+ "pixels",
+ "winit",
+ "winit_input_helper",
+]
+
+[[package]]
 name = "pkg-config"
 version = "0.3.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
