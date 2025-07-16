@@ -98,19 +98,6 @@ pub struct ConwayGridCell {
 }
 
 impl ConwayGridCell {
-    fn update_next_cell(
-        &self,
-        neighborhood: &Neighborhood<ConwayGridCell>,
-        next_cell: &mut ConwayGridCell,
-    ) {
-        let neighbors = Self::num_live_neighbors(neighborhood);
-        next_cell.alive = if self.alive {
-            2 <= neighbors && neighbors <= 3
-        } else {
-            neighbors == 3
-        };
-    }
-
     fn num_live_neighbors(neighborhood: &Neighborhood<ConwayGridCell>) -> u32 {
         let mut result = 0;
         neighborhood.for_neighbor_cells(|neighbor| {
@@ -129,5 +116,18 @@ impl GridCell for ConwayGridCell {
         } else {
             [0xff, 0xff, 0xff, 0xff]
         }
+    }
+
+    fn update_next_cell(
+        &self,
+        neighborhood: &Neighborhood<ConwayGridCell>,
+        next_cell: &mut ConwayGridCell,
+    ) {
+        let neighbors = Self::num_live_neighbors(neighborhood);
+        next_cell.alive = if self.alive {
+            2 <= neighbors && neighbors <= 3
+        } else {
+            neighbors == 3
+        };
     }
 }

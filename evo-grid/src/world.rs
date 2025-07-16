@@ -142,15 +142,6 @@ pub struct EvoGridCell {
 }
 
 impl EvoGridCell {
-    fn update_next_cell(
-        &self,
-        neighborhood: &Neighborhood<EvoGridCell>,
-        next_cell: &mut EvoGridCell,
-    ) {
-        self.update_next_creature(neighborhood, next_cell);
-        self.update_next_substance(neighborhood, next_cell);
-    }
-
     fn update_next_creature(
         &self,
         neighborhood: &Neighborhood<EvoGridCell>,
@@ -192,6 +183,15 @@ impl EvoGridCell {
 impl GridCell for EvoGridCell {
     fn color_rgba(&self) -> [u8; 4] {
         alpha_blend(self.render_substance(), self.render_creature())
+    }
+
+    fn update_next_cell(
+        &self,
+        neighborhood: &Neighborhood<EvoGridCell>,
+        next_cell: &mut EvoGridCell,
+    ) {
+        self.update_next_creature(neighborhood, next_cell);
+        self.update_next_substance(neighborhood, next_cell);
     }
 }
 
