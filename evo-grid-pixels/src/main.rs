@@ -2,7 +2,7 @@
 #![forbid(unsafe_code)]
 
 use error_iter::ErrorIter as _;
-use evo_grid::world::{GridCell, World};
+use evo_grid::world::{EvoWorld, GridCell, World};
 use log::{/* debug, */ error};
 use pixels::wgpu::Color;
 use pixels::{Error, Pixels, PixelsBuilder, SurfaceTexture};
@@ -21,7 +21,7 @@ const HEIGHT: u32 = 300;
 
 fn main() -> Result<(), Error> {
     env_logger::init();
-    let mut world = World::new(
+    let mut world = EvoWorld::new(
         WIDTH as usize,
         HEIGHT as usize,
         evo_grid::world::Random::new(),
@@ -29,12 +29,12 @@ fn main() -> Result<(), Error> {
     animate(ViewModel::new(&mut world))
 }
 
-struct ViewModel<'a> {
-    pub world: &'a mut World,
+struct ViewModel<'a, W: World> {
+    pub world: &'a mut W,
 }
 
-impl<'a> ViewModel<'a> {
-    pub fn new(world: &'a mut World) -> Self {
+impl<'a, W: World> ViewModel<'a, W> {
+    pub fn new(world: &'a mut W) -> Self {
         Self { world }
     }
 
@@ -50,7 +50,7 @@ impl<'a> ViewModel<'a> {
     }
 }
 
-fn animate(mut view_model: ViewModel) -> Result<(), Error> {
+fn animate<W: World>(mut view_model: ViewModel<W>) -> Result<(), Error> {
     let event_loop = EventLoop::new().unwrap();
     let window = build_window(&event_loop);
     let mut pixels = build_pixels(&window)?;

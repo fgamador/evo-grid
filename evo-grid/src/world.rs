@@ -6,15 +6,23 @@ use std::ops::{Index, IndexMut, Range};
 
 use rand::prelude::*;
 
+pub trait World {
+    fn width(&self) -> usize;
+    fn height(&self) -> usize;
+    fn num_cells(&self) -> usize;
+    fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &impl GridCell> + Clone;
+    fn update(&mut self);
+}
+
 #[derive(Debug)]
-pub struct World {
+pub struct EvoWorld {
     cells: WorldGrid<EvoGridCell>,
     next_cells: WorldGrid<EvoGridCell>,
     sources: Vec<SubstanceSource>,
     rand: Random,
 }
 
-impl World {
+impl EvoWorld {
     pub fn new(width: usize, height: usize, rand: Random) -> Self {
         let mut result = Self::new_empty(width, height, rand);
         result.add_substances();
@@ -87,12 +95,6 @@ impl World {
         self.cells.cells_iter()
     }
 
-    pub fn update(&mut self) {
-        self.next_cells.copy_from(&self.cells);
-        self.update_next_cells();
-        mem::swap(&mut self.next_cells, &mut self.cells);
-    }
-
     fn update_next_cells(&mut self) {
         self.sources
             .iter()
@@ -114,6 +116,30 @@ impl World {
         let neighborhood = Neighborhood::new(&self.cells, loc);
         let next_cell = &mut self.next_cells[loc];
         cell.update_next_cell(&neighborhood, next_cell);
+    }
+}
+
+impl World for EvoWorld {
+    fn width(&self) -> usize {
+        self.cells.width()
+    }
+
+    fn height(&self) -> usize {
+        self.cells.height()
+    }
+
+    fn num_cells(&self) -> usize {
+        self.cells.num_cells()
+    }
+
+    fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &impl GridCell> + Clone {
+        self.cells.cells_iter()
+    }
+
+    fn update(&mut self) {
+        self.next_cells.copy_from(&self.cells);
+        self.update_next_cells();
+        mem::swap(&mut self.next_cells, &mut self.cells);
     }
 }
 
@@ -228,13 +254,19 @@ impl SubstanceSource {
     }
 }
 
-struct Neighborhood<'a, C> where C: Clone + Copy + Default + GridCell {
+struct Neighborhood<'a, C>
+where
+    C: Clone + Copy + Default + GridCell,
+{
     cells: &'a WorldGrid<C>,
     rows: [usize; 3],
     cols: [usize; 3],
 }
 
-impl<'a, C> Neighborhood<'a, C> where C: Clone + Copy + Default + GridCell {
+impl<'a, C> Neighborhood<'a, C>
+where
+    C: Clone + Copy + Default + GridCell,
+{
     fn new(cells: &'a WorldGrid<C>, center: Loc) -> Self {
         let (row_above, row_below) = Self::adjacent_indexes(center.row, cells.height());
         let (col_left, col_right) = Self::adjacent_indexes(center.col, cells.width());
@@ -298,12 +330,20 @@ pub struct EvoGridCell {
 }
 
 impl EvoGridCell {
-    fn update_next_cell(&self, neighborhood: &Neighborhood<EvoGridCell>, next_cell: &mut EvoGridCell) {
+    fn update_next_cell(
+        &self,
+        neighborhood: &Neighborhood<EvoGridCell>,
+        next_cell: &mut EvoGridCell,
+    ) {
         self.update_next_creature(neighborhood, next_cell);
         self.update_next_substance(neighborhood, next_cell);
     }
 
-    fn update_next_creature(&self, neighborhood: &Neighborhood<EvoGridCell>, next_cell: &mut EvoGridCell) {
+    fn update_next_creature(
+        &self,
+        neighborhood: &Neighborhood<EvoGridCell>,
+        next_cell: &mut EvoGridCell,
+    ) {
         if let Some(creature) = self.creature {
             creature.update_next_cell(neighborhood, next_cell);
         } else {
@@ -316,7 +356,11 @@ impl EvoGridCell {
         }
     }
 
-    fn update_next_substance(&self, neighborhood: &Neighborhood<EvoGridCell>, next_cell: &mut EvoGridCell) {
+    fn update_next_substance(
+        &self,
+        neighborhood: &Neighborhood<EvoGridCell>,
+        next_cell: &mut EvoGridCell,
+    ) {
         if let Some(substance) = self.substance {
             substance.update_next_cell(neighborhood, next_cell);
         }
@@ -383,7 +427,11 @@ impl Creature {
         Self { color, age: 0 }
     }
 
-    fn update_next_cell(&self, _neighborhood: &Neighborhood<EvoGridCell>, next_cell: &mut EvoGridCell) {
+    fn update_next_cell(
+        &self,
+        _neighborhood: &Neighborhood<EvoGridCell>,
+        next_cell: &mut EvoGridCell,
+    ) {
         if self.age > 3 {
             next_cell.creature = None;
         } else {
@@ -416,7 +464,11 @@ impl Substance {
         }
     }
 
-    fn update_next_cell(&self, neighborhood: &Neighborhood<EvoGridCell>, next_cell: &mut EvoGridCell) {
+    fn update_next_cell(
+        &self,
+        neighborhood: &Neighborhood<EvoGridCell>,
+        next_cell: &mut EvoGridCell,
+    ) {
         let next_substance = next_cell.substance.as_mut().unwrap();
 
         next_substance.amount += Self::sum_donations(neighborhood, self.color);
