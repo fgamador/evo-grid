@@ -38,6 +38,14 @@ impl<'a, W: World> ViewModel<'a, W> {
         Self { world }
     }
 
+    fn width(&self) -> usize {
+        self.world.width()
+    }
+
+    fn height(&self) -> usize {
+        self.world.height()
+    }
+
     pub fn update(&mut self) {
         self.world.update();
     }
@@ -52,8 +60,8 @@ impl<'a, W: World> ViewModel<'a, W> {
 
 fn animate<W: World>(mut view_model: ViewModel<W>) -> Result<(), Error> {
     let event_loop = EventLoop::new().unwrap();
-    let window = build_window(&event_loop);
-    let mut pixels = build_pixels(&window)?;
+    let window = build_window(view_model.width() as f64, view_model.height() as f64, &event_loop);
+    let mut pixels = build_pixels(view_model.width() as u32, view_model.height() as u32, &window)?;
 
     let mut input = WinitInputHelper::new();
     let mut paused = false;
@@ -106,9 +114,9 @@ fn animate<W: World>(mut view_model: ViewModel<W>) -> Result<(), Error> {
     res.map_err(|e| Error::UserDefined(Box::new(e)))
 }
 
-fn build_window(event_loop: &EventLoop<()>) -> Window {
-    let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
-    let scaled_size = LogicalSize::new(WIDTH as f64 * 3.0, HEIGHT as f64 * 3.0);
+fn build_window(width: f64, height: f64, event_loop: &EventLoop<()>) -> Window {
+    let size = LogicalSize::new(width, height);
+    let scaled_size = LogicalSize::new(width * 3.0, height * 3.0);
     WindowBuilder::new()
         .with_title("Evo")
         .with_inner_size(scaled_size)
@@ -117,10 +125,10 @@ fn build_window(event_loop: &EventLoop<()>) -> Window {
         .unwrap()
 }
 
-fn build_pixels(window: &Window) -> Result<Pixels, Error> {
+fn build_pixels(width: u32, height: u32, window: &Window) -> Result<Pixels, Error> {
     let window_size = window.inner_size();
     let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-    PixelsBuilder::new(WIDTH, HEIGHT, surface_texture)
+    PixelsBuilder::new(width, height, surface_texture)
         .clear_color(Color::WHITE)
         .build()
 }
