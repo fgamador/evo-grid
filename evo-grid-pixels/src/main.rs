@@ -10,10 +10,6 @@ const HEIGHT: usize = 300;
 
 fn main() -> Result<(), Error> {
     env_logger::init();
-    let mut world = EvoWorld::new(
-        WIDTH,
-        HEIGHT,
-        evo_grid::world::Random::new(),
-    );
+    let mut world = EvoWorld::new(WIDTH, HEIGHT, evo_grid::world::Random::new());
     animate(ViewModel::new(&mut world))
 }

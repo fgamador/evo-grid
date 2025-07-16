@@ -47,8 +47,16 @@ impl<'a, W: World> ViewModel<'a, W> {
 
 pub fn animate<W: World>(mut view_model: ViewModel<W>) -> Result<(), Error> {
     let event_loop = EventLoop::new().unwrap();
-    let window = build_window(view_model.width() as f64, view_model.height() as f64, &event_loop);
-    let mut pixels = build_pixels(view_model.width() as u32, view_model.height() as u32, &window)?;
+    let window = build_window(
+        view_model.width() as f64,
+        view_model.height() as f64,
+        &event_loop,
+    );
+    let mut pixels = build_pixels(
+        view_model.width() as u32,
+        view_model.height() as u32,
+        &window,
+    )?;
 
     let mut input = WinitInputHelper::new();
     let mut paused = false;
