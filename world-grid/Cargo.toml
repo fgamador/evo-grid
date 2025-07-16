@@ -1,8 +1,8 @@
 [package]
-name = "evo-grid"
+name = "world-grid"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 
 [dependencies]
-world-grid = { path = "../world-grid" }
+rand.workspace = true

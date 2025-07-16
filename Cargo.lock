@@ -434,7 +434,7 @@ checksum = "8070547d90d1b98debb6626421d742c897942bbb78f047694a5eb769495eccd6"
 name = "evo-grid"
 version = "0.1.0"
 dependencies = [
- "rand",
+ "world-grid",
 ]
 
 [[package]]
@@ -446,6 +446,7 @@ dependencies = [
  "log",
  "pixels",
  "pixels-main-support",
+ "world-grid",
 ]
 
 [[package]]
@@ -1046,11 +1047,11 @@ name = "pixels-main-support"
 version = "0.1.0"
 dependencies = [
  "error-iter",
- "evo-grid",
  "log",
  "pixels",
  "winit",
  "winit_input_helper",
+ "world-grid",
 ]
 
 [[package]]
@@ -2306,6 +2307,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6f42320e61fe2cfd34354ecb597f86f413484a798ba44a8ca1165c58d42da6c1"
 dependencies = [
  "bitflags 2.9.1",
+]
+
+[[package]]
+name = "world-grid"
+version = "0.1.0"
+dependencies = [
+ "rand",
 ]
 
 [[package]]

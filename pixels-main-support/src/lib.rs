@@ -2,7 +2,6 @@
 #![forbid(unsafe_code)]
 
 use error_iter::ErrorIter as _;
-use evo_grid::world::{GridCell, World};
 use log::{/* debug, */ error};
 use pixels::wgpu::Color;
 use pixels::{Error, Pixels, PixelsBuilder, SurfaceTexture};
@@ -15,19 +14,12 @@ use winit::{
     window::WindowBuilder,
 };
 use winit_input_helper::WinitInputHelper;
+use world_grid::{GridCell, World};
 
 pub fn animate<W: World>(world: &mut W) -> Result<(), Error> {
     let event_loop = EventLoop::new().unwrap();
-    let window = build_window(
-        world.width() as f64,
-        world.height() as f64,
-        &event_loop,
-    );
-    let mut pixels = build_pixels(
-        world.width() as u32,
-        world.height() as u32,
-        &window,
-    )?;
+    let window = build_window(world.width() as f64, world.height() as f64, &event_loop);
+    let mut pixels = build_pixels(world.width() as u32, world.height() as u32, &window)?;
 
     let mut view_model = ViewModel::new(world);
     let mut input = WinitInputHelper::new();
