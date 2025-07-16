@@ -79,23 +79,7 @@ impl EvoWorld {
         self.cells[loc].creature = Some(Creature::new([0, 0xff, 0]));
     }
 
-    pub fn width(&self) -> usize {
-        self.cells.width()
-    }
-
-    pub fn height(&self) -> usize {
-        self.cells.height()
-    }
-
-    pub fn num_cells(&self) -> usize {
-        self.cells.num_cells()
-    }
-
-    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &impl GridCell> + Clone {
-        self.cells.cells_iter()
-    }
-
-    fn update_next_cells(&mut self) {
+     fn update_next_cells(&mut self) {
         self.sources
             .iter()
             .for_each(|source| source.update_cells(&mut self.next_cells));
