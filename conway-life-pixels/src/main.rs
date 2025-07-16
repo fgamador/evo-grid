@@ -125,9 +125,9 @@ impl ConwayGridCell {
 impl GridCell for ConwayGridCell {
     fn color_rgba(&self) -> [u8; 4] {
         if self.alive {
-            [0xff, 0xff, 0xff, 0xff]
+            [0, 0, 0, 0xff]
         } else {
-            [0, 0, 0, 0]
+            [0xff, 0xff, 0xff, 0xff]
         }
     }
 }
