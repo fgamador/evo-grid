@@ -38,8 +38,10 @@ impl EvoConwayWorld {
     fn add_random_life(&mut self) {
         for row in 0..HEIGHT {
             for col in 0..WIDTH {
-                let loc = Loc::new(row, col);
-                self.grid.cells[loc].alive = self.rand.next_bool(0.3);
+                if self.rand.next_bool(0.3) {
+                    let loc = Loc::new(row, col);
+                    self.grid.cells[loc].creature = Some(Creature::new());
+                }
             }
         }
     }
@@ -69,20 +71,8 @@ impl World for EvoConwayWorld {
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct EvoConwayGridCell {
-    pub alive: bool,
+    creature: Option<Creature>,
     pub debug_selected: bool,
-}
-
-impl EvoConwayGridCell {
-    fn num_live_neighbors(neighborhood: &Neighborhood<EvoConwayGridCell>) -> u32 {
-        let mut result = 0;
-        neighborhood.for_neighbor_cells(|neighbor| {
-            if neighbor.alive {
-                result += 1;
-            }
-        });
-        result
-    }
 }
 
 impl GridCell for EvoConwayGridCell {
@@ -91,19 +81,48 @@ impl GridCell for EvoConwayGridCell {
     }
 
     fn color_rgba(&self) -> [u8; 4] {
-        if self.alive {
+        if self.creature.is_some() {
             [0, 0, 0, 0xff]
         } else {
             [0xff, 0xff, 0xff, 0xff]
         }
     }
 
-    fn update(&self, neighborhood: &Neighborhood<EvoConwayGridCell>, next_cell: &mut EvoConwayGridCell) {
+    fn update(
+        &self,
+        neighborhood: &Neighborhood<EvoConwayGridCell>,
+        next_cell: &mut EvoConwayGridCell,
+    ) {
         let neighbors = Self::num_live_neighbors(neighborhood);
-        next_cell.alive = if self.alive {
-            2 <= neighbors && neighbors <= 3
+        if self.creature.is_some() {
+            if neighbors != 2 && neighbors != 3 {
+                next_cell.creature = None;
+            }
         } else {
-            neighbors == 3
+            if neighbors == 3 {
+                next_cell.creature = Some(Creature::new());
+            }
         };
+    }
+}
+
+impl EvoConwayGridCell {
+    fn num_live_neighbors(neighborhood: &Neighborhood<EvoConwayGridCell>) -> u32 {
+        let mut result = 0;
+        neighborhood.for_neighbor_cells(|neighbor| {
+            if neighbor.creature.is_some() {
+                result += 1;
+            }
+        });
+        result
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct Creature {}
+
+impl Creature {
+    pub fn new() -> Creature {
+        Creature {}
     }
 }
