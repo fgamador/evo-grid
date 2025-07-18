@@ -93,13 +93,13 @@ impl GridCell for EvoConwayGridCell {
         neighborhood: &Neighborhood<EvoConwayGridCell>,
         next_cell: &mut EvoConwayGridCell,
     ) {
-        let neighbors = Self::num_live_neighbors(neighborhood);
+        let num_neighbors = Self::num_live_neighbors(neighborhood);
         if let Some(creature) = self.creature {
-            if !creature.survives(neighbors) {
+            if !creature.survives(num_neighbors) {
                 next_cell.creature = None;
             }
         } else {
-            if Creature::born(neighbors) {
+            if Creature::born(num_neighbors) {
                 next_cell.creature = Some(Creature::new());
             }
         };
@@ -132,12 +132,12 @@ impl Creature {
         }
     }
 
-    pub fn survives(&self, neighbors: usize) -> bool {
-        neighbors > 0 && self.survival_neighbor_counts.has_bit(neighbors - 1)
+    pub fn survives(&self, num_neighbors: usize) -> bool {
+        num_neighbors > 0 && self.survival_neighbor_counts.has_bit(num_neighbors - 1)
     }
 
-    pub fn born(neighbors: usize) -> bool {
-        neighbors == 3
+    pub fn born(num_neighbors: usize) -> bool {
+        num_neighbors == 3
     }
 }
 
