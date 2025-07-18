@@ -133,10 +133,14 @@ impl Creature {
     }
 
     pub fn survives(&self, neighbors: usize) -> bool {
-        neighbors == 2 || neighbors == 3
+        neighbors > 0 && has_bit(self.survival_neighbor_counts, neighbors - 1)
     }
 
     pub fn born(neighbors: usize) -> bool {
         neighbors == 3
     }
+}
+
+fn has_bit(bits: u8, index: usize) -> bool {
+    bits & (1 << index) != 0
 }
