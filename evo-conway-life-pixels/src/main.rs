@@ -120,20 +120,20 @@ impl EvoConwayGridCell {
 
 #[derive(Clone, Copy, Debug, Default)]
 struct Creature {
-    survival_neighbor_counts: u8,
-    birth_neighbor_counts: u8,
+    survival_neighbor_counts: BitSet8,
+    // birth_neighbor_counts: BitSet8,
 }
 
 impl Creature {
     pub fn new() -> Self {
         Self {
-            survival_neighbor_counts: 0b110,
-            birth_neighbor_counts: 0b100,
+            survival_neighbor_counts: BitSet8::new(0b110),
+            // birth_neighbor_counts: BitSet8::new(0b100),
         }
     }
 
     pub fn survives(&self, neighbors: usize) -> bool {
-        neighbors > 0 && has_bit(self.survival_neighbor_counts, neighbors - 1)
+        neighbors > 0 && self.survival_neighbor_counts.has_bit(neighbors - 1)
     }
 
     pub fn born(neighbors: usize) -> bool {
@@ -141,6 +141,17 @@ impl Creature {
     }
 }
 
-fn has_bit(bits: u8, index: usize) -> bool {
-    bits & (1 << index) != 0
+#[derive(Clone, Copy, Debug, Default)]
+struct BitSet8 {
+    bits: u8,
+}
+
+impl BitSet8 {
+    pub fn new(bits: u8) -> Self {
+        Self { bits }
+    }
+
+    fn has_bit(&self, index: usize) -> bool {
+        self.bits & (1 << index) != 0
+    }
 }
