@@ -99,22 +99,23 @@ impl GridCell for EvoConwayGridCell {
                 next_cell.creature = None;
             }
         } else {
-            if Creature::born(neighborhood, num_neighbors) {
-                next_cell.creature = Some(Creature::new());
-            }
+            next_cell.creature = Creature::maybe_reproduce(neighborhood, num_neighbors);
+            // if Creature::born(neighborhood, num_neighbors) {
+            //     next_cell.creature = Some(Creature::new());
+            // }
         };
     }
 }
 
 impl EvoConwayGridCell {
-    fn can_reproduce(&self, num_neighbors: usize) -> bool {
-        if let Some(creature) = self.creature {
-            if creature.can_reproduce(num_neighbors) {
-                return true;
-            }
-        }
-        false
-    }
+    // fn can_reproduce(&self, num_neighbors: usize) -> bool {
+    //     if let Some(creature) = self.creature {
+    //         if creature.can_reproduce(num_neighbors) {
+    //             return true;
+    //         }
+    //     }
+    //     false
+    // }
 
     fn num_live_neighbors(neighborhood: &Neighborhood<EvoConwayGridCell>) -> usize {
         let mut result = 0;
@@ -145,23 +146,60 @@ impl Creature {
         num_neighbors > 0 && self.survival_neighbor_counts.has_bit(num_neighbors - 1)
     }
 
-    pub fn born(neighborhood: &Neighborhood<EvoConwayGridCell>, num_neighbors: usize) -> bool {
+    pub fn maybe_reproduce(
+        neighborhood: &Neighborhood<EvoConwayGridCell>,
+        num_neighbors: usize,
+    ) -> Option<Creature> {
         if num_neighbors == 0 {
-            return false;
+            return None;
         }
 
-        let mut result = false;
-        neighborhood.for_neighbor_cells(|neighbor| {
-            if neighbor.can_reproduce(num_neighbors) {
-                result = true;
-            }
-        });
-        result
+        if num_neighbors == 3 {
+            Some(Creature::new())
+        } else {
+            None
+        }
+
+        // let mut result = false;
+        // neighborhood.for_neighbor_cells(|neighbor| {
+        //     if neighbor.can_reproduce(num_neighbors) {
+        //         result = true;
+        //     }
+        // });
+        // result
     }
 
-    fn can_reproduce(&self, num_neighbors: usize) -> bool {
-        num_neighbors > 0 && self.birth_neighbor_counts.has_bit(num_neighbors - 1)
-    }
+    // pub fn born(neighborhood: &Neighborhood<EvoConwayGridCell>, num_neighbors: usize) -> bool {
+    //     if num_neighbors == 0 {
+    //         return false;
+    //     }
+    //
+    //     let mut result = false;
+    //     neighborhood.for_neighbor_cells(|neighbor| {
+    //         if neighbor.can_reproduce(num_neighbors) {
+    //             result = true;
+    //         }
+    //     });
+    //     result
+    // }
+
+    // fn bit_counts(neighborhood: &Neighborhood<EvoConwayGridCell>, num_neighbors: usize) -> CountsMap8 {
+    //     if num_neighbors == 0 {
+    //         return false;
+    //     }
+    //
+    //     let mut result = false;
+    //     neighborhood.for_neighbor_cells(|neighbor| {
+    //         if neighbor.can_reproduce(num_neighbors) {
+    //             result = true;
+    //         }
+    //     });
+    //     result
+    // }
+
+    // fn can_reproduce(&self, num_neighbors: usize) -> bool {
+    //     num_neighbors > 0 && self.birth_neighbor_counts.has_bit(num_neighbors - 1)
+    // }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -176,5 +214,36 @@ impl BitSet8 {
 
     fn has_bit(&self, index: usize) -> bool {
         self.bits & (1 << index) != 0
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct CountsMap8 {
+    ones: [u32; 8],
+    zeros: [u32; 8],
+}
+
+impl CountsMap8 {
+    pub fn new() -> Self {
+        Self {
+            ones: [0; 8],
+            zeros: [0; 8],
+        }
+    }
+
+    fn add_one(&mut self, index: usize) {
+        self.ones[index] += 1;
+    }
+
+    fn add_zero(&mut self, index: usize) {
+        self.zeros[index] += 1;
+    }
+
+    fn num_ones(&self, index: usize) -> usize {
+        self.ones[index] as usize
+    }
+
+    fn num_zeros(&self, index: usize) -> usize {
+        self.zeros[index] as usize
     }
 }
