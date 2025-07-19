@@ -120,7 +120,9 @@ impl EvoConwayGridCell {
 
 #[derive(Clone, Copy, Debug, Default)]
 struct Creature {
+    // bits[n] == 1 means will survive if own cell has n-1 neighbor creatures
     survival_neighbor_counts: BitSet8,
+    // bits[n] == 1 means will reproduce if target cell has n-1 neighbor creatures
     birth_neighbor_counts: BitSet8,
 }
 
