@@ -56,25 +56,25 @@ where
         self.cells.cells_iter()
     }
 
-    pub fn update<F>(&mut self, mut other_update: F)
+    pub fn update<F>(&mut self, rand: &mut Random, mut other_update: F)
     where
         F: FnMut(&mut Self),
     {
         self.next_cells.copy_from(&self.cells);
         other_update(self);
-        self.update_cells();
+        self.update_cells(rand);
         mem::swap(&mut self.next_cells, &mut self.cells);
     }
 
-    fn update_cells(&mut self) {
+    fn update_cells(&mut self, rand: &mut Random) {
         for row in 0..self.height() {
             for col in 0..self.width() {
-                self.update_cell(Loc::new(row, col));
+                self.update_cell(Loc::new(row, col), rand);
             }
         }
     }
 
-    fn update_cell(&mut self, loc: Loc) {
+    fn update_cell(&mut self, loc: Loc, rand: &mut Random) {
         let cell = &self.cells[loc];
         if cell.debug_selected() {
             println!("{:?}", cell);
@@ -82,7 +82,7 @@ where
 
         let neighborhood = Neighborhood::new(&self.cells, loc);
         let next_cell = &mut self.next_cells[loc];
-        cell.update(&neighborhood, next_cell);
+        cell.update(&neighborhood, next_cell, rand);
     }
 }
 
@@ -168,7 +168,7 @@ where
 {
     fn debug_selected(&self) -> bool;
     fn color_rgba(&self) -> [u8; 4];
-    fn update(&self, neighborhood: &Neighborhood<Self>, next_cell: &mut Self);
+    fn update(&self, neighborhood: &Neighborhood<Self>, next_cell: &mut Self, rand: &mut Random);
 }
 
 // From https://en.wikipedia.org/wiki/Alpha_compositing

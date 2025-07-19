@@ -87,7 +87,7 @@ impl World for EvoWorld {
     }
 
     fn update(&mut self) {
-        self.grid.update(|grid| {
+        self.grid.update(&mut self.rand, |grid| {
             self.sources
                 .iter()
                 .for_each(|source| source.update_cells(&mut grid.next_cells));
@@ -167,7 +167,12 @@ impl GridCell for EvoGridCell {
         alpha_blend(self.render_substance(), self.render_creature())
     }
 
-    fn update(&self, neighborhood: &Neighborhood<EvoGridCell>, next_cell: &mut EvoGridCell) {
+    fn update(
+        &self,
+        neighborhood: &Neighborhood<EvoGridCell>,
+        next_cell: &mut EvoGridCell,
+        _rand: &mut Random,
+    ) {
         self.update_next_creature(neighborhood, next_cell);
         self.update_next_substance(neighborhood, next_cell);
     }

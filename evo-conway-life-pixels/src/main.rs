@@ -65,7 +65,7 @@ impl World for EvoConwayWorld {
     }
 
     fn update(&mut self) {
-        self.grid.update(|_grid| {});
+        self.grid.update(&mut self.rand, |_grid| {});
     }
 }
 
@@ -92,14 +92,15 @@ impl GridCell for EvoConwayGridCell {
         &self,
         neighborhood: &Neighborhood<EvoConwayGridCell>,
         next_cell: &mut EvoConwayGridCell,
+        rand: &mut Random,
     ) {
-        let num_neighbors = Self::num_live_neighbors(neighborhood);
+        let num_neighbors = Self::num_neighbor_creatures(neighborhood);
         if let Some(creature) = self.creature {
             if !creature.survives(num_neighbors) {
                 next_cell.creature = None;
             }
         } else {
-            next_cell.creature = Creature::maybe_reproduce(neighborhood, num_neighbors);
+            next_cell.creature = Creature::maybe_reproduce(neighborhood, num_neighbors, rand);
         };
     }
 }
@@ -113,7 +114,7 @@ impl EvoConwayGridCell {
     //     }
     // }
 
-    fn num_live_neighbors(neighborhood: &Neighborhood<EvoConwayGridCell>) -> usize {
+    fn num_neighbor_creatures(neighborhood: &Neighborhood<EvoConwayGridCell>) -> usize {
         let mut result = 0;
         neighborhood.for_neighbor_cells(|neighbor| {
             if neighbor.creature.is_some() {
@@ -153,6 +154,7 @@ impl Creature {
     pub fn maybe_reproduce(
         neighborhood: &Neighborhood<EvoConwayGridCell>,
         num_neighbors: usize,
+        rand: &mut Random,
     ) -> Option<Creature> {
         if num_neighbors == 0 {
             return None;
@@ -162,8 +164,8 @@ impl Creature {
             Self::parent_bit_counts(neighborhood, num_neighbors)
         {
             Some(Creature::new(
-                survival_bit_counts.as_neighbor_counts(),
-                birth_bit_counts.as_neighbor_counts(),
+                survival_bit_counts.as_neighbor_counts(rand),
+                birth_bit_counts.as_neighbor_counts(rand),
             ))
         } else {
             None
@@ -247,7 +249,7 @@ impl BitCountsMap {
         self.zeros[index] as usize
     }
 
-    fn as_neighbor_counts(&self) -> BitSet8 {
+    fn as_neighbor_counts(&self, rand: &mut Random) -> BitSet8 {
         let mut result = BitSet8::empty();
         for i in 0..8 {
             // TODO random from num_ones/num_zeros

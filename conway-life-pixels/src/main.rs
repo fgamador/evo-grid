@@ -63,7 +63,7 @@ impl World for ConwayWorld {
     }
 
     fn update(&mut self) {
-        self.grid.update(|_grid| {});
+        self.grid.update(&mut self.rand, |_grid| {});
     }
 }
 
@@ -98,7 +98,12 @@ impl GridCell for ConwayGridCell {
         }
     }
 
-    fn update(&self, neighborhood: &Neighborhood<ConwayGridCell>, next_cell: &mut ConwayGridCell) {
+    fn update(
+        &self,
+        neighborhood: &Neighborhood<ConwayGridCell>,
+        next_cell: &mut ConwayGridCell,
+        _rand: &mut Random,
+    ) {
         let neighbors = Self::num_live_neighbors(neighborhood);
         next_cell.alive = if self.alive {
             2 <= neighbors && neighbors <= 3
