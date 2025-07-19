@@ -99,7 +99,7 @@ impl GridCell for EvoConwayGridCell {
                 next_cell.creature = None;
             }
         } else {
-            if Creature::born(num_neighbors) {
+            if Creature::born(neighborhood, num_neighbors) {
                 next_cell.creature = Some(Creature::new());
             }
         };
@@ -107,6 +107,15 @@ impl GridCell for EvoConwayGridCell {
 }
 
 impl EvoConwayGridCell {
+    fn can_reproduce(&self, num_neighbors: usize) -> bool {
+        if let Some(creature) = self.creature {
+            if creature.can_reproduce(num_neighbors) {
+                return true;
+            }
+        }
+        false
+    }
+
     fn num_live_neighbors(neighborhood: &Neighborhood<EvoConwayGridCell>) -> usize {
         let mut result = 0;
         neighborhood.for_neighbor_cells(|neighbor| {
@@ -121,14 +130,14 @@ impl EvoConwayGridCell {
 #[derive(Clone, Copy, Debug, Default)]
 struct Creature {
     survival_neighbor_counts: BitSet8,
-    // birth_neighbor_counts: BitSet8,
+    birth_neighbor_counts: BitSet8,
 }
 
 impl Creature {
     pub fn new() -> Self {
         Self {
             survival_neighbor_counts: BitSet8::new(0b110),
-            // birth_neighbor_counts: BitSet8::new(0b100),
+            birth_neighbor_counts: BitSet8::new(0b100),
         }
     }
 
@@ -136,8 +145,22 @@ impl Creature {
         num_neighbors > 0 && self.survival_neighbor_counts.has_bit(num_neighbors - 1)
     }
 
-    pub fn born(num_neighbors: usize) -> bool {
-        num_neighbors == 3
+    pub fn born(neighborhood: &Neighborhood<EvoConwayGridCell>, num_neighbors: usize) -> bool {
+        if num_neighbors == 0 {
+            return false;
+        }
+
+        let mut result = false;
+        neighborhood.for_neighbor_cells(|neighbor| {
+            if neighbor.can_reproduce(num_neighbors) {
+                result = true;
+            }
+        });
+        result
+    }
+
+    fn can_reproduce(&self, num_neighbors: usize) -> bool {
+        num_neighbors > 0 && self.birth_neighbor_counts.has_bit(num_neighbors - 1)
     }
 }
 
