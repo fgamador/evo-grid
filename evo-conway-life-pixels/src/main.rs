@@ -108,14 +108,13 @@ impl GridCell for EvoConwayGridCell {
 }
 
 impl EvoConwayGridCell {
-    // fn can_reproduce(&self, num_neighbors: usize) -> bool {
-    //     if let Some(creature) = self.creature {
-    //         if creature.can_reproduce(num_neighbors) {
-    //             return true;
-    //         }
-    //     }
-    //     false
-    // }
+    fn can_reproduce(&self, num_neighbors: usize) -> bool {
+        if let Some(creature) = self.creature {
+            creature.can_reproduce(num_neighbors)
+        } else {
+            false
+        }
+    }
 
     fn num_live_neighbors(neighborhood: &Neighborhood<EvoConwayGridCell>) -> usize {
         let mut result = 0;
@@ -183,12 +182,11 @@ impl Creature {
     //     result
     // }
 
-    // fn bit_counts(neighborhood: &Neighborhood<EvoConwayGridCell>, num_neighbors: usize) -> CountsMap8 {
-    //     if num_neighbors == 0 {
-    //         return false;
-    //     }
-    //
-    //     let mut result = false;
+    // fn bit_counts(
+    //     neighborhood: &Neighborhood<EvoConwayGridCell>,
+    //     num_neighbors: usize,
+    // ) -> CountsMap8 {
+    //     let mut result = CountsMap8::new();
     //     neighborhood.for_neighbor_cells(|neighbor| {
     //         if neighbor.can_reproduce(num_neighbors) {
     //             result = true;
@@ -197,9 +195,9 @@ impl Creature {
     //     result
     // }
 
-    // fn can_reproduce(&self, num_neighbors: usize) -> bool {
-    //     num_neighbors > 0 && self.birth_neighbor_counts.has_bit(num_neighbors - 1)
-    // }
+    fn can_reproduce(&self, num_neighbors: usize) -> bool {
+        num_neighbors > 0 && self.birth_neighbor_counts.has_bit(num_neighbors - 1)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
