@@ -7,6 +7,7 @@ use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
 const WIDTH: usize = 400;
 const HEIGHT: usize = 300;
+const MUTATION_ODDS: f64 = 0.0;
 
 fn main() -> Result<(), Error> {
     env_logger::init();
@@ -175,16 +176,11 @@ impl Creature {
             if let Some(creature) = neighbor.creature {
                 if creature.can_reproduce(num_neighbors) {
                     has_parents = true;
-                    for i in 0..8 {
-                        Self::update_bit_counts(
-                            &creature.survival_neighbor_counts,
-                            &mut survival_bit_counts,
-                        );
-                        Self::update_bit_counts(
-                            &creature.birth_neighbor_counts,
-                            &mut birth_bit_counts,
-                        );
-                    }
+                    Self::update_bit_counts(
+                        &creature.survival_neighbor_counts,
+                        &mut survival_bit_counts,
+                    );
+                    Self::update_bit_counts(&creature.birth_neighbor_counts, &mut birth_bit_counts);
                 }
             }
         });
@@ -227,6 +223,10 @@ impl BitSet8 {
     fn set_bit(&mut self, index: usize) {
         self.bits |= (1 << index);
     }
+
+    fn flip_bit(&mut self, index: usize) {
+        self.bits ^= (1 << index);
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -265,7 +265,9 @@ impl BitCountsMap {
             if Self::merge_counts(self.num_ones(i), self.num_zeros(i), rand) {
                 result.set_bit(i);
             }
-            // TODO mutation
+            if rand.next_bool(MUTATION_ODDS) {
+                result.flip_bit(i);
+            }
         }
         result
     }
