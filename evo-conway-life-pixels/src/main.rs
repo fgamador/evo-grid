@@ -262,8 +262,17 @@ impl BitCountsMap {
     fn as_neighbor_counts(&self, rand: &mut Random) -> BitSet8 {
         let mut result = BitSet8::empty();
         for i in 0..8 {
-            // TODO random from num_ones/num_zeros
-            if self.num_ones(i) > 0 {
+            if self.num_ones(i) == 0 {
+                continue;
+            }
+            if self.num_zeros(i) == 0 {
+                result.set_bit(i);
+                continue;
+            }
+
+            let odds = self.num_ones(i) as f64 / self.num_zeros(i) as f64;
+            if rand.next_bool(odds) {
+                // TODO mutation
                 result.set_bit(i);
             }
         }
