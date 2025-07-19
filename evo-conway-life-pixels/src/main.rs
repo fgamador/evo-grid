@@ -139,8 +139,9 @@ impl Creature {
     }
 
     pub fn color_rgba(&self) -> [u8; 4] {
-        // TODO
-        [0, 0, 0, 0xff]
+        let red = self.survival_neighbor_counts.bits << 5;
+        let blue = self.birth_neighbor_counts.bits << 5;
+        [red, 0x00, blue, 0xff]
     }
 
     pub fn survives(&self, num_neighbors: usize) -> bool {
