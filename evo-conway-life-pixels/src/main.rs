@@ -262,20 +262,22 @@ impl BitCountsMap {
     fn as_neighbor_counts(&self, rand: &mut Random) -> BitSet8 {
         let mut result = BitSet8::empty();
         for i in 0..8 {
-            if self.num_ones(i) == 0 {
-                continue;
-            }
-            if self.num_zeros(i) == 0 {
-                result.set_bit(i);
-                continue;
-            }
-
-            let odds = self.num_ones(i) as f64 / self.num_zeros(i) as f64;
-            if rand.next_bool(odds) {
-                // TODO mutation
+            if Self::merge_counts(self.num_ones(i), self.num_zeros(i), rand) {
                 result.set_bit(i);
             }
+            // TODO mutation
         }
         result
+    }
+
+    fn merge_counts(num_ones: usize, num_zeros: usize, rand: &mut Random) -> bool {
+        if num_ones == 0 {
+            false
+        } else if num_zeros == 0 {
+            true
+        } else {
+            let odds = num_ones as f64 / num_zeros as f64;
+            rand.next_bool(odds)
+        }
     }
 }
