@@ -82,8 +82,8 @@ impl GridCell for EvoConwayGridCell {
     }
 
     fn color_rgba(&self) -> [u8; 4] {
-        if self.creature.is_some() {
-            [0, 0, 0, 0xff]
+        if let Some(creature) = self.creature {
+            creature.color_rgba()
         } else {
             [0xff, 0xff, 0xff, 0xff]
         }
@@ -138,11 +138,16 @@ impl Creature {
         Self::new(BitSet8::new(0b110), BitSet8::new(0b100))
     }
 
+    pub fn color_rgba(&self) -> [u8; 4] {
+        // TODO
+        [0, 0, 0, 0xff]
+    }
+
     pub fn survives(&self, num_neighbors: usize) -> bool {
         num_neighbors > 0 && self.survival_neighbor_counts.has_bit(num_neighbors - 1)
     }
 
-    fn can_reproduce(&self, num_neighbors: usize) -> bool {
+    pub fn can_reproduce(&self, num_neighbors: usize) -> bool {
         num_neighbors > 0 && self.birth_neighbor_counts.has_bit(num_neighbors - 1)
     }
 
