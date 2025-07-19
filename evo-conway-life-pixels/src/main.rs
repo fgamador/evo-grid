@@ -106,14 +106,6 @@ impl GridCell for EvoConwayGridCell {
 }
 
 impl EvoConwayGridCell {
-    // fn can_reproduce(&self, num_neighbors: usize) -> bool {
-    //     if let Some(creature) = self.creature {
-    //         creature.can_reproduce(num_neighbors)
-    //     } else {
-    //         false
-    //     }
-    // }
-
     fn num_neighbor_creatures(neighborhood: &Neighborhood<EvoConwayGridCell>) -> usize {
         let mut result = 0;
         neighborhood.for_neighbor_cells(|neighbor| {
@@ -147,9 +139,9 @@ impl Creature {
         num_neighbors > 0 && self.survival_neighbor_counts.has_bit(num_neighbors - 1)
     }
 
-    // fn can_reproduce(&self, num_neighbors: usize) -> bool {
-    //     num_neighbors > 0 && self.birth_neighbor_counts.has_bit(num_neighbors - 1)
-    // }
+    fn can_reproduce(&self, num_neighbors: usize) -> bool {
+        num_neighbors > 0 && self.birth_neighbor_counts.has_bit(num_neighbors - 1)
+    }
 
     pub fn maybe_reproduce(
         neighborhood: &Neighborhood<EvoConwayGridCell>,
@@ -173,26 +165,44 @@ impl Creature {
     }
 
     fn parent_bit_counts(
-        _neighborhood: &Neighborhood<EvoConwayGridCell>,
+        neighborhood: &Neighborhood<EvoConwayGridCell>,
         num_neighbors: usize,
     ) -> Option<(BitCountsMap, BitCountsMap)> {
+        let mut has_parents = false;
         let mut survival_bit_counts = BitCountsMap::new();
         let mut birth_bit_counts = BitCountsMap::new();
-        // TODO
-        if num_neighbors == 3 {
-            survival_bit_counts.ones[1] = 3;
-            survival_bit_counts.ones[2] = 3;
-            birth_bit_counts.ones[2] = 3;
+        neighborhood.for_neighbor_cells(|neighbor| {
+            if let Some(creature) = neighbor.creature {
+                if creature.can_reproduce(num_neighbors) {
+                    has_parents = true;
+                    for i in 0..8 {
+                        Self::update_bit_counts(
+                            &creature.survival_neighbor_counts,
+                            &mut survival_bit_counts,
+                        );
+                        Self::update_bit_counts(
+                            &creature.birth_neighbor_counts,
+                            &mut birth_bit_counts,
+                        );
+                    }
+                }
+            }
+        });
+        if has_parents {
             Some((survival_bit_counts, birth_bit_counts))
         } else {
             None
         }
-        // neighborhood.for_neighbor_cells(|neighbor| {
-        //     if neighbor.can_reproduce(num_neighbors) {
-        //         result = true;
-        //     }
-        // });
-        // Some((survival_bit_counts, birth_bit_counts))
+    }
+
+    fn update_bit_counts(neighbor_counts: &BitSet8, bit_counts: &mut BitCountsMap) {
+        for i in 0..8 {
+            if neighbor_counts.has_bit(i) {
+                bit_counts.add_one(i);
+            } else {
+                bit_counts.add_zero(i);
+            }
+        }
     }
 }
 
