@@ -7,7 +7,7 @@ use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
 const WIDTH: usize = 400;
 const HEIGHT: usize = 300;
-const MUTATION_ODDS: f64 = 0.0;
+const MUTATION_ODDS: f64 = 0.01;
 
 fn main() -> Result<(), Error> {
     env_logger::init();
@@ -286,7 +286,7 @@ impl BitCountsMap {
         } else if num_zeros == 0 {
             true
         } else {
-            let odds = num_ones as f64 / num_zeros as f64;
+            let odds = num_ones as f64 / (num_ones + num_zeros) as f64;
             rand.next_bool(odds)
         }
     }
