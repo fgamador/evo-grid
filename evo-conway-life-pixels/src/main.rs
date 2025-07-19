@@ -221,11 +221,11 @@ impl BitSet8 {
     }
 
     fn set_bit(&mut self, index: usize) {
-        self.bits |= (1 << index);
+        self.bits |= 1 << index;
     }
 
     fn flip_bit(&mut self, index: usize) {
-        self.bits ^= (1 << index);
+        self.bits ^= 1 << index;
     }
 }
 
