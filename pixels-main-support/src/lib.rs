@@ -5,9 +5,9 @@ use error_iter::ErrorIter as _;
 use log::{/* debug, */ error};
 use pixels::wgpu::Color;
 use pixels::{Error, Pixels, PixelsBuilder, SurfaceTexture};
-use winit::window::Window;
+use winit::window::{CursorIcon, Fullscreen, Window};
 use winit::{
-    dpi::LogicalSize,
+//    dpi::LogicalSize,
     event::{Event, WindowEvent},
     event_loop::EventLoop,
     keyboard::KeyCode,
@@ -73,15 +73,18 @@ pub fn animate<W: World>(world: &mut W) -> Result<(), Error> {
     res.map_err(|e| Error::UserDefined(Box::new(e)))
 }
 
-fn build_window(width: f64, height: f64, event_loop: &EventLoop<()>) -> Window {
-    let size = LogicalSize::new(width, height);
-    let scaled_size = LogicalSize::new(width * 3.0, height * 3.0);
-    WindowBuilder::new()
+fn build_window(_width: f64, _height: f64, event_loop: &EventLoop<()>) -> Window {
+    // let size = LogicalSize::new(width, height);
+    // let scaled_size = LogicalSize::new(width * 3.0, height * 3.0);
+    let window = WindowBuilder::new()
         .with_title("Evo")
-        .with_inner_size(scaled_size)
-        .with_min_inner_size(size)
+        // .with_inner_size(scaled_size)
+        // .with_min_inner_size(size)
+        .with_fullscreen(Some(Fullscreen::Borderless(None)))
         .build(&event_loop)
-        .unwrap()
+        .unwrap();
+    window.set_cursor_icon(CursorIcon::Crosshair);
+    window
 }
 
 fn build_pixels(width: u32, height: u32, window: &Window) -> Result<Pixels, Error> {

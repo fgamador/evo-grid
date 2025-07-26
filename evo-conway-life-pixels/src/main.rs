@@ -5,9 +5,9 @@ use pixels::Error;
 use pixels_main_support::animate;
 use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
-const WIDTH: usize = 400;
-const HEIGHT: usize = 300;
-const MUTATION_ODDS: f64 = 0.01;
+const WIDTH: usize = 2560 / 3;
+const HEIGHT: usize = 1440 / 3;
+const MUTATION_ODDS: f64 = 0.0;
 
 fn main() -> Result<(), Error> {
     env_logger::init();
