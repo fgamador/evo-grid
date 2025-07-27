@@ -52,10 +52,10 @@ impl ApplicationHandler for App {
         let mut window_attributes = WindowAttributes::default();
         window_attributes.cursor = Cursor::Icon(CursorIcon::Crosshair);
         window_attributes.fullscreen = Some(Fullscreen::Borderless(None));
+        window_attributes.visible = false;
         let window = event_loop.create_window(window_attributes).unwrap();
 
         let window_size = window.inner_size();
-        // TODO get size from window
         let world = EvoConwayWorld::new(
             (window_size.width / CELL_PIXEL_WIDTH) as usize,
             (window_size.height / CELL_PIXEL_WIDTH) as usize,
@@ -74,6 +74,7 @@ impl ApplicationHandler for App {
 
         self.world.as_mut().unwrap().update();
         self.window.as_ref().unwrap().request_redraw();
+        self.window.as_mut().unwrap().set_visible(true);
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
@@ -106,33 +107,12 @@ impl ApplicationHandler for App {
                 for (cell, pixel) in world.cells_iter().zip(screen.chunks_exact_mut(4)) {
                     pixel.copy_from_slice(&cell.color_rgba());
                 }
-                pixels.render().unwrap()
+                pixels.render().unwrap();
             }
             _ => (),
         }
         self.world.as_mut().unwrap().update();
         self.window.as_ref().unwrap().request_redraw();
-    }
-}
-
-struct ViewModel<'a, W: World> {
-    pub world: &'a mut W,
-}
-
-impl<'a, W: World> ViewModel<'a, W> {
-    pub fn new(world: &'a mut W) -> Self {
-        Self { world }
-    }
-
-    pub fn update(&mut self) {
-        self.world.update();
-    }
-
-    pub fn draw(&self, screen: &mut [u8]) {
-        debug_assert_eq!(screen.len(), 4 * self.world.num_cells());
-        for (cell, pixel) in self.world.cells_iter().zip(screen.chunks_exact_mut(4)) {
-            pixel.copy_from_slice(&cell.color_rgba());
-        }
     }
 }
 
