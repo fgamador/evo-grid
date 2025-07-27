@@ -1,18 +1,96 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-use pixels::Error;
-use pixels_main_support::animate;
+use winit::application::ApplicationHandler;
+use winit::error::EventLoopError;
+use winit::event::{ElementState, KeyEvent, WindowEvent};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
+use winit::keyboard::{KeyCode, PhysicalKey};
+use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowAttributes, WindowId};
 use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
 const WIDTH: usize = 2560 / 3;
 const HEIGHT: usize = 1440 / 3;
 const MUTATION_ODDS: f64 = 0.0;
 
-fn main() -> Result<(), Error> {
-    env_logger::init();
-    let mut world = EvoConwayWorld::new(WIDTH, HEIGHT, Random::new());
-    animate(&mut world)
+// fn main() -> Result<(), Error> {
+//     env_logger::init();
+//     let mut world = EvoConwayWorld::new(WIDTH, HEIGHT, Random::new());
+//     animate(&mut world)
+// }
+
+fn main() -> Result<(), EventLoopError> {
+    let event_loop = EventLoop::new()?;
+
+    // ControlFlow::Poll continuously runs the event loop, even if the OS hasn't
+    // dispatched any events. This is ideal for games and similar applications.
+    // event_loop.set_control_flow(ControlFlow::Poll);
+
+    // ControlFlow::Wait pauses the event loop if no events are available to process.
+    // This is ideal for non-game applications that only update in response to user
+    // input, and uses significantly less power/CPU time than ControlFlow::Poll.
+    event_loop.set_control_flow(ControlFlow::Wait);
+
+    let mut app = App::default();
+    event_loop.run_app(&mut app)
+}
+
+#[derive(Default)]
+struct App {
+    window: Option<Window>,
+}
+
+impl ApplicationHandler for App {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        if self.window.is_some() {
+            return;
+        }
+
+        let mut window_attributes = WindowAttributes::default();
+        window_attributes.cursor = Cursor::Icon(CursorIcon::Crosshair);
+        window_attributes.fullscreen = Some(Fullscreen::Borderless(None));
+
+        self.window = Some(event_loop.create_window(window_attributes).unwrap());
+    }
+
+    fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
+        match event {
+            WindowEvent::CloseRequested => {
+                println!("The close button was pressed; stopping");
+                event_loop.exit();
+            }
+            WindowEvent::KeyboardInput {
+                event:
+                    KeyEvent {
+                        physical_key: PhysicalKey::Code(code),
+                        state: ElementState::Released,
+                        repeat: false,
+                        ..
+                    },
+                ..
+            } if code == KeyCode::Escape || code == KeyCode::KeyQ || code == KeyCode::KeyX => {
+                println!("Esc was pressed; stopping");
+                event_loop.exit();
+            }
+            WindowEvent::RedrawRequested => {
+                // Redraw the application.
+                //
+                // It's preferable for applications that do not render continuously to render in
+                // this event rather than in AboutToWait, since rendering in here allows
+                // the program to gracefully handle redraws requested by the OS.
+
+                // Draw.
+
+                // Queue a RedrawRequested event.
+                //
+                // You only need to call this if you've determined that you need to redraw in
+                // applications which do not always need to. Applications that redraw continuously
+                // can render here instead.
+                // self.window.as_ref().unwrap().request_redraw();
+            }
+            _ => (),
+        }
+    }
 }
 
 #[derive(Debug)]
