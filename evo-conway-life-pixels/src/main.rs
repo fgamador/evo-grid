@@ -1,16 +1,18 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+use pixels::wgpu::Color;
+use pixels::{Pixels, PixelsBuilder, SurfaceTexture};
 use winit::application::ApplicationHandler;
 use winit::error::EventLoopError;
 use winit::event::{ElementState, KeyEvent, WindowEvent};
-use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
+use winit::event_loop::{ActiveEventLoop, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowAttributes, WindowId};
 use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
-const WIDTH: usize = 2560 / 3;
-const HEIGHT: usize = 1440 / 3;
+const WIDTH: u32 = 2560 / 3;
+const HEIGHT: u32 = 1440 / 3;
 const MUTATION_ODDS: f64 = 0.0;
 
 // fn main() -> Result<(), Error> {
@@ -29,7 +31,7 @@ fn main() -> Result<(), EventLoopError> {
     // ControlFlow::Wait pauses the event loop if no events are available to process.
     // This is ideal for non-game applications that only update in response to user
     // input, and uses significantly less power/CPU time than ControlFlow::Poll.
-    event_loop.set_control_flow(ControlFlow::Wait);
+    // event_loop.set_control_flow(ControlFlow::Wait);
 
     let mut app = App::default();
     event_loop.run_app(&mut app)
@@ -37,7 +39,9 @@ fn main() -> Result<(), EventLoopError> {
 
 #[derive(Default)]
 struct App {
+    pixels: Option<Pixels>,
     window: Option<Window>,
+    world: Option<EvoConwayWorld>,
 }
 
 impl ApplicationHandler for App {
@@ -48,15 +52,29 @@ impl ApplicationHandler for App {
 
         let mut window_attributes = WindowAttributes::default();
         window_attributes.cursor = Cursor::Icon(CursorIcon::Crosshair);
-        window_attributes.fullscreen = Some(Fullscreen::Borderless(None));
+        // window_attributes.fullscreen = Some(Fullscreen::Borderless(None));
+        let window = event_loop.create_window(window_attributes).unwrap();
 
-        self.window = Some(event_loop.create_window(window_attributes).unwrap());
+        let window_size = window.inner_size();
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+        let pixels = PixelsBuilder::new(WIDTH, HEIGHT, surface_texture)
+            .clear_color(Color::RED)
+            .build();
+
+        // TODO get size from window
+        let world = EvoConwayWorld::new(WIDTH as usize, HEIGHT as usize, Random::new());
+
+        self.pixels = Some(pixels.unwrap());
+        self.window = Some(window);
+        self.world = Some(world);
+
+        self.world.as_mut().unwrap().update();
+        self.window.as_ref().unwrap().request_redraw();
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
         match event {
             WindowEvent::CloseRequested => {
-                println!("The close button was pressed; stopping");
                 event_loop.exit();
             }
             WindowEvent::KeyboardInput {
@@ -68,27 +86,45 @@ impl ApplicationHandler for App {
                         ..
                     },
                 ..
-            } if code == KeyCode::Escape || code == KeyCode::KeyQ || code == KeyCode::KeyX => {
-                println!("Esc was pressed; stopping");
-                event_loop.exit();
-            }
+            } => match code {
+                KeyCode::Escape | KeyCode::KeyQ | KeyCode::KeyX => {
+                    event_loop.exit();
+                }
+                _ => (),
+            },
             WindowEvent::RedrawRequested => {
-                // Redraw the application.
-                //
-                // It's preferable for applications that do not render continuously to render in
-                // this event rather than in AboutToWait, since rendering in here allows
-                // the program to gracefully handle redraws requested by the OS.
-
-                // Draw.
-
-                // Queue a RedrawRequested event.
-                //
-                // You only need to call this if you've determined that you need to redraw in
-                // applications which do not always need to. Applications that redraw continuously
-                // can render here instead.
-                // self.window.as_ref().unwrap().request_redraw();
+                let world = self.world.as_ref().unwrap();
+                let pixels = self.pixels.as_mut().unwrap();
+                let screen = pixels.frame_mut();
+                debug_assert_eq!(screen.len(), 4 * world.num_cells());
+                for (cell, pixel) in world.cells_iter().zip(screen.chunks_exact_mut(4)) {
+                    pixel.copy_from_slice(&cell.color_rgba());
+                }
             }
             _ => (),
+        }
+        self.world.as_mut().unwrap().update();
+        self.window.as_ref().unwrap().request_redraw();
+    }
+}
+
+struct ViewModel<'a, W: World> {
+    pub world: &'a mut W,
+}
+
+impl<'a, W: World> ViewModel<'a, W> {
+    pub fn new(world: &'a mut W) -> Self {
+        Self { world }
+    }
+
+    pub fn update(&mut self) {
+        self.world.update();
+    }
+
+    pub fn draw(&self, screen: &mut [u8]) {
+        debug_assert_eq!(screen.len(), 4 * self.world.num_cells());
+        for (cell, pixel) in self.world.cells_iter().zip(screen.chunks_exact_mut(4)) {
+            pixel.copy_from_slice(&cell.color_rgba());
         }
     }
 }
@@ -118,7 +154,7 @@ impl EvoConwayWorld {
         for row in 0..HEIGHT {
             for col in 0..WIDTH {
                 if self.rand.next_bool(0.3) {
-                    let loc = Loc::new(row, col);
+                    let loc = Loc::new(row as usize, col as usize);
                     self.grid.cells[loc].creature = Some(Creature::conway());
                 }
             }
