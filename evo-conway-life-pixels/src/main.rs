@@ -52,20 +52,20 @@ impl ApplicationHandler for App {
 
         let mut window_attributes = WindowAttributes::default();
         window_attributes.cursor = Cursor::Icon(CursorIcon::Crosshair);
-        // window_attributes.fullscreen = Some(Fullscreen::Borderless(None));
+        window_attributes.fullscreen = Some(Fullscreen::Borderless(None));
         let window = event_loop.create_window(window_attributes).unwrap();
+        self.window = Some(window);
+        let window = self.window.as_ref().unwrap();
 
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
         let pixels = PixelsBuilder::new(WIDTH, HEIGHT, surface_texture)
-            .clear_color(Color::RED)
+            .clear_color(Color::WHITE)
             .build();
+        self.pixels = Some(pixels.unwrap());
 
         // TODO get size from window
         let world = EvoConwayWorld::new(WIDTH as usize, HEIGHT as usize, Random::new());
-
-        self.pixels = Some(pixels.unwrap());
-        self.window = Some(window);
         self.world = Some(world);
 
         self.world.as_mut().unwrap().update();
@@ -96,10 +96,13 @@ impl ApplicationHandler for App {
                 let world = self.world.as_ref().unwrap();
                 let pixels = self.pixels.as_mut().unwrap();
                 let screen = pixels.frame_mut();
+
                 debug_assert_eq!(screen.len(), 4 * world.num_cells());
+
                 for (cell, pixel) in world.cells_iter().zip(screen.chunks_exact_mut(4)) {
                     pixel.copy_from_slice(&cell.color_rgba());
                 }
+                pixels.render().unwrap()
             }
             _ => (),
         }
