@@ -11,8 +11,7 @@ use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowAttributes, WindowId};
 use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
-const WIDTH: u32 = 2560 / 3;
-const HEIGHT: u32 = 1440 / 3;
+const CELL_PIXEL_WIDTH: u32 = 3;
 const MUTATION_ODDS: f64 = 0.0;
 
 // fn main() -> Result<(), Error> {
@@ -54,18 +53,23 @@ impl ApplicationHandler for App {
         window_attributes.cursor = Cursor::Icon(CursorIcon::Crosshair);
         window_attributes.fullscreen = Some(Fullscreen::Borderless(None));
         let window = event_loop.create_window(window_attributes).unwrap();
-        self.window = Some(window);
-        let window = self.window.as_ref().unwrap();
 
         let window_size = window.inner_size();
-        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        let pixels = PixelsBuilder::new(WIDTH, HEIGHT, surface_texture)
-            .clear_color(Color::WHITE)
-            .build();
-        self.pixels = Some(pixels.unwrap());
-
         // TODO get size from window
-        let world = EvoConwayWorld::new(WIDTH as usize, HEIGHT as usize, Random::new());
+        let world = EvoConwayWorld::new(
+            (window_size.width / CELL_PIXEL_WIDTH) as usize,
+            (window_size.height / CELL_PIXEL_WIDTH) as usize,
+            Random::new(),
+        );
+
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+        let pixels =
+            PixelsBuilder::new(world.width() as u32, world.height() as u32, surface_texture)
+                .clear_color(Color::WHITE)
+                .build();
+
+        self.pixels = Some(pixels.unwrap());
+        self.window = Some(window);
         self.world = Some(world);
 
         self.world.as_mut().unwrap().update();
@@ -154,10 +158,10 @@ impl EvoConwayWorld {
     }
 
     fn add_random_life(&mut self) {
-        for row in 0..HEIGHT {
-            for col in 0..WIDTH {
+        for row in 0..self.height() {
+            for col in 0..self.width() {
                 if self.rand.next_bool(0.3) {
-                    let loc = Loc::new(row as usize, col as usize);
+                    let loc = Loc::new(row, col);
                     self.grid.cells[loc].creature = Some(Creature::conway());
                 }
             }
