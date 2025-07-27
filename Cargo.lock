@@ -505,7 +505,7 @@ dependencies = [
  "log",
  "pixels",
  "pixels-main-support",
- "winit 0.30.11",
+ "winit 0.30.12",
  "world-grid",
 ]
 
@@ -1368,7 +1368,7 @@ dependencies = [
  "error-iter",
  "log",
  "pixels",
- "winit 0.30.11",
+ "winit 0.30.12",
  "winit_input_helper",
  "world-grid",
 ]
@@ -2606,9 +2606,9 @@ dependencies = [
 
 [[package]]
 name = "winit"
-version = "0.30.11"
+version = "0.30.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4409c10174df8779dc29a4788cac85ed84024ccbc1743b776b21a520ee1aaf4"
+checksum = "c66d4b9ed69c4009f6321f762d6e61ad8a2389cd431b97cb1e146812e9e6c732"
 dependencies = [
  "ahash",
  "android-activity 0.6.0",
