@@ -16,26 +16,11 @@ use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 const CELL_PIXEL_WIDTH: u32 = 3;
 const MUTATION_ODDS: f64 = 0.0;
 
-// fn main() -> Result<(), Error> {
-//     env_logger::init();
-//     let mut world = EvoConwayWorld::new(WIDTH, HEIGHT, Random::new());
-//     animate(&mut world)
-// }
-
 fn main() -> Result<(), EventLoopError> {
     let event_loop = EventLoop::new()?;
-
-    // ControlFlow::Poll continuously runs the event loop, even if the OS hasn't
-    // dispatched any events. This is ideal for games and similar applications.
-    // event_loop.set_control_flow(ControlFlow::Poll);
-
-    // ControlFlow::Wait pauses the event loop if no events are available to process.
-    // This is ideal for non-game applications that only update in response to user
-    // input, and uses significantly less power/CPU time than ControlFlow::Poll.
-    // event_loop.set_control_flow(ControlFlow::Wait);
-
-    let mut app = AppEventHandler::default();
-    event_loop.run_app(&mut app)
+    event_loop.set_control_flow(ControlFlow::Wait);
+    let mut event_handler = AppEventHandler::default();
+    event_loop.run_app(&mut event_handler)
 }
 
 struct App {
