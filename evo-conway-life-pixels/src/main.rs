@@ -79,6 +79,16 @@ impl App {
             self.next_update += Duration::from_millis(100);
         }
     }
+
+    fn on_redraw(&mut self) {
+        let screen = self.pixels.frame_mut();
+        debug_assert_eq!(screen.len(), 4 * self.world.num_cells());
+
+        for (cell, pixel) in self.world.cells_iter().zip(screen.chunks_exact_mut(4)) {
+            pixel.copy_from_slice(&cell.color_rgba());
+        }
+        self.pixels.render().unwrap();
+    }
 }
 
 #[derive(Default)]
@@ -126,14 +136,7 @@ impl ApplicationHandler for AppEventHandler {
             },
             WindowEvent::RedrawRequested => {
                 let app = self.app.as_mut().unwrap();
-                let screen = app.pixels.frame_mut();
-
-                debug_assert_eq!(screen.len(), 4 * app.world.num_cells());
-
-                for (cell, pixel) in app.world.cells_iter().zip(screen.chunks_exact_mut(4)) {
-                    pixel.copy_from_slice(&cell.color_rgba());
-                }
-                app.pixels.render().unwrap();
+                app.on_redraw();
             }
             _ => (),
         }
