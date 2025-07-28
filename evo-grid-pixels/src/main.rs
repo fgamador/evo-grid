@@ -2,15 +2,17 @@
 #![forbid(unsafe_code)]
 
 use evo_grid::EvoWorld;
-use pixels::Error;
 use pixels_main_support::animate;
 use world_grid::Random;
 
-const WIDTH: usize = 400;
-const HEIGHT: usize = 300;
+const CELL_PIXEL_WIDTH: u32 = 3;
 
-fn main() -> Result<(), Error> {
-    env_logger::init();
-    let mut world = EvoWorld::new(WIDTH, HEIGHT, Random::new());
-    animate(&mut world)
+fn main() {
+    animate(|window_size| {
+        EvoWorld::new(
+            (window_size.width / CELL_PIXEL_WIDTH) as usize,
+            (window_size.height / CELL_PIXEL_WIDTH) as usize,
+            Random::new(),
+        )
+    });
 }

@@ -4,13 +4,6 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 
-[features]
-optimize = ["log/release_max_level_warn"]
-default = ["optimize"]
-
 [dependencies]
-env_logger = "0.10"
-log = "0.4"
-pixels = "0.14"
 pixels-main-support = { path = "../pixels-main-support" }
 world-grid = { path = "../world-grid" }
