@@ -19,7 +19,13 @@ const MUTATION_ODDS: f64 = 0.0;
 fn main() -> Result<(), EventLoopError> {
     let event_loop = EventLoop::new()?;
     event_loop.set_control_flow(ControlFlow::Wait);
-    event_loop.run_app(&mut AppEventHandler::default())
+    event_loop.run_app(&mut AppEventHandler::new(|window_size| {
+        EvoConwayWorld::new(
+            (window_size.width / CELL_PIXEL_WIDTH) as usize,
+            (window_size.height / CELL_PIXEL_WIDTH) as usize,
+            Random::new(),
+        )
+    }))
 }
 
 struct App {
@@ -30,9 +36,12 @@ struct App {
 }
 
 impl App {
-    fn new(event_loop: &ActiveEventLoop) -> Self {
+    fn new<F>(event_loop: &ActiveEventLoop, build_world: &F) -> Self
+    where
+        F: Fn(PhysicalSize<u32>) -> EvoConwayWorld,
+    {
         let window = Self::build_window(event_loop);
-        let world = Self::build_world(window.inner_size());
+        let world = build_world(window.inner_size());
         Self {
             pixels: Self::build_pixels(&window, world.width() as u32, world.height() as u32),
             window,
@@ -47,14 +56,6 @@ impl App {
             .with_fullscreen(Some(Fullscreen::Borderless(None)))
             .with_visible(false);
         event_loop.create_window(window_attributes).unwrap()
-    }
-
-    fn build_world(window_size: PhysicalSize<u32>) -> EvoConwayWorld {
-        EvoConwayWorld::new(
-            (window_size.width / CELL_PIXEL_WIDTH) as usize,
-            (window_size.height / CELL_PIXEL_WIDTH) as usize,
-            Random::new(),
-        )
     }
 
     fn build_pixels(window: &Window, width: u32, height: u32) -> Pixels {
@@ -91,18 +92,34 @@ impl App {
     }
 }
 
-#[derive(Default)]
-struct AppEventHandler {
+struct AppEventHandler<F>
+where
+    F: Fn(PhysicalSize<u32>) -> EvoConwayWorld,
+{
+    build_world: F,
     app: Option<App>,
 }
 
-impl AppEventHandler {
+impl<F> AppEventHandler<F>
+where
+    F: Fn(PhysicalSize<u32>) -> EvoConwayWorld,
+{
+    fn new(build_world: F) -> Self {
+        Self {
+            build_world,
+            app: None,
+        }
+    }
+
     fn app(&mut self) -> &mut App {
         self.app.as_mut().unwrap()
     }
 }
 
-impl ApplicationHandler for AppEventHandler {
+impl<F> ApplicationHandler for AppEventHandler<F>
+where
+    F: Fn(PhysicalSize<u32>) -> EvoConwayWorld,
+{
     fn new_events(&mut self, _event_loop: &ActiveEventLoop, cause: StartCause) {
         if let StartCause::ResumeTimeReached { .. } = cause {
             self.app().on_time_step();
@@ -111,7 +128,7 @@ impl ApplicationHandler for AppEventHandler {
 
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.app.is_none() {
-            self.app = Some(App::new(event_loop));
+            self.app = Some(App::new(event_loop, &self.build_world));
             self.app().on_create();
         }
     }
