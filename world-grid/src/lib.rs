@@ -1,11 +1,11 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+use rand::distr::uniform::{SampleRange, SampleUniform};
+use rand::prelude::*;
 use std::fmt::Debug;
 use std::mem;
-use std::ops::{Index, IndexMut, Range};
-
-use rand::prelude::*;
+use std::ops::{Index, IndexMut};
 
 pub trait World {
     fn width(&self) -> u32;
@@ -302,19 +302,11 @@ impl Random {
         self.rng.random_bool(p)
     }
 
-    pub fn next_usize(&mut self, range: Range<usize>) -> usize {
-        self.rng.random_range(range)
-    }
-
-    pub fn next_u32(&mut self, range: Range<u32>) -> u32 {
-        self.rng.random_range(range)
-    }
-
-    pub fn next_u8(&mut self, range: Range<u8>) -> u8 {
-        self.rng.random_range(range)
-    }
-
-    pub fn next_i32(&mut self, range: Range<i32>) -> i32 {
+    pub fn next_in_range<T, R>(&mut self, range: R) -> T
+    where
+        T: SampleUniform,
+        R: SampleRange<T>,
+    {
         self.rng.random_range(range)
     }
 
