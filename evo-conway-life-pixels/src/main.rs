@@ -9,7 +9,7 @@ use winit::error::EventLoopError;
 use winit::event::{ElementState, KeyEvent, StartCause, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
-use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowAttributes, WindowId};
+use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowId};
 use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
 const CELL_PIXEL_WIDTH: u32 = 3;
@@ -33,36 +33,19 @@ fn main() -> Result<(), EventLoopError> {
     // input, and uses significantly less power/CPU time than ControlFlow::Poll.
     // event_loop.set_control_flow(ControlFlow::Wait);
 
-    let mut app = App::default();
+    let mut app = AppEventHandler::default();
     event_loop.run_app(&mut app)
 }
 
-#[derive(Default)]
 struct App {
-    pixels: Option<Pixels>,
-    window: Option<Window>,
-    world: Option<EvoConwayWorld>,
-    next_update: Option<Instant>,
+    pixels: Pixels,
+    window: Window,
+    world: EvoConwayWorld,
+    next_update: Instant,
 }
 
-impl ApplicationHandler for App {
-    fn new_events(&mut self, _event_loop: &ActiveEventLoop, cause: StartCause) {
-        if let StartCause::ResumeTimeReached { .. } = cause {
-            self.world.as_mut().unwrap().update();
-            self.window.as_mut().unwrap().request_redraw();
-
-            let next_update = self.next_update.as_mut().unwrap();
-            while *next_update < Instant::now() {
-                *next_update += Duration::from_millis(100);
-            }
-        }
-    }
-
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        if self.window.is_some() {
-            return;
-        }
-
+impl App {
+    fn new(event_loop: &ActiveEventLoop) -> Self {
         let window_attributes = Window::default_attributes()
             .with_cursor(Cursor::Icon(CursorIcon::Crosshair))
             .with_fullscreen(Some(Fullscreen::Borderless(None)))
@@ -82,15 +65,42 @@ impl ApplicationHandler for App {
                 .clear_color(Color::WHITE)
                 .build();
 
-        self.pixels = Some(pixels.unwrap());
-        self.window = Some(window);
-        self.world = Some(world);
+        Self {
+            pixels: pixels.unwrap(),
+            window,
+            world,
+            next_update: Instant::now(),
+        }
+    }
+}
 
-        //self.world.as_mut().unwrap().update();
-        self.window.as_ref().unwrap().request_redraw();
-        self.window.as_mut().unwrap().set_visible(true);
+#[derive(Default)]
+struct AppEventHandler {
+    app: Option<App>,
+}
 
-        self.next_update = Some(Instant::now());
+impl ApplicationHandler for AppEventHandler {
+    fn new_events(&mut self, _event_loop: &ActiveEventLoop, cause: StartCause) {
+        if let StartCause::ResumeTimeReached { .. } = cause {
+            let app = self.app.as_mut().unwrap();
+            app.world.update();
+            app.window.request_redraw();
+
+            while app.next_update < Instant::now() {
+                app.next_update += Duration::from_millis(100);
+            }
+        }
+    }
+
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        if self.app.is_some() {
+            return;
+        }
+
+        let app = App::new(event_loop);
+        app.window.request_redraw();
+        app.window.set_visible(true);
+        self.app = Some(app);
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
@@ -114,25 +124,23 @@ impl ApplicationHandler for App {
                 _ => (),
             },
             WindowEvent::RedrawRequested => {
-                let world = self.world.as_ref().unwrap();
-                let pixels = self.pixels.as_mut().unwrap();
-                let screen = pixels.frame_mut();
+                let app = self.app.as_mut().unwrap();
+                let screen = app.pixels.frame_mut();
 
-                debug_assert_eq!(screen.len(), 4 * world.num_cells());
+                debug_assert_eq!(screen.len(), 4 * app.world.num_cells());
 
-                for (cell, pixel) in world.cells_iter().zip(screen.chunks_exact_mut(4)) {
+                for (cell, pixel) in app.world.cells_iter().zip(screen.chunks_exact_mut(4)) {
                     pixel.copy_from_slice(&cell.color_rgba());
                 }
-                pixels.render().unwrap();
+                app.pixels.render().unwrap();
             }
             _ => (),
         }
-        // self.world.as_mut().unwrap().update();
-        // self.window.as_ref().unwrap().request_redraw();
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        event_loop.set_control_flow(ControlFlow::WaitUntil(self.next_update.unwrap()));
+        let app = self.app.as_mut().unwrap();
+        event_loop.set_control_flow(ControlFlow::WaitUntil(app.next_update));
     }
 }
 
