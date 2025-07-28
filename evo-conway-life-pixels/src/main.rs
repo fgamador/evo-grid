@@ -6,7 +6,6 @@ use pixels::{Pixels, PixelsBuilder, SurfaceTexture};
 use std::time::{Duration, Instant};
 use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
-use winit::error::EventLoopError;
 use winit::event::{ElementState, KeyEvent, StartCause, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
@@ -16,16 +15,26 @@ use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 const CELL_PIXEL_WIDTH: u32 = 3;
 const MUTATION_ODDS: f64 = 0.0;
 
-fn main() -> Result<(), EventLoopError> {
-    let event_loop = EventLoop::new()?;
-    event_loop.set_control_flow(ControlFlow::Wait);
-    event_loop.run_app(&mut AppEventHandler::new(|window_size| {
+fn main() {
+    animate(|window_size| {
         EvoConwayWorld::new(
             (window_size.width / CELL_PIXEL_WIDTH) as usize,
             (window_size.height / CELL_PIXEL_WIDTH) as usize,
             Random::new(),
         )
-    }))
+    });
+}
+
+fn animate<W, F>(build_world: F)
+where
+    W: World,
+    F: Fn(PhysicalSize<u32>) -> W,
+{
+    let event_loop = EventLoop::new().unwrap();
+    event_loop.set_control_flow(ControlFlow::Wait);
+    event_loop
+        .run_app(&mut AppEventHandler::new(build_world))
+        .unwrap();
 }
 
 struct App<W: World> {
