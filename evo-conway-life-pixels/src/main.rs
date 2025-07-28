@@ -105,13 +105,11 @@ impl ApplicationHandler for AppEventHandler {
     }
 
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        if self.app.is_some() {
-            return;
+        if self.app.is_none() {
+            let mut app = App::new(event_loop);
+            app.on_create();
+            self.app = Some(app);
         }
-
-        let mut app = App::new(event_loop);
-        app.on_create();
-        self.app = Some(app);
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
