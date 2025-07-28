@@ -10,8 +10,8 @@ const CELL_PIXEL_WIDTH: u32 = 3;
 fn main() {
     animate(|window_size| {
         EvoWorld::new(
-            (window_size.width / CELL_PIXEL_WIDTH) as usize,
-            (window_size.height / CELL_PIXEL_WIDTH) as usize,
+            window_size.width / CELL_PIXEL_WIDTH,
+            window_size.height / CELL_PIXEL_WIDTH,
             Random::new(),
         )
     });

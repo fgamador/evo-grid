@@ -8,8 +8,8 @@ use std::ops::{Index, IndexMut, Range};
 use rand::prelude::*;
 
 pub trait World {
-    fn width(&self) -> usize;
-    fn height(&self) -> usize;
+    fn width(&self) -> u32;
+    fn height(&self) -> u32;
     fn num_cells(&self) -> usize;
     fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &impl GridCell> + Clone;
     fn update(&mut self);
@@ -20,8 +20,8 @@ pub struct WorldGrid<C>
 where
     C: Clone + GridCell,
 {
-    width: usize,
-    height: usize,
+    width: u32,
+    height: u32,
     pub cells: WorldGridCells<C>,
     pub next_cells: WorldGridCells<C>,
 }
@@ -30,7 +30,7 @@ impl<C> WorldGrid<C>
 where
     C: Clone + Debug + GridCell,
 {
-    pub fn new(width: usize, height: usize) -> Self {
+    pub fn new(width: u32, height: u32) -> Self {
         assert!(width > 0 && height > 0);
         Self {
             width,
@@ -40,11 +40,11 @@ where
         }
     }
 
-    pub fn width(&self) -> usize {
+    pub fn width(&self) -> u32 {
         self.width
     }
 
-    pub fn height(&self) -> usize {
+    pub fn height(&self) -> u32 {
         self.height
     }
 
@@ -92,28 +92,28 @@ where
     C: Clone + GridCell,
 {
     cells: Vec<C>,
-    width: usize,
-    height: usize,
+    width: u32,
+    height: u32,
 }
 
 impl<C> WorldGridCells<C>
 where
     C: Clone + Copy + Default + GridCell,
 {
-    pub fn new(width: usize, height: usize) -> Self {
+    pub fn new(width: u32, height: u32) -> Self {
         assert!(width != 0 && height != 0);
         Self {
-            cells: vec![C::default(); width * height],
+            cells: vec![C::default(); width as usize * height as usize],
             width,
             height,
         }
     }
 
-    pub fn width(&self) -> usize {
+    pub fn width(&self) -> u32 {
         self.width
     }
 
-    pub fn height(&self) -> usize {
+    pub fn height(&self) -> u32 {
         self.height
     }
 
@@ -209,8 +209,8 @@ where
     C: Clone + Copy + Default + GridCell,
 {
     cells: &'a WorldGridCells<C>,
-    rows: [usize; 3],
-    cols: [usize; 3],
+    rows: [u32; 3],
+    cols: [u32; 3],
 }
 
 impl<'a, C> Neighborhood<'a, C>
@@ -227,8 +227,8 @@ where
         }
     }
 
-    pub fn cell(&self, row: usize, col: usize) -> &C {
-        let grid_index = Loc::new(self.rows[row], self.cols[col]);
+    pub fn cell(&self, row: u32, col: u32) -> &C {
+        let grid_index = Loc::new(self.rows[row as usize], self.cols[col as usize]);
         &self.cells[grid_index]
     }
 
@@ -248,40 +248,40 @@ where
         self.for_cell(2, 2, &mut f);
     }
 
-    fn for_cell<F>(&self, row: usize, col: usize, f: &mut F)
+    fn for_cell<F>(&self, row: u32, col: u32, f: &mut F)
     where
         F: FnMut(&C),
     {
-        let grid_index = Loc::new(self.rows[row], self.cols[col]);
+        let grid_index = Loc::new(self.rows[row as usize], self.cols[col as usize]);
         f(&self.cells[grid_index]);
     }
 
-    fn adjacent_indexes(cell_index: usize, max: usize) -> (usize, usize) {
+    fn adjacent_indexes(cell_index: u32, max: u32) -> (u32, u32) {
         (
             Self::modulo(cell_index as i64 - 1, max),
             Self::modulo(cell_index as i64 + 1, max),
         )
     }
 
-    fn modulo(val: i64, max: usize) -> usize {
-        val.rem_euclid(max as i64) as usize
+    fn modulo(val: i64, max: u32) -> u32 {
+        val.rem_euclid(max as i64) as u32
     }
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct Loc {
-    pub row: usize,
-    pub col: usize,
+    pub row: u32,
+    pub col: u32,
 }
 
 impl Loc {
-    pub fn new(row: usize, col: usize) -> Self {
+    pub fn new(row: u32, col: u32) -> Self {
         Self { row, col }
     }
 
-    pub fn grid_index(&self, width: usize, height: usize) -> Option<usize> {
+    pub fn grid_index(&self, width: u32, height: u32) -> Option<usize> {
         if self.row < height && self.col < width {
-            Some(self.row * width + self.col)
+            Some(self.row as usize * width as usize + self.col as usize)
         } else {
             None
         }
@@ -303,6 +303,10 @@ impl Random {
     }
 
     pub fn next_usize(&mut self, range: Range<usize>) -> usize {
+        self.rng.random_range(range)
+    }
+
+    pub fn next_u32(&mut self, range: Range<u32>) -> u32 {
         self.rng.random_range(range)
     }
 

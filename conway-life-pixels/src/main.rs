@@ -9,8 +9,8 @@ const CELL_PIXEL_WIDTH: u32 = 3;
 fn main() {
     animate(|window_size| {
         ConwayWorld::new(
-            (window_size.width / CELL_PIXEL_WIDTH) as usize,
-            (window_size.height / CELL_PIXEL_WIDTH) as usize,
+            window_size.width / CELL_PIXEL_WIDTH,
+            window_size.height / CELL_PIXEL_WIDTH,
             Random::new(),
         )
     });
@@ -23,13 +23,13 @@ pub struct ConwayWorld {
 }
 
 impl ConwayWorld {
-    pub fn new(width: usize, height: usize, rand: Random) -> Self {
+    pub fn new(width: u32, height: u32, rand: Random) -> Self {
         let mut result = Self::new_empty(width, height, rand);
         result.add_random_life();
         result
     }
 
-    fn new_empty(width: usize, height: usize, rand: Random) -> Self {
+    fn new_empty(width: u32, height: u32, rand: Random) -> Self {
         assert!(width > 0 && height > 0);
         Self {
             grid: WorldGrid::new(width, height),
@@ -48,11 +48,11 @@ impl ConwayWorld {
 }
 
 impl World for ConwayWorld {
-    fn width(&self) -> usize {
+    fn width(&self) -> u32 {
         self.grid.width()
     }
 
-    fn height(&self) -> usize {
+    fn height(&self) -> u32 {
         self.grid.height()
     }
 

@@ -13,7 +13,7 @@ pub struct EvoWorld {
 }
 
 impl EvoWorld {
-    pub fn new(width: usize, height: usize, rand: Random) -> Self {
+    pub fn new(width: u32, height: u32, rand: Random) -> Self {
         let mut result = Self::new_empty(width, height, rand);
         result.add_substances();
         result.add_creatures();
@@ -21,7 +21,7 @@ impl EvoWorld {
         result
     }
 
-    fn new_empty(width: usize, height: usize, rand: Random) -> Self {
+    fn new_empty(width: u32, height: u32, rand: Random) -> Self {
         assert!(width != 0 && height != 0);
         Self {
             grid: WorldGrid::new(width, height),
@@ -34,15 +34,15 @@ impl EvoWorld {
         self.add_substance_source_clusters(40, 5, 10);
     }
 
-    fn add_substance_source_clusters(&mut self, count: usize, radius: usize, size: usize) {
+    fn add_substance_source_clusters(&mut self, count: usize, radius: u32, size: u32) {
         for _ in 0..count {
-            let row = self.rand.next_usize(radius..(self.height() - radius));
-            let col = self.rand.next_usize(radius..(self.width() - radius));
+            let row = self.rand.next_u32(radius..(self.height() - radius));
+            let col = self.rand.next_u32(radius..(self.width() - radius));
             self.add_substance_source_cluster(Loc::new(row, col), radius, size);
         }
     }
 
-    fn add_substance_source_cluster(&mut self, center: Loc, radius: usize, size: usize) {
+    fn add_substance_source_cluster(&mut self, center: Loc, radius: u32, size: u32) {
         let substance = Substance::new(self.random_color(), 1.0);
         for _ in 0..size {
             let loc = Loc::new(
@@ -58,9 +58,9 @@ impl EvoWorld {
         self.rand.shuffle_color_rgb(result)
     }
 
-    fn random_offset(&mut self, index: usize, max_offset: usize) -> usize {
+    fn random_offset(&mut self, index: u32, max_offset: u32) -> u32 {
         let offset_range = -(max_offset as i32)..max_offset as i32;
-        (index as i32 + self.rand.next_i32(offset_range)) as usize
+        (index as i32 + self.rand.next_i32(offset_range)) as u32
     }
 
     fn add_creatures(&mut self) {
@@ -70,11 +70,11 @@ impl EvoWorld {
 }
 
 impl World for EvoWorld {
-    fn width(&self) -> usize {
+    fn width(&self) -> u32 {
         self.grid.width()
     }
 
-    fn height(&self) -> usize {
+    fn height(&self) -> u32 {
         self.grid.height()
     }
 
