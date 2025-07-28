@@ -63,10 +63,10 @@ impl ApplicationHandler for App {
             return;
         }
 
-        let mut window_attributes = WindowAttributes::default();
-        window_attributes.cursor = Cursor::Icon(CursorIcon::Crosshair);
-        window_attributes.fullscreen = Some(Fullscreen::Borderless(None));
-        window_attributes.visible = false;
+        let window_attributes = Window::default_attributes()
+            .with_cursor(Cursor::Icon(CursorIcon::Crosshair))
+            .with_fullscreen(Some(Fullscreen::Borderless(None)))
+            .with_visible(false);
         let window = event_loop.create_window(window_attributes).unwrap();
 
         let window_size = window.inner_size();
