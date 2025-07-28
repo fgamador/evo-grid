@@ -65,6 +65,15 @@ impl App {
             .build()
             .unwrap()
     }
+
+    fn update(&mut self) {
+        self.world.update();
+        self.window.request_redraw();
+
+        while self.next_update < Instant::now() {
+            self.next_update += Duration::from_millis(100);
+        }
+    }
 }
 
 #[derive(Default)]
@@ -76,12 +85,7 @@ impl ApplicationHandler for AppEventHandler {
     fn new_events(&mut self, _event_loop: &ActiveEventLoop, cause: StartCause) {
         if let StartCause::ResumeTimeReached { .. } = cause {
             let app = self.app.as_mut().unwrap();
-            app.world.update();
-            app.window.request_redraw();
-
-            while app.next_update < Instant::now() {
-                app.next_update += Duration::from_millis(100);
-            }
+            app.update();
         }
     }
 
