@@ -1,17 +1,19 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-use pixels::Error;
 use pixels_main_support::animate;
 use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
-const WIDTH: usize = 400;
-const HEIGHT: usize = 300;
+const CELL_PIXEL_WIDTH: u32 = 3;
 
-fn main() -> Result<(), Error> {
-    env_logger::init();
-    let mut world = ConwayWorld::new(WIDTH, HEIGHT, Random::new());
-    animate(&mut world)
+fn main() {
+    animate(|window_size| {
+        ConwayWorld::new(
+            (window_size.width / CELL_PIXEL_WIDTH) as usize,
+            (window_size.height / CELL_PIXEL_WIDTH) as usize,
+            Random::new(),
+        )
+    });
 }
 
 #[derive(Debug)]
@@ -36,8 +38,8 @@ impl ConwayWorld {
     }
 
     fn add_random_life(&mut self) {
-        for row in 0..HEIGHT {
-            for col in 0..WIDTH {
+        for row in 0..self.height() {
+            for col in 0..self.width() {
                 let loc = Loc::new(row, col);
                 self.grid.cells[loc].alive = self.rand.next_bool(0.3);
             }
