@@ -28,17 +28,17 @@ fn main() -> Result<(), EventLoopError> {
     }))
 }
 
-struct App {
+struct App<W: World> {
     pixels: Pixels,
     window: Window,
-    world: EvoConwayWorld,
+    world: W,
     next_update: Instant,
 }
 
-impl App {
+impl<W: World> App<W> {
     fn new<F>(event_loop: &ActiveEventLoop, build_world: &F) -> Self
     where
-        F: Fn(PhysicalSize<u32>) -> EvoConwayWorld,
+        F: Fn(PhysicalSize<u32>) -> W,
     {
         let window = Self::build_window(event_loop);
         let world = build_world(window.inner_size());
@@ -92,17 +92,19 @@ impl App {
     }
 }
 
-struct AppEventHandler<F>
+struct AppEventHandler<W, F>
 where
-    F: Fn(PhysicalSize<u32>) -> EvoConwayWorld,
+    W: World,
+    F: Fn(PhysicalSize<u32>) -> W,
 {
     build_world: F,
-    app: Option<App>,
+    app: Option<App<W>>,
 }
 
-impl<F> AppEventHandler<F>
+impl<W, F> AppEventHandler<W, F>
 where
-    F: Fn(PhysicalSize<u32>) -> EvoConwayWorld,
+    W: World,
+    F: Fn(PhysicalSize<u32>) -> W,
 {
     fn new(build_world: F) -> Self {
         Self {
@@ -111,14 +113,15 @@ where
         }
     }
 
-    fn app(&mut self) -> &mut App {
+    fn app(&mut self) -> &mut App<W> {
         self.app.as_mut().unwrap()
     }
 }
 
-impl<F> ApplicationHandler for AppEventHandler<F>
+impl<W, F> ApplicationHandler for AppEventHandler<W, F>
 where
-    F: Fn(PhysicalSize<u32>) -> EvoConwayWorld,
+    W: World,
+    F: Fn(PhysicalSize<u32>) -> W,
 {
     fn new_events(&mut self, _event_loop: &ActiveEventLoop, cause: StartCause) {
         if let StartCause::ResumeTimeReached { .. } = cause {
