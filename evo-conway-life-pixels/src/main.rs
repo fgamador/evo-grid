@@ -5,7 +5,6 @@ use pixels::wgpu::Color;
 use pixels::{Pixels, PixelsBuilder, SurfaceTexture};
 use std::time::{Duration, Instant};
 use winit::application::ApplicationHandler;
-use winit::dpi::PhysicalSize;
 use winit::error::EventLoopError;
 use winit::event::{ElementState, KeyEvent, StartCause, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
@@ -61,18 +60,15 @@ impl App {
         );
 
         Self {
-            pixels: Self::build_pixels(&window, window_size, &world),
+            pixels: Self::build_pixels(&window, &world),
             window,
             world,
             next_update: Instant::now(),
         }
     }
 
-    fn build_pixels(
-        window: &Window,
-        window_size: PhysicalSize<u32>,
-        world: &EvoConwayWorld,
-    ) -> Pixels {
+    fn build_pixels(window: &Window, world: &EvoConwayWorld) -> Pixels {
+        let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
         let pixels =
             PixelsBuilder::new(world.width() as u32, world.height() as u32, surface_texture)
