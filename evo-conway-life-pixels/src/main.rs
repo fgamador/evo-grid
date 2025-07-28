@@ -50,7 +50,7 @@ impl App {
         let window = Self::build_window(event_loop);
         let world = Self::build_world(window.inner_size());
         Self {
-            pixels: Self::build_pixels(&window, &world),
+            pixels: Self::build_pixels(&window, world.width() as u32, world.height() as u32),
             window,
             world,
             next_update: Instant::now(),
@@ -73,15 +73,13 @@ impl App {
         )
     }
 
-    fn build_pixels(window: &Window, world: &EvoConwayWorld) -> Pixels {
+    fn build_pixels(window: &Window, width: u32, height: u32) -> Pixels {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        let pixels =
-            PixelsBuilder::new(world.width() as u32, world.height() as u32, surface_texture)
-                .clear_color(Color::WHITE)
-                .build()
-                .unwrap();
-        pixels
+        PixelsBuilder::new(width, height, surface_texture)
+            .clear_color(Color::WHITE)
+            .build()
+            .unwrap()
     }
 }
 
