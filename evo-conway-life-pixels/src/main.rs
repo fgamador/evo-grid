@@ -141,7 +141,7 @@ impl ApplicationHandler for AppEventHandler {
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        let app = self.app.as_mut().unwrap();
+        let app = self.app.as_ref().unwrap();
         event_loop.set_control_flow(ControlFlow::WaitUntil(app.next_update));
     }
 }
