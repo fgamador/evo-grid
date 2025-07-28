@@ -3,10 +3,11 @@
 
 use pixels::wgpu::Color;
 use pixels::{Pixels, PixelsBuilder, SurfaceTexture};
+use std::time::{Duration, Instant};
 use winit::application::ApplicationHandler;
 use winit::error::EventLoopError;
-use winit::event::{ElementState, KeyEvent, WindowEvent};
-use winit::event_loop::{ActiveEventLoop, EventLoop};
+use winit::event::{ElementState, KeyEvent, StartCause, WindowEvent};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowAttributes, WindowId};
 use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
@@ -41,9 +42,22 @@ struct App {
     pixels: Option<Pixels>,
     window: Option<Window>,
     world: Option<EvoConwayWorld>,
+    next_update: Option<Instant>,
 }
 
 impl ApplicationHandler for App {
+    fn new_events(&mut self, _event_loop: &ActiveEventLoop, cause: StartCause) {
+        if let StartCause::ResumeTimeReached { .. } = cause {
+            self.world.as_mut().unwrap().update();
+            self.window.as_mut().unwrap().request_redraw();
+
+            let next_update = self.next_update.as_mut().unwrap();
+            while *next_update < Instant::now() {
+                *next_update += Duration::from_millis(100);
+            }
+        }
+    }
+
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_some() {
             return;
@@ -72,9 +86,11 @@ impl ApplicationHandler for App {
         self.window = Some(window);
         self.world = Some(world);
 
-        self.world.as_mut().unwrap().update();
+        //self.world.as_mut().unwrap().update();
         self.window.as_ref().unwrap().request_redraw();
         self.window.as_mut().unwrap().set_visible(true);
+
+        self.next_update = Some(Instant::now());
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
@@ -111,8 +127,12 @@ impl ApplicationHandler for App {
             }
             _ => (),
         }
-        self.world.as_mut().unwrap().update();
-        self.window.as_ref().unwrap().request_redraw();
+        // self.world.as_mut().unwrap().update();
+        // self.window.as_ref().unwrap().request_redraw();
+    }
+
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        event_loop.set_control_flow(ControlFlow::WaitUntil(self.next_update.unwrap()));
     }
 }
 
