@@ -19,8 +19,7 @@ const MUTATION_ODDS: f64 = 0.0;
 fn main() -> Result<(), EventLoopError> {
     let event_loop = EventLoop::new()?;
     event_loop.set_control_flow(ControlFlow::Wait);
-    let mut event_handler = AppEventHandler::default();
-    event_loop.run_app(&mut event_handler)
+    event_loop.run_app(&mut AppEventHandler::default())
 }
 
 struct App {
