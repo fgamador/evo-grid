@@ -12,6 +12,8 @@ use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowId};
 use world_grid::{GridCell, World};
 
+const TIME_STEP_MILLIS: u64 = 100;
+
 pub fn animate<W, F>(build_world: F)
 where
     W: World,
@@ -73,7 +75,7 @@ impl<W: World> App<W> {
         self.window.request_redraw();
 
         while self.next_update < Instant::now() {
-            self.next_update += Duration::from_millis(100);
+            self.next_update += Duration::from_millis(TIME_STEP_MILLIS);
         }
     }
 
