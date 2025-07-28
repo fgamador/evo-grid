@@ -96,11 +96,16 @@ struct AppEventHandler {
     app: Option<App>,
 }
 
+impl AppEventHandler {
+    fn app(&mut self) -> &mut App {
+        self.app.as_mut().unwrap()
+    }
+}
+
 impl ApplicationHandler for AppEventHandler {
     fn new_events(&mut self, _event_loop: &ActiveEventLoop, cause: StartCause) {
         if let StartCause::ResumeTimeReached { .. } = cause {
-            let app = self.app.as_mut().unwrap();
-            app.on_time_step();
+            self.app().on_time_step();
         }
     }
 
@@ -133,16 +138,15 @@ impl ApplicationHandler for AppEventHandler {
                 _ => (),
             },
             WindowEvent::RedrawRequested => {
-                let app = self.app.as_mut().unwrap();
-                app.on_redraw();
+                self.app().on_redraw();
             }
             _ => (),
         }
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        let app = self.app.as_ref().unwrap();
-        event_loop.set_control_flow(ControlFlow::WaitUntil(app.next_update));
+        let wakeup_time = self.app().next_update;
+        event_loop.set_control_flow(ControlFlow::WaitUntil(wakeup_time));
     }
 }
 
