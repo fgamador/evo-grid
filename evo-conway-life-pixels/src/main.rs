@@ -66,7 +66,12 @@ impl App {
             .unwrap()
     }
 
-    fn update(&mut self) {
+    fn on_create(&mut self) {
+        self.window.request_redraw();
+        self.window.set_visible(true);
+    }
+
+    fn on_time_step(&mut self) {
         self.world.update();
         self.window.request_redraw();
 
@@ -85,7 +90,7 @@ impl ApplicationHandler for AppEventHandler {
     fn new_events(&mut self, _event_loop: &ActiveEventLoop, cause: StartCause) {
         if let StartCause::ResumeTimeReached { .. } = cause {
             let app = self.app.as_mut().unwrap();
-            app.update();
+            app.on_time_step();
         }
     }
 
@@ -94,9 +99,8 @@ impl ApplicationHandler for AppEventHandler {
             return;
         }
 
-        let app = App::new(event_loop);
-        app.window.request_redraw();
-        app.window.set_visible(true);
+        let mut app = App::new(event_loop);
+        app.on_create();
         self.app = Some(app);
     }
 
