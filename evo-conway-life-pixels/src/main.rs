@@ -5,6 +5,7 @@ use pixels::wgpu::Color;
 use pixels::{Pixels, PixelsBuilder, SurfaceTexture};
 use std::time::{Duration, Instant};
 use winit::application::ApplicationHandler;
+use winit::dpi::PhysicalSize;
 use winit::error::EventLoopError;
 use winit::event::{ElementState, KeyEvent, StartCause, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
@@ -46,25 +47,30 @@ struct App {
 
 impl App {
     fn new(event_loop: &ActiveEventLoop) -> Self {
-        let window_attributes = Window::default_attributes()
-            .with_cursor(Cursor::Icon(CursorIcon::Crosshair))
-            .with_fullscreen(Some(Fullscreen::Borderless(None)))
-            .with_visible(false);
-        let window = event_loop.create_window(window_attributes).unwrap();
-
-        let window_size = window.inner_size();
-        let world = EvoConwayWorld::new(
-            (window_size.width / CELL_PIXEL_WIDTH) as usize,
-            (window_size.height / CELL_PIXEL_WIDTH) as usize,
-            Random::new(),
-        );
-
+        let window = Self::build_window(event_loop);
+        let world = Self::build_world(window.inner_size());
         Self {
             pixels: Self::build_pixels(&window, &world),
             window,
             world,
             next_update: Instant::now(),
         }
+    }
+
+    fn build_window(event_loop: &ActiveEventLoop) -> Window {
+        let window_attributes = Window::default_attributes()
+            .with_cursor(Cursor::Icon(CursorIcon::Crosshair))
+            .with_fullscreen(Some(Fullscreen::Borderless(None)))
+            .with_visible(false);
+        event_loop.create_window(window_attributes).unwrap()
+    }
+
+    fn build_world(window_size: PhysicalSize<u32>) -> EvoConwayWorld {
+        EvoConwayWorld::new(
+            (window_size.width / CELL_PIXEL_WIDTH) as usize,
+            (window_size.height / CELL_PIXEL_WIDTH) as usize,
+            Random::new(),
+        )
     }
 
     fn build_pixels(window: &Window, world: &EvoConwayWorld) -> Pixels {
