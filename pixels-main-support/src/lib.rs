@@ -41,7 +41,7 @@ impl<W: World> App<W> {
         let window = Self::build_window(event_loop);
         let world = build_world(window.inner_size());
         Self {
-            pixels: Self::build_pixels(&window, world.width() as u32, world.height() as u32),
+            pixels: Self::build_pixels(&window, world.width(), world.height()),
             window,
             world,
             next_update: Instant::now(),
