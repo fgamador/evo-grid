@@ -1,5 +1,5 @@
 [workspace]
-members = ["conway-life-pixels", "evo-conway-life-pixels", "evo-grid", "evo-grid-pixels", "pixels-main-support", "world-grid"]
+members = ["conway-life-pixels", "evo-conway-life-pixels", "evo-grid", "evo-grid-pixels", "pixels-main-support", "pixels-problem", "world-grid"]
 resolver = "3"
 
 [workspace.package]
