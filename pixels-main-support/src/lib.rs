@@ -28,9 +28,9 @@ where
 }
 
 struct App<W: World> {
-    pixels: Option<Pixels<'static>>,
-    window: Arc<Window>,
     world: W,
+    window: Arc<Window>,
+    pixels: Pixels<'static>,
     next_update: Instant,
 }
 
@@ -41,18 +41,13 @@ impl<W: World> App<W> {
     {
         let window = Arc::new(Self::build_window(event_loop));
         let world = build_world(window.inner_size());
-        let mut result = Self {
-            pixels: None,
-            window,
+        let pixels = Self::build_pixels(&window, world.width(), world.height());
+        Self {
             world,
+            window,
+            pixels,
             next_update: Instant::now(),
-        };
-        result.pixels = Some(Self::build_pixels(
-            &result.window,
-            result.world.width(),
-            result.world.height(),
-        ));
-        result
+        }
     }
 
     fn build_window(event_loop: &ActiveEventLoop) -> Window {
@@ -88,14 +83,13 @@ impl<W: World> App<W> {
     }
 
     fn on_redraw(&mut self) {
-        let pixels = self.pixels.as_mut().unwrap();
-        let screen = pixels.frame_mut();
+        let screen = self.pixels.frame_mut();
         debug_assert_eq!(screen.len(), 4 * self.world.num_cells());
 
         for (cell, pixel) in self.world.cells_iter().zip(screen.chunks_exact_mut(4)) {
             pixel.copy_from_slice(&cell.color_rgba());
         }
-        pixels.render().unwrap();
+        self.pixels.render().unwrap();
     }
 }
 

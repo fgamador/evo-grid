@@ -7,23 +7,26 @@ use winit::window::{Window, WindowId};
 
 #[derive(Default)]
 struct App {
-    window: Option<Arc<Window>>,
-    pixels: Option<Pixels<'static>>,
+    inner: Option<AppInner>,
+}
+
+struct AppInner {
+    window: Arc<Window>,
+    pixels: Pixels<'static>,
 }
 
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        self.window = Some(Arc::new(
+        let window = Arc::new(
             event_loop
                 .create_window(Window::default_attributes())
                 .unwrap(),
-        ));
-        let surface_texture = SurfaceTexture::new(100, 100, self.window.as_ref().unwrap().clone());
-        self.pixels = Some(
-            PixelsBuilder::new(100, 100, surface_texture)
-                .build()
-                .unwrap(),
         );
+        let surface_texture = SurfaceTexture::new(100, 100, window.clone());
+        let pixels = PixelsBuilder::new(100, 100, surface_texture)
+            .build()
+            .unwrap();
+        self.inner = Some(AppInner { window, pixels });
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
@@ -32,9 +35,11 @@ impl ApplicationHandler for App {
                 event_loop.exit();
             }
             WindowEvent::RedrawRequested => {
+                let inner = self.inner.as_ref().unwrap();
                 // Draw using self.pixels...
-                self.pixels.as_ref().unwrap().render().unwrap();
-                self.window.as_ref().unwrap().request_redraw();
+                inner.pixels.render().unwrap();
+                // Show that we can still use the window.
+                inner.window.request_redraw();
             }
             _ => (),
         }
