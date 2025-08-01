@@ -10,6 +10,6 @@ default = ["optimize"]
 
 [dependencies]
 log = "0.4"
-pixels = "0.14"
+pixels = "0.15"
 winit = { version = "0.30", features = ["rwh_05"] }
 world-grid = { path = "../world-grid" }
