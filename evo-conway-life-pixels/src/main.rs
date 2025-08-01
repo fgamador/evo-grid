@@ -6,7 +6,7 @@ use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
 const BACKGROUND_COLOR: [u8; 4] = [0xff, 0xff, 0xff, 0xff];
 const CELL_PIXEL_WIDTH: u32 = 4;
-const MUTATION_ODDS: f64 = 0.0;
+const MUTATION_ODDS: f64 = 0.01;
 
 fn main() {
     animate(|window_size| {
@@ -126,14 +126,14 @@ struct Creature {
     // bits[n] == 1 means will survive if own cell has n-1 neighbor creatures
     survival_neighbor_counts: BitSet8,
     // bits[n] == 1 means will reproduce if target cell has n-1 neighbor creatures
-    birth_neighbor_counts: BitSet8,
+    repro_neighbor_counts: BitSet8,
 }
 
 impl Creature {
     pub fn new(survival_neighbor_counts: BitSet8, birth_neighbor_counts: BitSet8) -> Self {
         Self {
             survival_neighbor_counts,
-            birth_neighbor_counts,
+            repro_neighbor_counts: birth_neighbor_counts,
         }
     }
 
@@ -142,9 +142,16 @@ impl Creature {
     }
 
     pub fn color_rgba(&self) -> [u8; 4] {
-        let red = self.survival_neighbor_counts.bits << 5;
-        let blue = self.birth_neighbor_counts.bits << 5;
-        [red, 0x00, blue, 0xff]
+        let survival_top5 = self.survival_neighbor_counts.bits & 0b11111000;
+        let survival_bottom3 = self.survival_neighbor_counts.bits & 0b00000111;
+        let repro_top5 = self.repro_neighbor_counts.bits & 0b11111000;
+        let repro_bottom3 = self.repro_neighbor_counts.bits & 0b00000111;
+
+        let red = survival_top5;
+        let blue = repro_top5;
+        let green = (survival_bottom3 << 5) | (repro_bottom3 << 2);
+
+        [red, green, blue, 0xff]
     }
 
     pub fn survives(&self, num_neighbors: usize) -> bool {
@@ -152,7 +159,7 @@ impl Creature {
     }
 
     pub fn can_reproduce(&self, num_neighbors: usize) -> bool {
-        num_neighbors > 0 && self.birth_neighbor_counts.has_bit(num_neighbors - 1)
+        num_neighbors > 0 && self.repro_neighbor_counts.has_bit(num_neighbors - 1)
     }
 
     pub fn maybe_reproduce(
@@ -191,7 +198,7 @@ impl Creature {
                         &creature.survival_neighbor_counts,
                         &mut survival_bit_counts,
                     );
-                    Self::update_bit_counts(&creature.birth_neighbor_counts, &mut birth_bit_counts);
+                    Self::update_bit_counts(&creature.repro_neighbor_counts, &mut birth_bit_counts);
                 }
             }
         });
