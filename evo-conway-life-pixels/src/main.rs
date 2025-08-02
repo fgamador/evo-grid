@@ -2,6 +2,7 @@
 #![forbid(unsafe_code)]
 
 use pixels_main_support::animate;
+use std::fmt::Debug;
 use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
 const CELL_PIXEL_WIDTH: u32 = 6;
@@ -71,6 +72,10 @@ impl World for EvoConwayWorld {
     fn update(&mut self) {
         self.grid.update(&mut self.rand, |_grid| {});
     }
+
+    fn debug_print(&self, row: u32, col: u32) {
+        self.grid.cells[Loc::new(row, col)].debug_print(row, col);
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -117,6 +122,39 @@ impl EvoConwayGridCell {
                 result += 1;
             }
         });
+        result
+    }
+
+    fn debug_print(&self, row: u32, col: u32) {
+        if let Some(creature) = self.creature {
+            let color = self.color_rgba();
+            println!(
+                "({}, {}): Survival: {}, Repro: {}, Color: [0x{:X},0x{:X},0x{:X}]",
+                row,
+                col,
+                Self::format_neighbor_counts(creature.survival_neighbor_counts),
+                Self::format_neighbor_counts(creature.repro_neighbor_counts),
+                color[0],
+                color[1],
+                color[2]
+            );
+        } else {
+            println!("({}, {}): No creature", row, col);
+        }
+    }
+
+    fn format_neighbor_counts(neighbor_counts: BitSet8) -> String {
+        let mut result = String::with_capacity(100);
+        result.push('[');
+        for i in 0..8 {
+            if neighbor_counts.has_bit(i) {
+                if result.len() > 1 {
+                    result.push(',');
+                }
+                result.push_str(&format!("{}", i + 1));
+            }
+        }
+        result.push(']');
         result
     }
 }

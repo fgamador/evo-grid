@@ -6,8 +6,8 @@ use pixels::{Pixels, PixelsBuilder, SurfaceTexture};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use winit::application::ApplicationHandler;
-use winit::dpi::PhysicalSize;
-use winit::event::{ElementState, KeyEvent, StartCause, WindowEvent};
+use winit::dpi::{PhysicalPosition, PhysicalSize};
+use winit::event::{ElementState, KeyEvent, MouseButton, StartCause, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowId};
@@ -88,6 +88,14 @@ impl<W: World> App<W> {
         }
     }
 
+    fn on_mouse_click(&self, pos: PhysicalPosition<f64>) {
+        let (col, row) = self
+            .pixels
+            .window_pos_to_pixel((pos.x as f32, pos.y as f32))
+            .unwrap();
+        self.world.debug_print(row as u32, col as u32);
+    }
+
     fn draw(&mut self) {
         let screen = self.pixels.frame_mut();
         for (cell, pixel) in self.world.cells_iter().zip(screen.chunks_exact_mut(4)) {
@@ -105,6 +113,7 @@ where
     build_world: F,
     app: Option<App<W>>,
     paused: bool,
+    mouse_position: PhysicalPosition<f64>,
 }
 
 impl<W, F> AppEventHandler<W, F>
@@ -117,6 +126,7 @@ where
             build_world,
             app: None,
             paused: false,
+            mouse_position: PhysicalPosition::new(0.0, 0.0),
         }
     }
 
@@ -148,6 +158,9 @@ where
             WindowEvent::CloseRequested => {
                 event_loop.exit();
             }
+            WindowEvent::CursorMoved { position, .. } => {
+                self.mouse_position = position;
+            }
             WindowEvent::KeyboardInput {
                 event:
                     KeyEvent {
@@ -170,6 +183,14 @@ where
                 }
                 _ => (),
             },
+            WindowEvent::MouseInput {
+                button: MouseButton::Left,
+                state: ElementState::Released,
+                ..
+            } => {
+                let pos = self.mouse_position;
+                self.app().on_mouse_click(pos);
+            }
             WindowEvent::RedrawRequested => {
                 self.app().draw();
             }

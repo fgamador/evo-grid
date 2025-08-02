@@ -13,6 +13,7 @@ pub trait World {
     fn num_cells(&self) -> usize;
     fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &impl GridCell> + Clone;
     fn update(&mut self);
+    fn debug_print(&self, _row: u32, _col: u32) {}
 }
 
 #[derive(Clone, Debug)]
