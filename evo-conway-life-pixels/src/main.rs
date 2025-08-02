@@ -4,9 +4,9 @@
 use pixels_main_support::animate;
 use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
+const CELL_PIXEL_WIDTH: u32 = 6;
 const EMPTY_CELL_COLOR: [u8; 4] = [0, 0, 0, 0];
-const CELL_PIXEL_WIDTH: u32 = 4;
-const MUTATION_ODDS: f64 = 0.01;
+const MUTATION_ODDS: f64 = 0.001;
 
 fn main() {
     animate(|window_size| {
@@ -100,7 +100,7 @@ impl GridCell for EvoConwayGridCell {
     ) {
         let num_neighbors = Self::num_neighbor_creatures(neighborhood);
         if let Some(creature) = self.creature {
-            if !creature.survives(num_neighbors) {
+            if !creature.survives(num_neighbors, rand) {
                 next_cell.creature = None;
             }
         } else {
@@ -154,8 +154,16 @@ impl Creature {
         [red, green, blue, 0xff]
     }
 
-    pub fn survives(&self, num_neighbors: usize) -> bool {
-        num_neighbors > 0 && self.survival_neighbor_counts.has_bit(num_neighbors - 1)
+    pub fn survives(&self, num_neighbors: usize, rand: &mut Random) -> bool {
+        num_neighbors > 0
+            && self.survival_neighbor_counts.has_bit(num_neighbors - 1)
+            && self.fewer_genome_bits(rand)
+    }
+
+    fn fewer_genome_bits(&self, rand: &mut Random) -> bool {
+        let num_genome_bits =
+            self.survival_neighbor_counts.count_bits() + self.repro_neighbor_counts.count_bits();
+        rand.next_bool(1.0 - num_genome_bits as f64 / 20.0)
     }
 
     pub fn can_reproduce(&self, num_neighbors: usize) -> bool {
@@ -244,6 +252,16 @@ impl BitSet8 {
 
     fn flip_bit(&mut self, index: usize) {
         self.bits ^= 1 << index;
+    }
+
+    fn count_bits(&self) -> usize {
+        let mut result = 0;
+        for i in 0..8 {
+            if self.has_bit(i) {
+                result += 1;
+            }
+        }
+        result
     }
 }
 
