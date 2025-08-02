@@ -104,6 +104,7 @@ where
 {
     build_world: F,
     app: Option<App<W>>,
+    paused: bool,
 }
 
 impl<W, F> AppEventHandler<W, F>
@@ -115,6 +116,7 @@ where
         Self {
             build_world,
             app: None,
+            paused: false,
         }
     }
 
@@ -159,6 +161,9 @@ where
                 KeyCode::Escape | KeyCode::KeyQ | KeyCode::KeyX => {
                     event_loop.exit();
                 }
+                KeyCode::KeyP => {
+                    self.paused ^= true;
+                }
                 _ => (),
             },
             WindowEvent::RedrawRequested => {
@@ -169,7 +174,11 @@ where
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        let wakeup_time = self.app().next_update;
-        event_loop.set_control_flow(ControlFlow::WaitUntil(wakeup_time));
+        if self.paused {
+            event_loop.set_control_flow(ControlFlow::Wait);
+        } else {
+            let wakeup_time = self.app().next_update;
+            event_loop.set_control_flow(ControlFlow::WaitUntil(wakeup_time));
+        }
     }
 }
