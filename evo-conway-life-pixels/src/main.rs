@@ -4,7 +4,7 @@
 use pixels_main_support::animate;
 use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
-const BACKGROUND_COLOR: [u8; 4] = [0xff, 0xff, 0xff, 0xff];
+const EMPTY_CELL_COLOR: [u8; 4] = [0, 0, 0, 0];
 const CELL_PIXEL_WIDTH: u32 = 4;
 const MUTATION_ODDS: f64 = 0.01;
 
@@ -88,7 +88,7 @@ impl GridCell for EvoConwayGridCell {
         if let Some(creature) = self.creature {
             creature.color_rgba()
         } else {
-            BACKGROUND_COLOR
+            EMPTY_CELL_COLOR
         }
     }
 

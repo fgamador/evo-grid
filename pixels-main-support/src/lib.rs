@@ -14,6 +14,12 @@ use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowId};
 use world_grid::{GridCell, World};
 
 const TIME_STEP_MILLIS: u64 = 100;
+const BACKGROUND_COLOR: Color = Color {
+    r: 0.3,
+    g: 0.3,
+    b: 0.3,
+    a: 1.0,
+};
 
 pub fn animate<W, F>(build_world: F)
 where
@@ -63,7 +69,7 @@ impl<W: World> App<W> {
         let surface_texture =
             SurfaceTexture::new(window_size.width, window_size.height, window.clone());
         PixelsBuilder::new(width, height, surface_texture)
-            .clear_color(Color::WHITE)
+            .clear_color(BACKGROUND_COLOR)
             .build()
             .unwrap()
     }
