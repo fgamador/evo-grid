@@ -147,9 +147,9 @@ impl Creature {
         let repro_top5 = self.repro_neighbor_counts.bits & 0b11111000;
         let repro_bottom3 = self.repro_neighbor_counts.bits & 0b00000111;
 
-        let red = survival_top5;
-        let blue = repro_top5;
-        let green = (survival_bottom3 << 5) | (repro_bottom3 << 2);
+        let red = survival_top5 >> 1;
+        let blue = repro_top5 >> 1;
+        let green = (survival_bottom3 << 4) | (repro_bottom3 << 1) | blue;
 
         [red, green, blue, 0xff]
     }

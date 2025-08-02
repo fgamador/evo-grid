@@ -13,8 +13,13 @@ use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowId};
 use world_grid::{GridCell, World};
 
-const TIME_STEP_MILLIS: u64 = 400;
-const BACKGROUND_COLOR: Color = Color::WHITE;
+const TIME_STEP_MILLIS: u64 = 500;
+const BACKGROUND_COLOR: Color = Color {
+    r: 0.9,
+    g: 0.9,
+    b: 0.9,
+    a: 1.0,
+};
 
 pub fn animate<W, F>(build_world: F)
 where
