@@ -164,6 +164,10 @@ where
                 KeyCode::KeyP => {
                     self.paused ^= true;
                 }
+                KeyCode::KeyS => {
+                    self.paused = true;
+                    self.app().on_time_step();
+                }
                 _ => (),
             },
             WindowEvent::RedrawRequested => {
