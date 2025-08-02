@@ -88,10 +88,8 @@ impl<W: World> App<W> {
         }
     }
 
-    fn on_redraw(&mut self) {
+    fn draw(&mut self) {
         let screen = self.pixels.frame_mut();
-        debug_assert_eq!(screen.len(), 4 * self.world.num_cells());
-
         for (cell, pixel) in self.world.cells_iter().zip(screen.chunks_exact_mut(4)) {
             pixel.copy_from_slice(&cell.color_rgba());
         }
@@ -164,7 +162,7 @@ where
                 _ => (),
             },
             WindowEvent::RedrawRequested => {
-                self.app().on_redraw();
+                self.app().draw();
             }
             _ => (),
         }
