@@ -13,7 +13,7 @@ use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowId};
 use world_grid::{GridCell, World};
 
-const TIME_STEP_MILLIS: u64 = 500;
+const TIME_STEP_MILLIS: u64 = 200;
 const BACKGROUND_COLOR: Color = Color {
     r: 0.9,
     g: 0.9,

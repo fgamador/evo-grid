@@ -5,7 +5,7 @@ use pixels_main_support::animate;
 use std::fmt::Debug;
 use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
-const CELL_PIXEL_WIDTH: u32 = 6;
+const CELL_PIXEL_WIDTH: u32 = 4;
 const EMPTY_CELL_COLOR: [u8; 4] = [0, 0, 0, 0];
 const MUTATION_ODDS: f64 = 0.001;
 
