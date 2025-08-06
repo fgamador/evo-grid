@@ -161,6 +161,9 @@ where
             WindowEvent::CursorMoved { position, .. } => {
                 self.mouse_position = position;
             }
+            WindowEvent::Focused(true) => {
+                self.app().window.request_redraw();
+            }
             WindowEvent::KeyboardInput {
                 event:
                     KeyEvent {

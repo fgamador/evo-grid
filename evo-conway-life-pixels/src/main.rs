@@ -180,17 +180,25 @@ impl Creature {
     }
 
     pub fn color_rgba(&self) -> [u8; 4] {
-        let survival_top5 = self.survival_neighbor_counts.bits & 0b11111000;
-        let survival_bottom3 = self.survival_neighbor_counts.bits & 0b00000111;
-        let repro_top5 = self.repro_neighbor_counts.bits & 0b11111000;
-        let repro_bottom3 = self.repro_neighbor_counts.bits & 0b00000111;
-
-        let red = survival_top5 >> 1;
-        let blue = repro_top5 >> 1;
-        let green = (survival_bottom3 << 4) | (repro_bottom3 << 1) | blue;
+        let green = (self.survival_neighbor_counts.count_bits() as u8) << 4;
+        let blue = (self.repro_neighbor_counts.count_bits() as u8) << 4;
+        let red = self.survival_neighbor_counts.bits | self.repro_neighbor_counts.bits;
 
         [red, green, blue, 0xff]
     }
+
+    // pub fn color_rgba(&self) -> [u8; 4] {
+    //     let survival_top5 = self.survival_neighbor_counts.bits & 0b11111000;
+    //     let survival_bottom3 = self.survival_neighbor_counts.bits & 0b00000111;
+    //     let repro_top5 = self.repro_neighbor_counts.bits & 0b11111000;
+    //     let repro_bottom3 = self.repro_neighbor_counts.bits & 0b00000111;
+    //
+    //     let red = survival_top5 >> 1;
+    //     let blue = repro_top5 >> 1;
+    //     let green = (survival_bottom3 << 4) | (repro_bottom3 << 1) | blue;
+    //
+    //     [red, green, blue, 0xff]
+    // }
 
     pub fn survives(&self, num_neighbors: usize, rand: &mut Random) -> bool {
         num_neighbors > 0
