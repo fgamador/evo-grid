@@ -20,6 +20,7 @@ const BACKGROUND_COLOR: Color = Color {
     b: 0.9,
     a: 1.0,
 };
+const CURSOR_TIMEOUT_MILLIS: u64 = 1000;
 
 pub fn animate<W, F>(build_world: F)
 where
@@ -113,7 +114,8 @@ where
     build_world: F,
     app: Option<App<W>>,
     paused: bool,
-    mouse_position: PhysicalPosition<f64>,
+    cursor_position: PhysicalPosition<f64>,
+    cursor_timeout: Option<Instant>,
 }
 
 impl<W, F> AppEventHandler<W, F>
@@ -126,7 +128,8 @@ where
             build_world,
             app: None,
             paused: false,
-            mouse_position: PhysicalPosition::new(0.0, 0.0),
+            cursor_position: PhysicalPosition::new(0.0, 0.0),
+            cursor_timeout: None,
         }
     }
 
@@ -144,6 +147,12 @@ where
         if let StartCause::ResumeTimeReached { .. } = cause {
             self.app().on_time_step();
         }
+        if let Some(cursor_timeout) = self.cursor_timeout
+            && Instant::now() >= cursor_timeout
+        {
+            self.app().window.set_cursor_visible(false);
+            self.cursor_timeout = None;
+        }
     }
 
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
@@ -159,7 +168,12 @@ where
                 event_loop.exit();
             }
             WindowEvent::CursorMoved { position, .. } => {
-                self.mouse_position = position;
+                self.cursor_position = position;
+                self.app().window.set_cursor_visible(true);
+                if !self.paused {
+                    self.cursor_timeout =
+                        Some(Instant::now() + Duration::from_millis(CURSOR_TIMEOUT_MILLIS));
+                }
             }
             WindowEvent::Focused(true) => {
                 self.app().window.request_redraw();
@@ -191,7 +205,7 @@ where
                 state: ElementState::Released,
                 ..
             } => {
-                let pos = self.mouse_position;
+                let pos = self.cursor_position;
                 self.app().on_mouse_click(pos);
             }
             WindowEvent::RedrawRequested => {
