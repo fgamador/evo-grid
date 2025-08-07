@@ -168,10 +168,10 @@ struct Creature {
 }
 
 impl Creature {
-    pub fn new(survival_neighbor_counts: BitSet8, birth_neighbor_counts: BitSet8) -> Self {
+    pub fn new(survival_neighbor_counts: BitSet8, repro_neighbor_counts: BitSet8) -> Self {
         Self {
             survival_neighbor_counts,
-            repro_neighbor_counts: birth_neighbor_counts,
+            repro_neighbor_counts,
         }
     }
 
@@ -180,7 +180,9 @@ impl Creature {
     }
 
     pub fn color_rgba(&self) -> [u8; 4] {
-        let red = (self.survival_neighbor_counts.bits | self.repro_neighbor_counts.bits) >> 1;
+        let counts_bits_union =
+            self.survival_neighbor_counts.bits | self.repro_neighbor_counts.bits;
+        let red = counts_bits_union; // >> 1 + counts_bits_union >> 2;
 
         let num_survival_bits = self.survival_neighbor_counts.count_bits() as u8;
         let num_survival_bits_squeezed = (num_survival_bits & 0b1000) | (num_survival_bits << 1);

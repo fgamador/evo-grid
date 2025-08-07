@@ -15,9 +15,9 @@ use world_grid::{GridCell, World};
 
 const TIME_STEP_MILLIS: u64 = 200;
 const BACKGROUND_COLOR: Color = Color {
-    r: 0.9,
-    g: 0.9,
-    b: 0.9,
+    r: 0.1,
+    g: 0.1,
+    b: 0.1,
     a: 1.0,
 };
 const CURSOR_TIMEOUT_MILLIS: u64 = 1000;
