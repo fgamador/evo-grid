@@ -3,6 +3,8 @@
 
 use rand::distr::uniform::{SampleRange, SampleUniform};
 use rand::prelude::*;
+use rand::rngs::SmallRng;
+use rand::SeedableRng;
 use std::fmt::Debug;
 use std::mem;
 use std::ops::{Index, IndexMut};
@@ -297,12 +299,14 @@ impl Loc {
 
 #[derive(Debug)]
 pub struct Random {
-    rng: ThreadRng,
+    rng: SmallRng,
 }
 
 impl Random {
     pub fn new() -> Self {
-        Self { rng: rand::rng() }
+        Self {
+            rng: SmallRng::from_rng(&mut rand::rng()),
+        }
     }
 
     pub fn next_bool(&mut self, p: f64) -> bool {

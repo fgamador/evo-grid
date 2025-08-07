@@ -15,9 +15,9 @@ use world_grid::{GridCell, World};
 
 const TIME_STEP_MILLIS: u64 = 200;
 const BACKGROUND_COLOR: Color = Color {
-    r: 0.1,
-    g: 0.1,
-    b: 0.1,
+    r: 0.8,
+    g: 0.8,
+    b: 0.8,
     a: 1.0,
 };
 const CURSOR_TIMEOUT_MILLIS: u64 = 1000;
@@ -139,10 +139,7 @@ where
 
     fn show_cursor(&mut self) {
         self.app().window.set_cursor_visible(true);
-        if !self.paused {
-            self.cursor_timeout =
-                Some(Instant::now() + Duration::from_millis(CURSOR_TIMEOUT_MILLIS));
-        }
+        self.cursor_timeout = Some(Instant::now() + Duration::from_millis(CURSOR_TIMEOUT_MILLIS));
     }
 
     fn hide_cursor(&mut self) {
