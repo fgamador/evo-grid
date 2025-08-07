@@ -19,7 +19,7 @@ fn main() {
 #[derive(Debug)]
 pub struct ConwayWorld {
     grid: WorldGrid<ConwayGridCell>,
-    rand: Random,
+    rand: Option<Random>,
 }
 
 impl ConwayWorld {
@@ -33,7 +33,7 @@ impl ConwayWorld {
         assert!(width > 0 && height > 0);
         Self {
             grid: WorldGrid::new(width, height),
-            rand,
+            rand: Some(rand),
         }
     }
 
@@ -41,7 +41,8 @@ impl ConwayWorld {
         for row in 0..self.height() {
             for col in 0..self.width() {
                 let loc = Loc::new(row, col);
-                self.grid.cells[loc].alive = self.rand.next_bool(0.3);
+                let rand = self.rand.as_mut().unwrap();
+                self.grid.cells[loc].alive = rand.next_bool(0.3);
             }
         }
     }
@@ -65,7 +66,7 @@ impl World for ConwayWorld {
     }
 
     fn update(&mut self) {
-        self.grid.update(&mut self.rand, 0.0, |_grid| {});
+        self.grid.update(&mut self.rand, |_grid| {});
     }
 }
 
@@ -104,8 +105,7 @@ impl GridCell for ConwayGridCell {
         &self,
         neighborhood: &Neighborhood<ConwayGridCell>,
         next_cell: &mut ConwayGridCell,
-        _rand: &mut Random,
-        _mutation_odds: f64,
+        _rand: &mut Option<Random>,
     ) {
         let neighbors = Self::num_live_neighbors(neighborhood);
         next_cell.alive = if self.alive {

@@ -9,7 +9,7 @@ use world_grid::{
 pub struct EvoWorld {
     grid: WorldGrid<EvoGridCell>,
     sources: Vec<SubstanceSource>,
-    rand: Random,
+    rand: Option<Random>,
 }
 
 impl EvoWorld {
@@ -26,7 +26,7 @@ impl EvoWorld {
         Self {
             grid: WorldGrid::new(width, height),
             sources: vec![],
-            rand,
+            rand: Some(rand),
         }
     }
 
@@ -36,8 +36,12 @@ impl EvoWorld {
 
     fn add_substance_source_clusters(&mut self, count: usize, radius: u32, size: u32) {
         for _ in 0..count {
-            let row = self.rand.next_in_range(radius..(self.height() - radius));
-            let col = self.rand.next_in_range(radius..(self.width() - radius));
+            let row_range = radius..(self.height() - radius);
+            let row = self.rand.as_mut().unwrap().next_in_range(row_range);
+
+            let col_range = radius..(self.width() - radius);
+            let col = self.rand.as_mut().unwrap().next_in_range(col_range);
+
             self.add_substance_source_cluster(Loc::new(row, col), radius, size);
         }
     }
@@ -54,17 +58,19 @@ impl EvoWorld {
     }
 
     fn random_color(&mut self) -> [u8; 3] {
+        let rand = self.rand.as_mut().unwrap();
         let result = [
             0xff,
-            self.rand.next_in_range(0..0xff),
-            self.rand.next_in_range(0..0x80),
+            rand.next_in_range(0..0xff),
+            rand.next_in_range(0..0x80),
         ];
-        self.rand.shuffle_color_rgb(result)
+        rand.shuffle_color_rgb(result)
     }
 
     fn random_offset(&mut self, index: u32, max_offset: u32) -> u32 {
+        let rand = self.rand.as_mut().unwrap();
         let offset_range = -(max_offset as i32)..max_offset as i32;
-        (index as i32 + self.rand.next_in_range(offset_range)) as u32
+        (index as i32 + rand.next_in_range(offset_range)) as u32
     }
 
     fn add_creatures(&mut self) {
@@ -91,7 +97,7 @@ impl World for EvoWorld {
     }
 
     fn update(&mut self) {
-        self.grid.update(&mut self.rand, 0.0, |grid| {
+        self.grid.update(&mut self.rand, |grid| {
             self.sources
                 .iter()
                 .for_each(|source| source.update_cells(&mut grid.next_cells));
@@ -175,8 +181,7 @@ impl GridCell for EvoGridCell {
         &self,
         neighborhood: &Neighborhood<EvoGridCell>,
         next_cell: &mut EvoGridCell,
-        _rand: &mut Random,
-        _mutation_odds: f64,
+        _rand: &mut Option<Random>,
     ) {
         self.update_next_creature(neighborhood, next_cell);
         self.update_next_substance(neighborhood, next_cell);

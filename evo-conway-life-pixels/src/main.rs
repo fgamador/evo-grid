@@ -8,7 +8,7 @@ use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 const CELL_PIXEL_WIDTH: u32 = 4;
 const EMPTY_CELL_COLOR: [u8; 4] = [0, 0, 0, 0];
 const MUTATION_ODDS: f64 = 0.001;
-const CONWAY_STEPS: usize = 20;
+const CONWAY_STEPS: usize = 50;
 
 fn main() {
     animate(|window_size| {
@@ -23,7 +23,7 @@ fn main() {
 #[derive(Debug)]
 pub struct EvoConwayWorld {
     grid: WorldGrid<EvoConwayGridCell>,
-    rand: Random,
+    rand: Option<Random>,
     conway_steps: usize,
 }
 
@@ -38,7 +38,7 @@ impl EvoConwayWorld {
         assert!(width > 0 && height > 0);
         Self {
             grid: WorldGrid::new(width, height),
-            rand,
+            rand: Some(rand),
             conway_steps: CONWAY_STEPS,
         }
     }
@@ -46,7 +46,7 @@ impl EvoConwayWorld {
     fn add_random_life(&mut self) {
         for row in 0..self.height() {
             for col in 0..self.width() {
-                if self.rand.next_bool(0.3) {
+                if self.rand.as_mut().unwrap().next_bool(0.3) {
                     let loc = Loc::new(row, col);
                     self.grid.cells[loc].creature = Some(Creature::conway());
                 }
@@ -73,13 +73,12 @@ impl World for EvoConwayWorld {
     }
 
     fn update(&mut self) {
-        let mutation_odds = if self.conway_steps > 0 {
+        if self.conway_steps > 0 {
             self.conway_steps -= 1;
-            0.0
+            self.grid.update(&mut None, |_grid| {});
         } else {
-            MUTATION_ODDS
+            self.grid.update(&mut self.rand, |_grid| {});
         };
-        self.grid.update(&mut self.rand, mutation_odds, |_grid| {});
     }
 
     fn debug_print(&self, row: u32, col: u32) {
@@ -110,8 +109,7 @@ impl GridCell for EvoConwayGridCell {
         &self,
         neighborhood: &Neighborhood<EvoConwayGridCell>,
         next_cell: &mut EvoConwayGridCell,
-        rand: &mut Random,
-        mutation_odds: f64,
+        rand: &mut Option<Random>,
     ) {
         let num_neighbors = Self::num_neighbor_creatures(neighborhood);
         if let Some(creature) = self.creature {
@@ -119,8 +117,7 @@ impl GridCell for EvoConwayGridCell {
                 next_cell.creature = None;
             }
         } else {
-            next_cell.creature =
-                Creature::maybe_reproduce(neighborhood, num_neighbors, rand, mutation_odds);
+            next_cell.creature = Creature::maybe_reproduce(neighborhood, num_neighbors, rand);
         };
     }
 }
@@ -206,10 +203,10 @@ impl Creature {
         [red, green, blue, 0xff]
     }
 
-    pub fn survives(&self, num_neighbors: usize, rand: &mut Random) -> bool {
+    pub fn survives(&self, num_neighbors: usize, rand: &mut Option<Random>) -> bool {
         num_neighbors > 0
             && self.survival_neighbor_counts.has_bit(num_neighbors - 1)
-            && self.fewer_genome_bits(rand)
+            && (rand.is_none() || self.fewer_genome_bits(rand.as_mut().unwrap()))
     }
 
     fn fewer_genome_bits(&self, rand: &mut Random) -> bool {
@@ -225,8 +222,7 @@ impl Creature {
     pub fn maybe_reproduce(
         neighborhood: &Neighborhood<EvoConwayGridCell>,
         num_neighbors: usize,
-        rand: &mut Random,
-        mutation_odds: f64,
+        rand: &mut Option<Random>,
     ) -> Option<Creature> {
         if num_neighbors == 0 {
             return None;
@@ -236,8 +232,8 @@ impl Creature {
             Self::parent_bit_counts(neighborhood, num_neighbors)
         {
             Some(Creature::new(
-                survival_bit_counts.as_neighbor_counts(rand, mutation_odds),
-                birth_bit_counts.as_neighbor_counts(rand, mutation_odds),
+                survival_bit_counts.as_neighbor_counts(rand),
+                birth_bit_counts.as_neighbor_counts(rand),
             ))
         } else {
             None
@@ -348,27 +344,29 @@ impl BitCountsMap {
         self.zeros[index] as usize
     }
 
-    fn as_neighbor_counts(&self, rand: &mut Random, bit_flip_odds: f64) -> BitSet8 {
+    fn as_neighbor_counts(&self, rand: &mut Option<Random>) -> BitSet8 {
         let mut result = BitSet8::empty();
         for i in 0..8 {
             if Self::merge_counts(self.num_ones(i), self.num_zeros(i), rand) {
                 result.set_bit(i);
             }
-            if rand.next_bool(bit_flip_odds) {
+            if let Some(rand) = rand
+                && rand.next_bool(MUTATION_ODDS)
+            {
                 result.flip_bit(i);
             }
         }
         result
     }
 
-    fn merge_counts(num_ones: usize, num_zeros: usize, rand: &mut Random) -> bool {
+    fn merge_counts(num_ones: usize, num_zeros: usize, rand: &mut Option<Random>) -> bool {
         if num_ones == 0 {
             false
         } else if num_zeros == 0 {
             true
         } else {
             let odds = num_ones as f64 / (num_ones + num_zeros) as f64;
-            rand.next_bool(odds)
+            rand.as_mut().unwrap().next_bool(odds)
         }
     }
 }
