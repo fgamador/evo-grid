@@ -70,7 +70,7 @@ impl World for EvoConwayWorld {
     }
 
     fn update(&mut self) {
-        self.grid.update(&mut self.rand, |_grid| {});
+        self.grid.update(&mut self.rand, MUTATION_ODDS, |_grid| {});
     }
 
     fn debug_print(&self, row: u32, col: u32) {
@@ -102,6 +102,7 @@ impl GridCell for EvoConwayGridCell {
         neighborhood: &Neighborhood<EvoConwayGridCell>,
         next_cell: &mut EvoConwayGridCell,
         rand: &mut Random,
+        mutation_odds: f64,
     ) {
         let num_neighbors = Self::num_neighbor_creatures(neighborhood);
         if let Some(creature) = self.creature {
@@ -109,7 +110,8 @@ impl GridCell for EvoConwayGridCell {
                 next_cell.creature = None;
             }
         } else {
-            next_cell.creature = Creature::maybe_reproduce(neighborhood, num_neighbors, rand);
+            next_cell.creature =
+                Creature::maybe_reproduce(neighborhood, num_neighbors, rand, mutation_odds);
         };
     }
 }
@@ -215,6 +217,7 @@ impl Creature {
         neighborhood: &Neighborhood<EvoConwayGridCell>,
         num_neighbors: usize,
         rand: &mut Random,
+        mutation_odds: f64,
     ) -> Option<Creature> {
         if num_neighbors == 0 {
             return None;
@@ -224,8 +227,8 @@ impl Creature {
             Self::parent_bit_counts(neighborhood, num_neighbors)
         {
             Some(Creature::new(
-                survival_bit_counts.as_neighbor_counts(rand),
-                birth_bit_counts.as_neighbor_counts(rand),
+                survival_bit_counts.as_neighbor_counts(rand, mutation_odds),
+                birth_bit_counts.as_neighbor_counts(rand, mutation_odds),
             ))
         } else {
             None
@@ -336,13 +339,13 @@ impl BitCountsMap {
         self.zeros[index] as usize
     }
 
-    fn as_neighbor_counts(&self, rand: &mut Random) -> BitSet8 {
+    fn as_neighbor_counts(&self, rand: &mut Random, bit_flip_odds: f64) -> BitSet8 {
         let mut result = BitSet8::empty();
         for i in 0..8 {
             if Self::merge_counts(self.num_ones(i), self.num_zeros(i), rand) {
                 result.set_bit(i);
             }
-            if rand.next_bool(MUTATION_ODDS) {
+            if rand.next_bool(bit_flip_odds) {
                 result.flip_bit(i);
             }
         }

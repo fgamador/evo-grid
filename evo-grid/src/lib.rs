@@ -91,7 +91,7 @@ impl World for EvoWorld {
     }
 
     fn update(&mut self) {
-        self.grid.update(&mut self.rand, |grid| {
+        self.grid.update(&mut self.rand, 0.0, |grid| {
             self.sources
                 .iter()
                 .for_each(|source| source.update_cells(&mut grid.next_cells));
@@ -176,6 +176,7 @@ impl GridCell for EvoGridCell {
         neighborhood: &Neighborhood<EvoGridCell>,
         next_cell: &mut EvoGridCell,
         _rand: &mut Random,
+        _mutation_odds: f64,
     ) {
         self.update_next_creature(neighborhood, next_cell);
         self.update_next_substance(neighborhood, next_cell);

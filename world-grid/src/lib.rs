@@ -57,25 +57,25 @@ where
         self.cells.cells_iter()
     }
 
-    pub fn update<F>(&mut self, rand: &mut Random, mut other_update: F)
+    pub fn update<F>(&mut self, rand: &mut Random, mutation_odds: f64, mut other_update: F)
     where
         F: FnMut(&mut Self),
     {
         self.next_cells.copy_from(&self.cells);
         other_update(self);
-        self.update_cells(rand);
+        self.update_cells(rand, mutation_odds);
         mem::swap(&mut self.next_cells, &mut self.cells);
     }
 
-    fn update_cells(&mut self, rand: &mut Random) {
+    fn update_cells(&mut self, rand: &mut Random, mutation_odds: f64) {
         for row in 0..self.height() {
             for col in 0..self.width() {
-                self.update_cell(Loc::new(row, col), rand);
+                self.update_cell(Loc::new(row, col), rand, mutation_odds);
             }
         }
     }
 
-    fn update_cell(&mut self, loc: Loc, rand: &mut Random) {
+    fn update_cell(&mut self, loc: Loc, rand: &mut Random, mutation_odds: f64) {
         let cell = &self.cells[loc];
         if cell.debug_selected() {
             println!("{:?}", cell);
@@ -83,7 +83,7 @@ where
 
         let neighborhood = Neighborhood::new(&self.cells, loc);
         let next_cell = &mut self.next_cells[loc];
-        cell.update(&neighborhood, next_cell, rand);
+        cell.update(&neighborhood, next_cell, rand, mutation_odds);
     }
 }
 
@@ -169,7 +169,13 @@ where
 {
     fn debug_selected(&self) -> bool;
     fn color_rgba(&self) -> [u8; 4];
-    fn update(&self, neighborhood: &Neighborhood<Self>, next_cell: &mut Self, rand: &mut Random);
+    fn update(
+        &self,
+        neighborhood: &Neighborhood<Self>,
+        next_cell: &mut Self,
+        rand: &mut Random,
+        odds: f64,
+    );
 }
 
 // From https://en.wikipedia.org/wiki/Alpha_compositing
