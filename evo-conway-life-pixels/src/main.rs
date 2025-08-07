@@ -8,6 +8,7 @@ use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 const CELL_PIXEL_WIDTH: u32 = 4;
 const EMPTY_CELL_COLOR: [u8; 4] = [0, 0, 0, 0];
 const MUTATION_ODDS: f64 = 0.001;
+const CONWAY_STEPS: usize = 20;
 
 fn main() {
     animate(|window_size| {
@@ -23,6 +24,7 @@ fn main() {
 pub struct EvoConwayWorld {
     grid: WorldGrid<EvoConwayGridCell>,
     rand: Random,
+    conway_steps: usize,
 }
 
 impl EvoConwayWorld {
@@ -37,6 +39,7 @@ impl EvoConwayWorld {
         Self {
             grid: WorldGrid::new(width, height),
             rand,
+            conway_steps: CONWAY_STEPS,
         }
     }
 
@@ -70,7 +73,13 @@ impl World for EvoConwayWorld {
     }
 
     fn update(&mut self) {
-        self.grid.update(&mut self.rand, MUTATION_ODDS, |_grid| {});
+        let mutation_odds = if self.conway_steps > 0 {
+            self.conway_steps -= 1;
+            0.0
+        } else {
+            MUTATION_ODDS
+        };
+        self.grid.update(&mut self.rand, mutation_odds, |_grid| {});
     }
 
     fn debug_print(&self, row: u32, col: u32) {
