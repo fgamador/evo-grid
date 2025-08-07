@@ -136,6 +136,19 @@ where
     fn app(&mut self) -> &mut App<W> {
         self.app.as_mut().unwrap()
     }
+
+    fn show_cursor(&mut self) {
+        self.app().window.set_cursor_visible(true);
+        if !self.paused {
+            self.cursor_timeout =
+                Some(Instant::now() + Duration::from_millis(CURSOR_TIMEOUT_MILLIS));
+        }
+    }
+
+    fn hide_cursor(&mut self) {
+        self.app().window.set_cursor_visible(false);
+        self.cursor_timeout = None;
+    }
 }
 
 impl<W, F> ApplicationHandler for AppEventHandler<W, F>
@@ -150,8 +163,7 @@ where
         if let Some(cursor_timeout) = self.cursor_timeout
             && Instant::now() >= cursor_timeout
         {
-            self.app().window.set_cursor_visible(false);
-            self.cursor_timeout = None;
+            self.hide_cursor();
         }
     }
 
@@ -169,11 +181,7 @@ where
             }
             WindowEvent::CursorMoved { position, .. } => {
                 self.cursor_position = position;
-                self.app().window.set_cursor_visible(true);
-                if !self.paused {
-                    self.cursor_timeout =
-                        Some(Instant::now() + Duration::from_millis(CURSOR_TIMEOUT_MILLIS));
-                }
+                self.show_cursor();
             }
             WindowEvent::Focused(true) => {
                 self.app().window.request_redraw();
@@ -207,6 +215,7 @@ where
             } => {
                 let pos = self.cursor_position;
                 self.app().on_mouse_click(pos);
+                self.show_cursor();
             }
             WindowEvent::RedrawRequested => {
                 self.app().draw();
