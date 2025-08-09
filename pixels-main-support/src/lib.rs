@@ -12,7 +12,7 @@ use winit::event::{ElementState, KeyEvent, MouseButton, StartCause, WindowEvent}
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowId};
-use world_grid::{GridCell, World};
+use world_grid::{alpha_blend, GridCell, World};
 
 const TIME_STEP_MILLIS: u64 = 200;
 const BACKGROUND_COLOR: Color = Color {
@@ -103,9 +103,12 @@ impl<W: World> App<W> {
     }
 
     fn draw(&mut self) {
-        self.pixels
-            .frame_mut()
-            .copy_from_slice(self.cross_fade_buffer.output_pixels.as_slice());
+        for (screen_pixel, buffer_pixel) in izip!(
+            self.pixels.frame_mut().chunks_exact_mut(4),
+            self.cross_fade_buffer.output_pixels.iter()
+        ) {
+            screen_pixel.copy_from_slice(buffer_pixel);
+        }
         self.pixels.render().unwrap();
     }
 }
@@ -236,28 +239,40 @@ where
 }
 
 struct PixelCrossFadeBuffer {
-    input_pixels: Vec<u8>,
-    background_pixels: Vec<u8>,
-    output_pixels: Vec<u8>,
+    input_pixels: Vec<[u8; 4]>,
+    background_pixels: Vec<[u8; 4]>,
+    output_pixels: Vec<[u8; 4]>,
 }
 
 impl PixelCrossFadeBuffer {
     fn new(width: u32, height: u32) -> Self {
         let num_bytes = (width * height * 4) as usize;
         Self {
-            input_pixels: vec![0; num_bytes],
-            background_pixels: vec![0; num_bytes],
-            output_pixels: vec![0; num_bytes],
+            input_pixels: vec![[0; 4]; num_bytes],
+            background_pixels: vec![[0; 4]; num_bytes],
+            output_pixels: vec![[0; 4]; num_bytes],
         }
     }
 
     fn load<'a, T: GridCell + 'a>(&mut self, cells: impl Iterator<Item = &'a T>) {
         self.background_pixels
             .copy_from_slice(self.input_pixels.as_slice());
-        for (cell, input_pixel) in izip!(cells, self.input_pixels.chunks_exact_mut(4),) {
+        for (input_pixel, cell) in izip!(self.input_pixels.iter_mut(), cells) {
             input_pixel.copy_from_slice(&cell.color_rgba());
         }
         self.output_pixels
             .copy_from_slice(self.input_pixels.as_slice());
+    }
+
+    fn _cross_fade(&mut self, amount: f32) {
+        let alpha_increment = (amount * 0xff as f32) as u8;
+        for (input_pixel, background_pixel, output_pixel) in izip!(
+            self.input_pixels.iter_mut(),
+            self.background_pixels.iter(),
+            self.output_pixels.iter_mut()
+        ) {
+            input_pixel[3] += alpha_increment;
+            output_pixel.copy_from_slice(&alpha_blend(*input_pixel, *background_pixel));
+        }
     }
 }
