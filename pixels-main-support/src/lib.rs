@@ -87,6 +87,7 @@ impl<W: World> App<W> {
     fn on_time_step(&mut self) {
         self.world.update();
         self.cross_fade_buffer.load(self.world.cells_iter());
+        self.cross_fade_buffer.cross_fade(1.0);
         self.window.request_redraw();
 
         while self.next_update < Instant::now() {
@@ -255,16 +256,19 @@ impl PixelCrossFadeBuffer {
     }
 
     fn load<'a, T: GridCell + 'a>(&mut self, cells: impl Iterator<Item = &'a T>) {
-        self.background_pixels
-            .copy_from_slice(self.input_pixels.as_slice());
-        for (input_pixel, cell) in izip!(self.input_pixels.iter_mut(), cells) {
+        for (input_pixel, background_pixel, cell) in izip!(
+            self.input_pixels.iter_mut(),
+            self.background_pixels.iter_mut(),
+            cells
+        ) {
+            background_pixel.copy_from_slice(input_pixel);
+            background_pixel[3] = 0xff;
             input_pixel.copy_from_slice(&cell.color_rgba());
+            input_pixel[3] = 0;
         }
-        self.output_pixels
-            .copy_from_slice(self.input_pixels.as_slice());
     }
 
-    fn _cross_fade(&mut self, amount: f32) {
+    fn cross_fade(&mut self, amount: f32) {
         let alpha_increment = (amount * 0xff as f32) as u8;
         for (input_pixel, background_pixel, output_pixel) in izip!(
             self.input_pixels.iter_mut(),
@@ -273,6 +277,7 @@ impl PixelCrossFadeBuffer {
         ) {
             input_pixel[3] += alpha_increment;
             output_pixel.copy_from_slice(&alpha_blend(*input_pixel, *background_pixel));
+            output_pixel[3] = 0xff;
         }
     }
 }
