@@ -1,6 +1,7 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+use itertools::izip;
 use pixels::wgpu::Color;
 use pixels::{Pixels, PixelsBuilder, SurfaceTexture};
 use std::sync::Arc;
@@ -39,6 +40,7 @@ struct App<W: World> {
     window: Arc<Window>,
     pixels: Pixels<'static>,
     next_update: Instant,
+    cross_fade_buffer: PixelCrossFadeBuffer,
 }
 
 impl<W: World> App<W> {
@@ -49,11 +51,13 @@ impl<W: World> App<W> {
         let window = Arc::new(Self::build_window(event_loop));
         let world = build_world(window.inner_size());
         let pixels = Self::build_pixels(&window, world.width(), world.height());
+        let cross_fade_buffer = PixelCrossFadeBuffer::new(world.width(), world.height());
         Self {
             world,
             window,
             pixels,
             next_update: Instant::now(),
+            cross_fade_buffer,
         }
     }
 
@@ -82,6 +86,7 @@ impl<W: World> App<W> {
 
     fn on_time_step(&mut self) {
         self.world.update();
+        self.cross_fade_buffer.load(self.world.cells_iter());
         self.window.request_redraw();
 
         while self.next_update < Instant::now() {
@@ -99,8 +104,11 @@ impl<W: World> App<W> {
 
     fn draw(&mut self) {
         let screen = self.pixels.frame_mut();
-        for (cell, pixel) in self.world.cells_iter().zip(screen.chunks_exact_mut(4)) {
-            pixel.copy_from_slice(&cell.color_rgba());
+        for (fader_pixel, screen_pixel) in izip!(
+            self.cross_fade_buffer.output_pixels.iter(),
+            screen.chunks_exact_mut(4)
+        ) {
+            screen_pixel.copy_from_slice(fader_pixel);
         }
         self.pixels.render().unwrap();
     }
@@ -227,6 +235,35 @@ where
         } else {
             let wakeup_time = self.app().next_update;
             event_loop.set_control_flow(ControlFlow::WaitUntil(wakeup_time));
+        }
+    }
+}
+
+struct PixelCrossFadeBuffer {
+    input_pixels: Vec<[u8; 4]>,
+    background_pixels: Vec<[u8; 4]>,
+    output_pixels: Vec<[u8; 4]>,
+}
+
+impl PixelCrossFadeBuffer {
+    fn new(width: u32, height: u32) -> Self {
+        Self {
+            input_pixels: vec![[0; 4]; (width * height) as usize],
+            background_pixels: vec![[0; 4]; (width * height) as usize],
+            output_pixels: vec![[0; 4]; (width * height) as usize],
+        }
+    }
+
+    fn load<'a, T: GridCell + 'a>(&mut self, cells: impl Iterator<Item = &'a T>) {
+        for (cell, input_pixel, background_pixel, output_pixel) in izip!(
+            cells,
+            self.input_pixels.iter_mut(),
+            self.background_pixels.iter_mut(),
+            self.output_pixels.iter_mut(),
+        ) {
+            background_pixel.copy_from_slice(input_pixel);
+            input_pixel.copy_from_slice(&cell.color_rgba());
+            output_pixel.copy_from_slice(input_pixel);
         }
     }
 }
