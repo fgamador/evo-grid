@@ -103,13 +103,9 @@ impl<W: World> App<W> {
     }
 
     fn draw(&mut self) {
-        let screen = self.pixels.frame_mut();
-        for (fader_pixel, screen_pixel) in izip!(
-            self.cross_fade_buffer.output_pixels.iter(),
-            screen.chunks_exact_mut(4)
-        ) {
-            screen_pixel.copy_from_slice(fader_pixel);
-        }
+        self.pixels
+            .frame_mut()
+            .copy_from_slice(self.cross_fade_buffer.output_pixels.as_slice());
         self.pixels.render().unwrap();
     }
 }
@@ -240,30 +236,28 @@ where
 }
 
 struct PixelCrossFadeBuffer {
-    input_pixels: Vec<[u8; 4]>,
-    background_pixels: Vec<[u8; 4]>,
-    output_pixels: Vec<[u8; 4]>,
+    input_pixels: Vec<u8>,
+    background_pixels: Vec<u8>,
+    output_pixels: Vec<u8>,
 }
 
 impl PixelCrossFadeBuffer {
     fn new(width: u32, height: u32) -> Self {
+        let num_bytes = (width * height * 4) as usize;
         Self {
-            input_pixels: vec![[0; 4]; (width * height) as usize],
-            background_pixels: vec![[0; 4]; (width * height) as usize],
-            output_pixels: vec![[0; 4]; (width * height) as usize],
+            input_pixels: vec![0; num_bytes],
+            background_pixels: vec![0; num_bytes],
+            output_pixels: vec![0; num_bytes],
         }
     }
 
     fn load<'a, T: GridCell + 'a>(&mut self, cells: impl Iterator<Item = &'a T>) {
-        for (cell, input_pixel, background_pixel, output_pixel) in izip!(
-            cells,
-            self.input_pixels.iter_mut(),
-            self.background_pixels.iter_mut(),
-            self.output_pixels.iter_mut(),
-        ) {
-            background_pixel.copy_from_slice(input_pixel);
+        self.background_pixels
+            .copy_from_slice(self.input_pixels.as_slice());
+        for (cell, input_pixel) in izip!(cells, self.input_pixels.chunks_exact_mut(4),) {
             input_pixel.copy_from_slice(&cell.color_rgba());
-            output_pixel.copy_from_slice(input_pixel);
         }
+        self.output_pixels
+            .copy_from_slice(self.input_pixels.as_slice());
     }
 }
