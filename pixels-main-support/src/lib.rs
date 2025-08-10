@@ -15,12 +15,7 @@ use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowId};
 use world_grid::{alpha_blend, GridCell, World};
 
 const TIME_STEP_MILLIS: u64 = 200;
-const BACKGROUND_COLOR: Color = Color {
-    r: 0.8,
-    g: 0.8,
-    b: 0.8,
-    a: 1.0,
-};
+const BACKGROUND_COLOR: Color = Color::BLACK;
 const CURSOR_TIMEOUT_MILLIS: u64 = 1000;
 
 pub fn animate<W, F>(build_world: F)

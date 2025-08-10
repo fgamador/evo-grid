@@ -6,7 +6,7 @@ use std::fmt::Debug;
 use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
 const CELL_PIXEL_WIDTH: u32 = 4;
-const EMPTY_CELL_COLOR: [u8; 4] = [0, 0, 0, 0];
+const EMPTY_CELL_COLOR: [u8; 4] = [0, 0, 0, 0xff];
 const MUTATION_ODDS: f64 = 0.001;
 const CONWAY_STEPS: usize = 50;
 
