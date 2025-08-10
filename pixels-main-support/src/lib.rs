@@ -14,7 +14,7 @@ use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowId};
 use world_grid::{alpha_blend, GridCell, World};
 
-const TIME_STEP_FRAMES: u32 = 30;
+const TIME_STEP_FRAMES: u32 = 20;
 const BACKGROUND_COLOR: Color = Color::BLACK;
 const CURSOR_TIMEOUT_MILLIS: u64 = 1000;
 
@@ -78,7 +78,7 @@ where
     F: Fn(PhysicalSize<u32>) -> W,
 {
     fn new_events(&mut self, _event_loop: &ActiveEventLoop, _cause: StartCause) {
-        if self.app.is_some() {
+        if self.app.is_some() && !self.paused {
             self.app().on_frame();
         }
 
@@ -194,7 +194,7 @@ impl<W: World> App<W> {
     fn on_create(&mut self) {
         self.world.update();
         self.cross_fade_buffer.load(self.world.cells_iter());
-        self.cross_fade_buffer.cross_fade(1.0);
+        self.cross_fade_buffer.blend_to_output(1.0);
 
         self.window.request_redraw();
         self.window.set_visible(true);
@@ -202,21 +202,30 @@ impl<W: World> App<W> {
 
     fn on_frame(&mut self) {
         if self.time_step_frame < TIME_STEP_FRAMES {
-            self.cross_fade_buffer
-                .cross_fade(self.time_step_frame as f32 / TIME_STEP_FRAMES as f32);
-            self.time_step_frame += 1;
+            self.on_cross_fade_frame();
         } else {
-            self.world.update();
-            self.cross_fade_buffer.load(self.world.cells_iter());
-            self.time_step_frame = 0;
+            self.on_time_step_frame();
         }
+    }
+
+    fn on_cross_fade_frame(&mut self) {
+        self.cross_fade_buffer
+            .blend_to_output(self.time_step_frame as f32 / TIME_STEP_FRAMES as f32);
+        self.time_step_frame += 1;
+        self.window.request_redraw();
+    }
+
+    fn on_time_step_frame(&mut self) {
+        self.world.update();
+        self.cross_fade_buffer.load(self.world.cells_iter());
+        self.time_step_frame = 0;
         self.window.request_redraw();
     }
 
     fn on_single_step(&mut self) {
         self.world.update();
         self.cross_fade_buffer.load(self.world.cells_iter());
-        self.cross_fade_buffer.cross_fade(1.0);
+        self.cross_fade_buffer.blend_to_output(1.0);
         self.window.request_redraw();
     }
 
@@ -268,7 +277,7 @@ impl PixelCrossFadeBuffer {
         }
     }
 
-    fn cross_fade(&mut self, alpha: f32) {
+    fn blend_to_output(&mut self, alpha: f32) {
         let alpha = (alpha * 0xff as f32) as u8;
         for (input_pixel, background_pixel, output_pixel) in izip!(
             self.input_pixels.iter(),
