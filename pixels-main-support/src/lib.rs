@@ -14,7 +14,8 @@ use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowId};
 use world_grid::{alpha_blend, GridCell, World};
 
-const TIME_STEP_MILLIS: u64 = 200;
+//const TIME_STEP_MILLIS: u64 = 200;
+const TIME_STEP_FRAMES: u32 = 30;
 const BACKGROUND_COLOR: Color = Color::BLACK;
 const CURSOR_TIMEOUT_MILLIS: u64 = 1000;
 
@@ -24,7 +25,7 @@ where
     F: Fn(PhysicalSize<u32>) -> W,
 {
     let event_loop = EventLoop::new().unwrap();
-    event_loop.set_control_flow(ControlFlow::Wait);
+    event_loop.set_control_flow(ControlFlow::Poll);
     event_loop
         .run_app(&mut AppEventHandler::new(build_world))
         .unwrap();
@@ -37,6 +38,7 @@ where
 {
     build_world: F,
     app: Option<App<W>>,
+    // cross_fade_frames: usize,
     paused: bool,
     cursor_position: PhysicalPosition<f64>,
     cursor_timeout: Option<Instant>,
@@ -51,6 +53,7 @@ where
         Self {
             build_world,
             app: None,
+            // cross_fade_frames: 0,
             paused: false,
             cursor_position: PhysicalPosition::new(0.0, 0.0),
             cursor_timeout: None,
@@ -77,10 +80,14 @@ where
     W: World,
     F: Fn(PhysicalSize<u32>) -> W,
 {
-    fn new_events(&mut self, _event_loop: &ActiveEventLoop, cause: StartCause) {
-        if let StartCause::ResumeTimeReached { .. } = cause {
-            self.app().on_time_step();
+    fn new_events(&mut self, _event_loop: &ActiveEventLoop, _cause: StartCause) {
+        // if let StartCause::ResumeTimeReached { .. } = cause {
+        //     self.app().on_time_step();
+        // }
+        if self.app.is_some() {
+            self.app().on_frame();
         }
+
         if let Some(cursor_timeout) = self.cursor_timeout
             && Instant::now() >= cursor_timeout
         {
@@ -125,7 +132,7 @@ where
                 }
                 KeyCode::KeyS => {
                     self.paused = true;
-                    self.app().on_time_step();
+                    self.app().on_single_step();
                 }
                 _ => (),
             },
@@ -145,22 +152,23 @@ where
         }
     }
 
-    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        if self.paused {
-            event_loop.set_control_flow(ControlFlow::Wait);
-        } else {
-            let wakeup_time = self.app().next_update;
-            event_loop.set_control_flow(ControlFlow::WaitUntil(wakeup_time));
-        }
-    }
+    // fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+    //     if self.paused {
+    //         event_loop.set_control_flow(ControlFlow::Wait);
+    //     } else {
+    //         let wakeup_time = self.app().next_update;
+    //         event_loop.set_control_flow(ControlFlow::WaitUntil(wakeup_time));
+    //     }
+    // }
 }
 
 struct App<W: World> {
     world: W,
     window: Arc<Window>,
     pixels: Pixels<'static>,
-    next_update: Instant,
+    // next_update: Instant,
     cross_fade_buffer: PixelCrossFadeBuffer,
+    time_step_frame: u32,
 }
 
 impl<W: World> App<W> {
@@ -176,8 +184,9 @@ impl<W: World> App<W> {
             world,
             window,
             pixels,
-            next_update: Instant::now(),
+            // next_update: Instant::now(),
             cross_fade_buffer,
+            time_step_frame: 0,
         }
     }
 
@@ -200,20 +209,44 @@ impl<W: World> App<W> {
     }
 
     fn on_create(&mut self) {
+        self.world.update();
+        self.cross_fade_buffer.load(self.world.cells_iter());
+        self.cross_fade_buffer.cross_fade(1.0);
+
         self.window.request_redraw();
         self.window.set_visible(true);
     }
 
-    fn on_time_step(&mut self) {
+    fn on_frame(&mut self) {
+        if self.time_step_frame < TIME_STEP_FRAMES {
+            self.cross_fade_buffer
+                .cross_fade(self.time_step_frame as f32 / TIME_STEP_FRAMES as f32);
+            self.time_step_frame += 1;
+        } else {
+            self.world.update();
+            self.cross_fade_buffer.load(self.world.cells_iter());
+            self.time_step_frame = 0;
+        }
+        self.window.request_redraw();
+    }
+
+    fn on_single_step(&mut self) {
         self.world.update();
         self.cross_fade_buffer.load(self.world.cells_iter());
         self.cross_fade_buffer.cross_fade(1.0);
         self.window.request_redraw();
-
-        while self.next_update < Instant::now() {
-            self.next_update += Duration::from_millis(TIME_STEP_MILLIS);
-        }
     }
+
+    // fn on_time_step(&mut self) {
+    //     self.world.update();
+    //     self.cross_fade_buffer.load(self.world.cells_iter());
+    //     self.cross_fade_buffer.cross_fade(1.0);
+    //     self.window.request_redraw();
+    //
+    //     while self.next_update < Instant::now() {
+    //         self.next_update += Duration::from_millis(TIME_STEP_MILLIS);
+    //     }
+    // }
 
     fn on_mouse_click(&self, pos: PhysicalPosition<f64>) {
         let (col, row) = self
