@@ -92,36 +92,6 @@ pub struct EvoConwayGridCell {
     pub debug_selected: bool,
 }
 
-impl GridCell for EvoConwayGridCell {
-    fn debug_selected(&self) -> bool {
-        self.debug_selected
-    }
-
-    fn color_rgba(&self) -> [u8; 4] {
-        if let Some(creature) = self.creature {
-            creature.color_rgba()
-        } else {
-            EMPTY_CELL_COLOR
-        }
-    }
-
-    fn update(
-        &self,
-        neighborhood: &Neighborhood<EvoConwayGridCell>,
-        next_cell: &mut EvoConwayGridCell,
-        rand: &mut Option<Random>,
-    ) {
-        let num_neighbors = Self::num_neighbor_creatures(neighborhood);
-        if let Some(creature) = self.creature {
-            if !creature.survives(num_neighbors, rand) {
-                next_cell.creature = None;
-            }
-        } else {
-            next_cell.creature = Creature::maybe_reproduce(neighborhood, num_neighbors, rand);
-        };
-    }
-}
-
 impl EvoConwayGridCell {
     fn num_neighbor_creatures(neighborhood: &Neighborhood<EvoConwayGridCell>) -> usize {
         let mut result = 0;
@@ -164,6 +134,36 @@ impl EvoConwayGridCell {
         }
         result.push(']');
         result
+    }
+}
+
+impl GridCell for EvoConwayGridCell {
+    fn debug_selected(&self) -> bool {
+        self.debug_selected
+    }
+
+    fn color_rgba(&self) -> [u8; 4] {
+        if let Some(creature) = self.creature {
+            creature.color_rgba()
+        } else {
+            EMPTY_CELL_COLOR
+        }
+    }
+
+    fn update(
+        &self,
+        neighborhood: &Neighborhood<EvoConwayGridCell>,
+        next_cell: &mut EvoConwayGridCell,
+        rand: &mut Option<Random>,
+    ) {
+        let num_neighbors = Self::num_neighbor_creatures(neighborhood);
+        if let Some(creature) = self.creature {
+            if !creature.survives(num_neighbors, rand) {
+                next_cell.creature = None;
+            }
+        } else {
+            next_cell.creature = Creature::maybe_reproduce(neighborhood, num_neighbors, rand);
+        };
     }
 }
 
