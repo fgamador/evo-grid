@@ -14,7 +14,7 @@ use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowId};
 use world_grid::{alpha_blend, GridCell, World};
 
-const TIME_STEP_FRAMES: u32 = 20;
+const TIME_STEP_FRAMES: u32 = 60;
 const BACKGROUND_COLOR: Color = Color::BLACK;
 const CURSOR_TIMEOUT_MILLIS: u64 = 1000;
 
@@ -196,8 +196,9 @@ impl<W: World> App<W> {
         self.cross_fade_buffer.load(self.world.cells_iter());
         self.cross_fade_buffer.blend_to_output(1.0);
 
-        self.window.request_redraw();
+        self.window.set_cursor_visible(false);
         self.window.set_visible(true);
+        self.window.request_redraw();
     }
 
     fn on_frame(&mut self) {
