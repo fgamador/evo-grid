@@ -247,11 +247,11 @@ struct PixelCrossFadeBuffer {
 
 impl PixelCrossFadeBuffer {
     fn new(width: u32, height: u32) -> Self {
-        let num_bytes = (width * height * 4) as usize;
+        let num_pixels = (width * height) as usize;
         Self {
-            input_pixels: vec![[0; 4]; num_bytes],
-            background_pixels: vec![[0; 4]; num_bytes],
-            output_pixels: vec![[0; 4]; num_bytes],
+            input_pixels: vec![[0; 4]; num_pixels],
+            background_pixels: vec![[0; 4]; num_pixels],
+            output_pixels: vec![[0; 4]; num_pixels],
         }
     }
 
@@ -261,22 +261,23 @@ impl PixelCrossFadeBuffer {
             self.background_pixels.iter_mut(),
             cells
         ) {
-            background_pixel.copy_from_slice(input_pixel);
+            *background_pixel = *input_pixel;
             background_pixel[3] = 0xff;
-            input_pixel.copy_from_slice(&cell.color_rgba());
+            *input_pixel = cell.color_rgba();
             input_pixel[3] = 0;
         }
     }
 
-    fn cross_fade(&mut self, amount: f32) {
-        let alpha_increment = (amount * 0xff as f32) as u8;
+    fn cross_fade(&mut self, alpha: f32) {
+        let alpha = (alpha * 0xff as f32) as u8;
         for (input_pixel, background_pixel, output_pixel) in izip!(
-            self.input_pixels.iter_mut(),
+            self.input_pixels.iter(),
             self.background_pixels.iter(),
             self.output_pixels.iter_mut()
         ) {
-            input_pixel[3] += alpha_increment;
-            output_pixel.copy_from_slice(&alpha_blend(*input_pixel, *background_pixel));
+            let mut input_pixel = *input_pixel;
+            input_pixel[3] = alpha;
+            *output_pixel = alpha_blend(input_pixel, *background_pixel);
             output_pixel[3] = 0xff;
         }
     }
