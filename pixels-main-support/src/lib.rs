@@ -30,85 +30,6 @@ where
         .unwrap();
 }
 
-struct App<W: World> {
-    world: W,
-    window: Arc<Window>,
-    pixels: Pixels<'static>,
-    next_update: Instant,
-    cross_fade_buffer: PixelCrossFadeBuffer,
-}
-
-impl<W: World> App<W> {
-    fn new<F>(event_loop: &ActiveEventLoop, build_world: &F) -> Self
-    where
-        F: Fn(PhysicalSize<u32>) -> W,
-    {
-        let window = Arc::new(Self::build_window(event_loop));
-        let world = build_world(window.inner_size());
-        let pixels = Self::build_pixels(&window, world.width(), world.height());
-        let cross_fade_buffer = PixelCrossFadeBuffer::new(world.width(), world.height());
-        Self {
-            world,
-            window,
-            pixels,
-            next_update: Instant::now(),
-            cross_fade_buffer,
-        }
-    }
-
-    fn build_window(event_loop: &ActiveEventLoop) -> Window {
-        let window_attributes = Window::default_attributes()
-            .with_cursor(Cursor::Icon(CursorIcon::Crosshair))
-            .with_fullscreen(Some(Fullscreen::Borderless(None)))
-            .with_visible(false);
-        event_loop.create_window(window_attributes).unwrap()
-    }
-
-    fn build_pixels(window: &Arc<Window>, width: u32, height: u32) -> Pixels<'static> {
-        let window_size = window.inner_size();
-        let surface_texture =
-            SurfaceTexture::new(window_size.width, window_size.height, window.clone());
-        PixelsBuilder::new(width, height, surface_texture)
-            .clear_color(BACKGROUND_COLOR)
-            .build()
-            .unwrap()
-    }
-
-    fn on_create(&mut self) {
-        self.window.request_redraw();
-        self.window.set_visible(true);
-    }
-
-    fn on_time_step(&mut self) {
-        self.world.update();
-        self.cross_fade_buffer.load(self.world.cells_iter());
-        self.cross_fade_buffer.cross_fade(1.0);
-        self.window.request_redraw();
-
-        while self.next_update < Instant::now() {
-            self.next_update += Duration::from_millis(TIME_STEP_MILLIS);
-        }
-    }
-
-    fn on_mouse_click(&self, pos: PhysicalPosition<f64>) {
-        let (col, row) = self
-            .pixels
-            .window_pos_to_pixel((pos.x as f32, pos.y as f32))
-            .unwrap();
-        self.world.debug_print(row as u32, col as u32);
-    }
-
-    fn draw(&mut self) {
-        for (screen_pixel, buffer_pixel) in izip!(
-            self.pixels.frame_mut().chunks_exact_mut(4),
-            self.cross_fade_buffer.output_pixels.iter()
-        ) {
-            screen_pixel.copy_from_slice(buffer_pixel);
-        }
-        self.pixels.render().unwrap();
-    }
-}
-
 struct AppEventHandler<W, F>
 where
     W: World,
@@ -231,6 +152,85 @@ where
             let wakeup_time = self.app().next_update;
             event_loop.set_control_flow(ControlFlow::WaitUntil(wakeup_time));
         }
+    }
+}
+
+struct App<W: World> {
+    world: W,
+    window: Arc<Window>,
+    pixels: Pixels<'static>,
+    next_update: Instant,
+    cross_fade_buffer: PixelCrossFadeBuffer,
+}
+
+impl<W: World> App<W> {
+    fn new<F>(event_loop: &ActiveEventLoop, build_world: &F) -> Self
+    where
+        F: Fn(PhysicalSize<u32>) -> W,
+    {
+        let window = Arc::new(Self::build_window(event_loop));
+        let world = build_world(window.inner_size());
+        let pixels = Self::build_pixels(&window, world.width(), world.height());
+        let cross_fade_buffer = PixelCrossFadeBuffer::new(world.width(), world.height());
+        Self {
+            world,
+            window,
+            pixels,
+            next_update: Instant::now(),
+            cross_fade_buffer,
+        }
+    }
+
+    fn build_window(event_loop: &ActiveEventLoop) -> Window {
+        let window_attributes = Window::default_attributes()
+            .with_cursor(Cursor::Icon(CursorIcon::Crosshair))
+            .with_fullscreen(Some(Fullscreen::Borderless(None)))
+            .with_visible(false);
+        event_loop.create_window(window_attributes).unwrap()
+    }
+
+    fn build_pixels(window: &Arc<Window>, width: u32, height: u32) -> Pixels<'static> {
+        let window_size = window.inner_size();
+        let surface_texture =
+            SurfaceTexture::new(window_size.width, window_size.height, window.clone());
+        PixelsBuilder::new(width, height, surface_texture)
+            .clear_color(BACKGROUND_COLOR)
+            .build()
+            .unwrap()
+    }
+
+    fn on_create(&mut self) {
+        self.window.request_redraw();
+        self.window.set_visible(true);
+    }
+
+    fn on_time_step(&mut self) {
+        self.world.update();
+        self.cross_fade_buffer.load(self.world.cells_iter());
+        self.cross_fade_buffer.cross_fade(1.0);
+        self.window.request_redraw();
+
+        while self.next_update < Instant::now() {
+            self.next_update += Duration::from_millis(TIME_STEP_MILLIS);
+        }
+    }
+
+    fn on_mouse_click(&self, pos: PhysicalPosition<f64>) {
+        let (col, row) = self
+            .pixels
+            .window_pos_to_pixel((pos.x as f32, pos.y as f32))
+            .unwrap();
+        self.world.debug_print(row as u32, col as u32);
+    }
+
+    fn draw(&mut self) {
+        for (screen_pixel, buffer_pixel) in izip!(
+            self.pixels.frame_mut().chunks_exact_mut(4),
+            self.cross_fade_buffer.output_pixels.iter()
+        ) {
+            screen_pixel.copy_from_slice(buffer_pixel);
+        }
+        self.pixels.render().unwrap();
     }
 }
 
