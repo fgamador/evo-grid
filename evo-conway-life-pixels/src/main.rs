@@ -5,10 +5,10 @@ use pixels_main_support::animate;
 use std::fmt::Debug;
 use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
-const CELL_PIXEL_WIDTH: u32 = 2;
+const CELL_PIXEL_WIDTH: u32 = 4;
 const EMPTY_CELL_COLOR: [u8; 4] = [0, 0, 0, 0xff];
 const MUTATION_ODDS: f64 = 0.001;
-const CONWAY_STEPS: usize = 50;
+const CONWAY_STEPS: usize = 10;
 
 fn main() {
     animate(|window_size| {
@@ -206,17 +206,18 @@ impl Creature {
     pub fn survives(&self, num_neighbors: usize, rand: &mut Option<Random>) -> bool {
         num_neighbors > 0
             && self.survival_neighbor_counts.has_bit(num_neighbors - 1)
-            && (rand.is_none() || self.fewer_genome_bits(rand.as_mut().unwrap()))
+            && self.has_small_genome(rand)
     }
 
-    fn fewer_genome_bits(&self, rand: &mut Random) -> bool {
+    fn has_small_genome(&self, rand: &mut Option<Random>) -> bool {
+        if rand.is_none() {
+            return true;
+        }
+
+        let rand = rand.as_mut().unwrap();
         let num_genome_bits =
             self.survival_neighbor_counts.count_bits() + self.repro_neighbor_counts.count_bits();
-        rand.next_bool(1.0 - num_genome_bits as f64 / 20.0)
-    }
-
-    pub fn can_reproduce(&self, num_neighbors: usize) -> bool {
-        num_neighbors > 0 && self.repro_neighbor_counts.has_bit(num_neighbors - 1)
+        rand.next_bool(1.0 - num_genome_bits as f64 / 16.0)
     }
 
     pub fn maybe_reproduce(
@@ -231,10 +232,15 @@ impl Creature {
         if let Some((survival_bit_counts, birth_bit_counts)) =
             Self::parent_bit_counts(neighborhood, num_neighbors)
         {
-            Some(Creature::new(
+            let child = Creature::new(
                 survival_bit_counts.as_neighbor_counts(rand),
                 birth_bit_counts.as_neighbor_counts(rand),
-            ))
+            );
+            if child.has_small_genome(rand) {
+                Some(child)
+            } else {
+                None
+            }
         } else {
             None
         }
@@ -251,11 +257,14 @@ impl Creature {
             if let Some(creature) = neighbor.creature {
                 if creature.can_reproduce(num_neighbors) {
                     has_parents = true;
-                    Self::update_bit_counts(
+                    Self::increment_bit_counts(
                         &creature.survival_neighbor_counts,
                         &mut survival_bit_counts,
                     );
-                    Self::update_bit_counts(&creature.repro_neighbor_counts, &mut birth_bit_counts);
+                    Self::increment_bit_counts(
+                        &creature.repro_neighbor_counts,
+                        &mut birth_bit_counts,
+                    );
                 }
             }
         });
@@ -266,7 +275,11 @@ impl Creature {
         }
     }
 
-    fn update_bit_counts(neighbor_counts: &BitSet8, bit_counts: &mut BitCountsMap) {
+    fn can_reproduce(&self, num_neighbors: usize) -> bool {
+        num_neighbors > 0 && self.repro_neighbor_counts.has_bit(num_neighbors - 1)
+    }
+
+    fn increment_bit_counts(neighbor_counts: &BitSet8, bit_counts: &mut BitCountsMap) {
         for i in 0..8 {
             if neighbor_counts.has_bit(i) {
                 bit_counts.add_one(i);
