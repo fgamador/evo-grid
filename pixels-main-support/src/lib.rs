@@ -194,7 +194,7 @@ impl<W: World> App<W> {
     fn on_create(&mut self) {
         self.world.update();
         self.cross_fade_buffer.load(self.world.cells_iter());
-        self.cross_fade_buffer.blend_to_output(1.0);
+        self.cross_fade_buffer.straight_to_output();
 
         self.window.set_cursor_visible(false);
         self.window.set_visible(true);
@@ -226,7 +226,7 @@ impl<W: World> App<W> {
     fn on_single_step(&mut self) {
         self.world.update();
         self.cross_fade_buffer.load(self.world.cells_iter());
-        self.cross_fade_buffer.blend_to_output(1.0);
+        self.cross_fade_buffer.straight_to_output();
         self.window.request_redraw();
     }
 
@@ -277,6 +277,10 @@ impl PixelCrossFadeBuffer {
             *input_pixel = cell.color_rgba();
             input_pixel[3] = 0;
         }
+    }
+
+    fn straight_to_output(&mut self) {
+        self.output_pixels.copy_from_slice(&self.input_pixels);
     }
 
     fn blend_to_output(&mut self, fraction: f32) {
