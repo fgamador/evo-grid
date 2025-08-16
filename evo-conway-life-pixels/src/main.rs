@@ -5,19 +5,23 @@ use pixels_main_support::animate;
 use std::fmt::Debug;
 use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
+const TIME_STEP_FRAMES: u32 = 60;
 const CELL_PIXEL_WIDTH: u32 = 4;
 const EMPTY_CELL_COLOR: [u8; 4] = [0, 0, 0, 0xff];
 const MUTATION_ODDS: f64 = 0.001;
 const CONWAY_STEPS: usize = 10;
 
 fn main() {
-    animate(|window_size| {
-        EvoConwayWorld::new(
-            window_size.width / CELL_PIXEL_WIDTH,
-            window_size.height / CELL_PIXEL_WIDTH,
-            Random::new(),
-        )
-    });
+    animate(
+        TIME_STEP_FRAMES,
+        |window_size| {
+            EvoConwayWorld::new(
+                window_size.width / CELL_PIXEL_WIDTH,
+                window_size.height / CELL_PIXEL_WIDTH,
+                Random::new(),
+            )
+        },
+    );
 }
 
 #[derive(Debug)]

@@ -4,10 +4,11 @@
 use pixels_main_support::animate;
 use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
-const CELL_PIXEL_WIDTH: u32 = 3;
+const TIME_STEP_FRAMES: u32 = 1;
+const CELL_PIXEL_WIDTH: u32 = 1;
 
 fn main() {
-    animate(|window_size| {
+    animate(TIME_STEP_FRAMES, |window_size| {
         ConwayWorld::new(
             window_size.width / CELL_PIXEL_WIDTH,
             window_size.height / CELL_PIXEL_WIDTH,
@@ -95,9 +96,9 @@ impl GridCell for ConwayGridCell {
 
     fn color_rgba(&self) -> [u8; 4] {
         if self.alive {
-            [0, 0, 0, 0xff]
+            [0x80, 0x80, 0x80, 0xff]
         } else {
-            [0xff, 0xff, 0xff, 0xff]
+            [0x00, 0x00, 0x40, 0xff]
         }
     }
 

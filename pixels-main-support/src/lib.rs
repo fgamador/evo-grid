@@ -14,11 +14,10 @@ use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowId};
 use world_grid::{alpha_blend, GridCell, World};
 
-const TIME_STEP_FRAMES: u32 = 60;
 const BACKGROUND_COLOR: Color = Color::BLACK;
 const CURSOR_TIMEOUT_MILLIS: u64 = 1000;
 
-pub fn animate<W, F>(build_world: F)
+pub fn animate<W, F>(time_step_frames: u32, build_world: F)
 where
     W: World,
     F: Fn(PhysicalSize<u32>) -> W,
@@ -26,7 +25,7 @@ where
     let event_loop = EventLoop::new().unwrap();
     event_loop.set_control_flow(ControlFlow::Poll);
     event_loop
-        .run_app(&mut AppEventHandler::new(build_world))
+        .run_app(&mut AppEventHandler::new(time_step_frames, build_world))
         .unwrap();
 }
 
@@ -40,6 +39,7 @@ where
     paused: bool,
     cursor_position: PhysicalPosition<f64>,
     cursor_timeout: Option<Instant>,
+    time_step_frames: u32,
 }
 
 impl<W, F> AppEventHandler<W, F>
@@ -47,13 +47,14 @@ where
     W: World,
     F: Fn(PhysicalSize<u32>) -> W,
 {
-    fn new(build_world: F) -> Self {
+    fn new(time_step_frames: u32, build_world: F) -> Self {
         Self {
             build_world,
             app: None,
             paused: false,
             cursor_position: PhysicalPosition::new(0.0, 0.0),
             cursor_timeout: None,
+            time_step_frames,
         }
     }
 
@@ -91,7 +92,11 @@ where
 
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.app.is_none() {
-            self.app = Some(App::new(event_loop, &self.build_world));
+            self.app = Some(App::new(
+                event_loop,
+                self.time_step_frames,
+                &self.build_world,
+            ));
             self.app().on_create();
         }
     }
@@ -153,10 +158,11 @@ struct App<W: World> {
     pixels: Pixels<'static>,
     cross_fade_buffer: PixelCrossFadeBuffer,
     time_step_frame: u32,
+    time_step_frames: u32,
 }
 
 impl<W: World> App<W> {
-    fn new<F>(event_loop: &ActiveEventLoop, build_world: &F) -> Self
+    fn new<F>(event_loop: &ActiveEventLoop, time_step_frames: u32, build_world: &F) -> Self
     where
         F: Fn(PhysicalSize<u32>) -> W,
     {
@@ -170,6 +176,7 @@ impl<W: World> App<W> {
             pixels,
             cross_fade_buffer,
             time_step_frame: 0,
+            time_step_frames,
         }
     }
 
@@ -202,7 +209,7 @@ impl<W: World> App<W> {
     }
 
     fn on_frame(&mut self) {
-        if self.time_step_frame < TIME_STEP_FRAMES {
+        if self.time_step_frame < self.time_step_frames {
             self.on_cross_fade_frame();
         } else {
             self.on_time_step_frame();
@@ -211,7 +218,7 @@ impl<W: World> App<W> {
 
     fn on_cross_fade_frame(&mut self) {
         self.cross_fade_buffer
-            .blend_to_output(self.time_step_frame as f32 / TIME_STEP_FRAMES as f32);
+            .blend_to_output(self.time_step_frame as f32 / self.time_step_frames as f32);
         self.time_step_frame += 1;
         self.window.request_redraw();
     }
