@@ -273,22 +273,42 @@ impl PixelCrossFadeBuffer {
         ) {
             *background_pixel = *input_pixel;
             background_pixel[3] = 0xff;
+
             *input_pixel = cell.color_rgba();
             input_pixel[3] = 0;
         }
     }
 
-    fn blend_to_output(&mut self, alpha: f32) {
-        let alpha = (alpha * 0xff as f32) as u8;
+    fn blend_to_output(&mut self, fraction: f32) {
+        const BLEND_SMOOTHNESS_FACTOR: f32 = 1.5;
+        let dark_pixel_alpha = fraction_to_alpha(
+            (fraction * BLEND_SMOOTHNESS_FACTOR - (BLEND_SMOOTHNESS_FACTOR - 1.0)).max(0.0),
+        );
+        let bright_pixel_alpha = fraction_to_alpha((fraction * BLEND_SMOOTHNESS_FACTOR).min(1.0));
+
         for (input_pixel, background_pixel, output_pixel) in izip!(
             self.input_pixels.iter(),
             self.background_pixels.iter(),
             self.output_pixels.iter_mut()
         ) {
             let mut input_pixel = *input_pixel;
-            input_pixel[3] = alpha;
+            input_pixel[3] = if is_dark(input_pixel) {
+                dark_pixel_alpha
+            } else {
+                bright_pixel_alpha
+            };
+
             *output_pixel = alpha_blend(input_pixel, *background_pixel);
             output_pixel[3] = 0xff;
         }
     }
+}
+
+fn fraction_to_alpha(fraction: f32) -> u8 {
+    (fraction * 0xff as f32) as u8
+}
+
+fn is_dark(pixel: [u8; 4]) -> bool {
+    const MAX_DARK_VALUE: u8 = 0x10;
+    pixel[0] <= MAX_DARK_VALUE && pixel[1] <= MAX_DARK_VALUE && pixel[2] <= MAX_DARK_VALUE
 }
