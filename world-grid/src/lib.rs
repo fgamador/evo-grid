@@ -181,6 +181,13 @@ where
 
 // From https://en.wikipedia.org/wiki/Alpha_compositing
 pub fn alpha_blend(above: [u8; 4], below: [u8; 4]) -> [u8; 4] {
+    if above[3] == 0xff {
+        return above;
+    }
+    if above[3] == 0x00 {
+        return below;
+    }
+
     let above = color_as_fractions(above);
     let below = color_as_fractions(below);
 
@@ -192,6 +199,27 @@ pub fn alpha_blend(above: [u8; 4], below: [u8; 4]) -> [u8; 4] {
     for i in 0..=2 {
         result[i] =
             (above[i] * above_alpha + below[i] * below_alpha * (1.0 - above_alpha)) / result_alpha;
+    }
+    color_as_bytes(result)
+}
+
+// alpha_blend with below_alpha set to 1.0
+pub fn alpha_blend_with_background(above: [u8; 4], below: [u8; 4]) -> [u8; 4] {
+    if above[3] == 0xff {
+        return above;
+    }
+    if above[3] == 0x00 {
+        return below;
+    }
+
+    let above = color_as_fractions(above);
+    let below = color_as_fractions(below);
+
+    let above_alpha = above[3];
+
+    let mut result: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
+    for i in 0..=2 {
+        result[i] = above[i] * above_alpha + below[i] * (1.0 - above_alpha);
     }
     color_as_bytes(result)
 }

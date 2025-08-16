@@ -12,7 +12,7 @@ use winit::event::{ElementState, KeyEvent, MouseButton, StartCause, WindowEvent}
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowId};
-use world_grid::{alpha_blend, GridCell, World};
+use world_grid::{alpha_blend_with_background, GridCell, World};
 
 const BACKGROUND_COLOR: Color = Color::BLACK;
 const CURSOR_TIMEOUT_MILLIS: u64 = 1000;
@@ -309,7 +309,7 @@ impl PixelCrossFadeBuffer {
                 bright_pixel_alpha
             };
 
-            *output_pixel = alpha_blend(input_pixel, *background_pixel);
+            *output_pixel = alpha_blend_with_background(input_pixel, *background_pixel);
             output_pixel[3] = 0xff;
         }
     }
