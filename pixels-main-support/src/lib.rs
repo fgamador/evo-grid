@@ -217,13 +217,9 @@ impl<W: World> App<W> {
     }
 
     fn on_frame(&mut self) {
-        if self.paused {
-            return;
-        }
-
         if self.time_step_frame < self.time_step_frames {
             self.on_cross_fade_frame();
-        } else {
+        } else if !self.paused {
             self.on_time_step_frame();
         }
     }
