@@ -36,7 +36,6 @@ where
 {
     build_world: F,
     app: Option<App<W>>,
-    paused: bool,
     cursor_position: PhysicalPosition<f64>,
     cursor_timeout: Option<Instant>,
     time_step_frames: u32,
@@ -51,7 +50,6 @@ where
         Self {
             build_world,
             app: None,
-            paused: false,
             cursor_position: PhysicalPosition::new(0.0, 0.0),
             cursor_timeout: None,
             time_step_frames,
@@ -79,7 +77,7 @@ where
     F: Fn(PhysicalSize<u32>) -> W,
 {
     fn new_events(&mut self, _event_loop: &ActiveEventLoop, _cause: StartCause) {
-        if self.app.is_some() && !self.paused {
+        if self.app.is_some() && !self.app().is_paused() {
             self.app().on_frame();
         }
 
@@ -127,10 +125,10 @@ where
                     event_loop.exit();
                 }
                 KeyCode::KeyP => {
-                    self.paused ^= true;
+                    self.app().toggle_paused();
                 }
                 KeyCode::KeyS => {
-                    self.paused = true;
+                    self.app().pause();
                     self.app().on_single_step();
                 }
                 _ => (),
@@ -159,6 +157,7 @@ struct App<W: World> {
     cross_fade_buffer: PixelCrossFadeBuffer,
     time_step_frame: u32,
     time_step_frames: u32,
+    paused: bool,
 }
 
 impl<W: World> App<W> {
@@ -177,6 +176,7 @@ impl<W: World> App<W> {
             cross_fade_buffer,
             time_step_frame: 0,
             time_step_frames,
+            paused: false,
         }
     }
 
@@ -206,6 +206,18 @@ impl<W: World> App<W> {
         self.window.set_cursor_visible(false);
         self.window.set_visible(true);
         self.window.request_redraw();
+    }
+
+    fn is_paused(&self) -> bool {
+        self.paused
+    }
+
+    fn pause(&mut self) {
+        self.paused = true;
+    }
+
+    fn toggle_paused(&mut self) {
+        self.paused ^= true;
     }
 
     fn on_frame(&mut self) {
