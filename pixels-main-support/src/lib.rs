@@ -109,7 +109,7 @@ where
                 self.show_cursor();
             }
             WindowEvent::Focused(true) => {
-                self.app().window.request_redraw();
+                self.app().request_redraw();
             }
             WindowEvent::KeyboardInput {
                 event:
@@ -128,7 +128,6 @@ where
                     self.app().toggle_paused();
                 }
                 KeyCode::KeyS => {
-                    self.app().pause();
                     self.app().on_single_step();
                 }
                 _ => (),
@@ -208,10 +207,6 @@ impl<W: World> App<W> {
         self.window.request_redraw();
     }
 
-    fn pause(&mut self) {
-        self.paused = true;
-    }
-
     fn toggle_paused(&mut self) {
         self.paused ^= true;
     }
@@ -239,6 +234,7 @@ impl<W: World> App<W> {
     }
 
     fn on_single_step(&mut self) {
+        self.paused = true;
         self.world.update();
         self.cross_fade_buffer.load(self.world.cells_iter());
         self.cross_fade_buffer.straight_to_output();
@@ -251,6 +247,10 @@ impl<W: World> App<W> {
             .window_pos_to_pixel((pos.x as f32, pos.y as f32))
             .unwrap();
         self.world.debug_print(row as u32, col as u32);
+    }
+
+    fn request_redraw(&self) {
+        self.window.request_redraw();
     }
 
     fn draw(&mut self) {
