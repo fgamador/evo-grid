@@ -317,7 +317,7 @@ impl Loc {
 
     pub fn grid_index(&self, width: u32, height: u32) -> Option<usize> {
         if self.row < height && self.col < width {
-            Some(self.row as usize * width as usize + self.col as usize)
+            Some((self.row * width + self.col) as usize)
         } else {
             None
         }
