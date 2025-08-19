@@ -287,7 +287,7 @@ impl PixelCrossFadeBuffer {
     }
 
     fn straight_to_output(&mut self) {
-        self.output_pixels.copy_from_slice(&self.input_pixels);
+        self.blend_to_output(1.0);
     }
 
     fn blend_to_output(&mut self, fraction: f32) {
