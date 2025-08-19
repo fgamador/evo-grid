@@ -77,7 +77,7 @@ where
     F: Fn(PhysicalSize<u32>) -> W,
 {
     fn new_events(&mut self, _event_loop: &ActiveEventLoop, _cause: StartCause) {
-        if self.app.is_some() && !self.app().is_paused() {
+        if self.app.is_some() {
             self.app().on_frame();
         }
 
@@ -208,10 +208,6 @@ impl<W: World> App<W> {
         self.window.request_redraw();
     }
 
-    fn is_paused(&self) -> bool {
-        self.paused
-    }
-
     fn pause(&mut self) {
         self.paused = true;
     }
@@ -221,6 +217,10 @@ impl<W: World> App<W> {
     }
 
     fn on_frame(&mut self) {
+        if self.paused {
+            return;
+        }
+
         if self.time_step_frame < self.time_step_frames {
             self.on_cross_fade_frame();
         } else {
