@@ -76,19 +76,29 @@ where
             .par_rows_mut()
             .zip(Random::multi_fork_option(rand, self.width).par_iter_mut())
             .enumerate()
-            .for_each(|(row, (row_cells, rand))| {
-                for col in 0..self.width {
-                    let loc = Loc::new(row as u32, col);
-                    let cell = &self.cells[loc];
-                    if cell.debug_selected() {
-                        println!("{:?}", cell);
-                    }
-
-                    let neighborhood = Neighborhood::new(&self.cells, loc);
-                    let next_cell = &mut row_cells[col as usize];
-                    cell.update(&neighborhood, next_cell, rand);
-                }
+            .for_each(|(row, (row_next_cells, row_rand))| {
+                Self::update_row(row, &self.cells, row_next_cells, self.width, row_rand);
             });
+    }
+
+    fn update_row(
+        row: usize,
+        cells: &WorldGridCells<C>,
+        row_next_cells: &mut [C],
+        width: u32,
+        rand: &mut Option<Random>,
+    ) {
+        for col in 0..width {
+            let loc = Loc::new(row as u32, col);
+            let cell = &cells[loc];
+            if cell.debug_selected() {
+                println!("{:?}", cell);
+            }
+
+            let neighborhood = Neighborhood::new(cells, loc);
+            let next_cell = &mut row_next_cells[col as usize];
+            cell.update(&neighborhood, next_cell, rand);
+        }
     }
 }
 
