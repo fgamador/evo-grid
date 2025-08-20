@@ -77,28 +77,42 @@ where
             .zip(Random::multi_fork_option(rand, self.width).par_iter_mut())
             .enumerate()
             .for_each(|(row, (row_next_cells, row_rand))| {
-                Self::update_row(row, &self.cells, row_next_cells, self.width, row_rand);
+                Self::update_row(
+                    row as u32,
+                    &self.cells,
+                    row_next_cells,
+                    self.width,
+                    row_rand,
+                );
             });
     }
 
     fn update_row(
-        row: usize,
+        row: u32,
         cells: &WorldGridCells<C>,
-        row_next_cells: &mut [C],
+        next_cells_row: &mut [C],
         width: u32,
         rand: &mut Option<Random>,
     ) {
         for col in 0..width {
-            let loc = Loc::new(row as u32, col);
-            let cell = &cells[loc];
-            if cell.debug_selected() {
-                println!("{:?}", cell);
-            }
-
-            let neighborhood = Neighborhood::new(cells, loc);
-            let next_cell = &mut row_next_cells[col as usize];
-            cell.update(&neighborhood, next_cell, rand);
+            Self::update_cell(Loc::new(row, col), cells, next_cells_row, rand);
         }
+    }
+
+    fn update_cell(
+        loc: Loc,
+        cells: &WorldGridCells<C>,
+        next_cells_row: &mut [C],
+        rand: &mut Option<Random>,
+    ) {
+        let cell = &cells[loc];
+        if cell.debug_selected() {
+            println!("{:?}", cell);
+        }
+
+        let neighborhood = Neighborhood::new(cells, loc);
+        let next_cell = &mut next_cells_row[loc.col as usize];
+        cell.update(&neighborhood, next_cell, rand);
     }
 }
 
