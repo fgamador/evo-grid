@@ -5,10 +5,11 @@ use rand::distr::uniform::{SampleRange, SampleUniform};
 use rand::prelude::*;
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
+use rayon::prelude::*;
 use std::fmt::Debug;
 use std::mem;
 use std::ops::{Index, IndexMut};
-use std::slice::ChunksMut;
+use std::slice::ChunksExactMut;
 
 pub trait World {
     fn width(&self) -> u32;
@@ -71,10 +72,14 @@ where
     }
 
     fn update_cells(&mut self, rand: &mut Option<Random>) {
+        let mut rands: Vec<_> = (0..self.width)
+            .map(|_| rand.as_mut().map(|rand| rand.fork()))
+            .collect();
         self.next_cells
-            .rows_mut()
+            .par_rows_mut()
+            .zip(rands.par_iter_mut())
             .enumerate()
-            .for_each(|(row, row_cells)| {
+            .for_each(|(row, (row_cells, rand))| {
                 for col in 0..self.width {
                     let loc = Loc::new(row as u32, col);
                     let cell = &self.cells[loc];
@@ -129,8 +134,12 @@ where
         self.cells.iter()
     }
 
-    pub fn rows_mut(&mut self) -> ChunksMut<'_, C> {
-        self.cells.chunks_mut(self.width as usize)
+    pub fn rows_mut(&mut self) -> ChunksExactMut<'_, C> {
+        self.cells.chunks_exact_mut(self.width as usize)
+    }
+
+    pub fn par_rows_mut(&mut self) -> rayon::slice::ChunksExactMut<'_, C> {
+        self.cells.par_chunks_exact_mut(self.width as usize)
     }
 
     fn cell(&self, loc: Loc) -> Option<&C> {
@@ -172,7 +181,7 @@ where
 
 pub trait GridCell
 where
-    Self: Copy + Default,
+    Self: Copy + Default + Send + Sync,
 {
     fn debug_selected(&self) -> bool;
     fn color_rgba(&self) -> [u8; 4];
@@ -338,6 +347,12 @@ impl Random {
     pub fn new() -> Self {
         Self {
             rng: SmallRng::from_rng(&mut rand::rng()),
+        }
+    }
+
+    pub fn fork(&mut self) -> Self {
+        Self {
+            rng: SmallRng::from_rng(&mut self.rng),
         }
     }
 

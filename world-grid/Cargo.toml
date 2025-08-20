@@ -6,3 +6,4 @@ authors.workspace = true
 
 [dependencies]
 rand.workspace = true
+rayon = "1.11"
