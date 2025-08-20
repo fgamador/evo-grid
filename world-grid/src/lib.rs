@@ -72,12 +72,9 @@ where
     }
 
     fn update_cells(&mut self, rand: &mut Option<Random>) {
-        let mut rands: Vec<_> = (0..self.width)
-            .map(|_| rand.as_mut().map(|rand| rand.fork()))
-            .collect();
         self.next_cells
             .par_rows_mut()
-            .zip(rands.par_iter_mut())
+            .zip(Random::multi_fork_option(rand, self.width).par_iter_mut())
             .enumerate()
             .for_each(|(row, (row_cells, rand))| {
                 for col in 0..self.width {
@@ -371,5 +368,11 @@ impl Random {
     pub fn shuffle_color_rgb(&mut self, mut color: [u8; 3]) -> [u8; 3] {
         color.shuffle(&mut self.rng);
         color
+    }
+
+    pub fn multi_fork_option(rand: &mut Option<Random>, count: u32) -> Vec<Option<Random>> {
+        (0..count)
+            .map(|_| rand.as_mut().map(|rand| rand.fork()))
+            .collect()
     }
 }
