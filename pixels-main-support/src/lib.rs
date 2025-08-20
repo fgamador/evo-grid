@@ -124,6 +124,9 @@ where
                 KeyCode::Escape | KeyCode::KeyQ | KeyCode::KeyX => {
                     event_loop.exit();
                 }
+                KeyCode::KeyF => {
+                    self.app().toggle_fast_forward();
+                }
                 KeyCode::KeyP => {
                     self.app().toggle_paused();
                 }
@@ -157,6 +160,7 @@ struct App<W: World> {
     time_step_frame: u32,
     time_step_frames: u32,
     paused: bool,
+    fast_forward: bool,
 }
 
 impl<W: World> App<W> {
@@ -176,6 +180,7 @@ impl<W: World> App<W> {
             time_step_frame: 0,
             time_step_frames,
             paused: false,
+            fast_forward: false,
         }
     }
 
@@ -211,11 +216,19 @@ impl<W: World> App<W> {
         self.paused ^= true;
     }
 
+    fn toggle_fast_forward(&mut self) {
+        self.fast_forward ^= true;
+    }
+
     fn on_frame(&mut self) {
         if self.time_step_frame < self.time_step_frames {
             self.on_cross_fade_frame();
         } else if !self.paused {
-            self.on_time_step_frame();
+            if self.fast_forward {
+                self.update_and_draw();
+            } else {
+                self.on_time_step_frame();
+            }
         }
     }
 
@@ -235,6 +248,10 @@ impl<W: World> App<W> {
 
     fn on_single_step(&mut self) {
         self.paused = true;
+        self.update_and_draw();
+    }
+
+    fn update_and_draw(&mut self) {
         self.world.update();
         self.cross_fade_buffer.load(self.world.cells_iter());
         self.cross_fade_buffer.straight_to_output();
