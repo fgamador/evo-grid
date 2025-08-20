@@ -8,6 +8,7 @@ use rand::SeedableRng;
 use std::fmt::Debug;
 use std::mem;
 use std::ops::{Index, IndexMut};
+use std::slice::ChunksMut;
 
 pub trait World {
     fn width(&self) -> u32;
@@ -70,22 +71,22 @@ where
     }
 
     fn update_cells(&mut self, rand: &mut Option<Random>) {
-        for row in 0..self.height() {
-            for col in 0..self.width() {
-                self.update_cell(Loc::new(row, col), rand);
-            }
-        }
-    }
+        self.next_cells
+            .rows_mut()
+            .enumerate()
+            .for_each(|(row, row_cells)| {
+                for col in 0..self.width {
+                    let loc = Loc::new(row as u32, col);
+                    let cell = &self.cells[loc];
+                    if cell.debug_selected() {
+                        println!("{:?}", cell);
+                    }
 
-    fn update_cell(&mut self, loc: Loc, rand: &mut Option<Random>) {
-        let cell = &self.cells[loc];
-        if cell.debug_selected() {
-            println!("{:?}", cell);
-        }
-
-        let neighborhood = Neighborhood::new(&self.cells, loc);
-        let next_cell = &mut self.next_cells[loc];
-        cell.update(&neighborhood, next_cell, rand);
+                    let neighborhood = Neighborhood::new(&self.cells, loc);
+                    let next_cell = &mut row_cells[col as usize];
+                    cell.update(&neighborhood, next_cell, rand);
+                }
+            });
     }
 }
 
@@ -126,6 +127,10 @@ where
 
     pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &C> + Clone {
         self.cells.iter()
+    }
+
+    pub fn rows_mut(&mut self) -> ChunksMut<'_, C> {
+        self.cells.chunks_mut(self.width as usize)
     }
 
     fn cell(&self, loc: Loc) -> Option<&C> {
