@@ -137,13 +137,6 @@ impl EvoGridCell {
     ) {
         if let Some(creature) = self.creature {
             creature.update_next_cell(neighborhood, next_cell);
-        } else {
-            let sw_neighbor = neighborhood.cell(2, 0);
-            if let Some(sw_creature) = sw_neighbor.creature {
-                if sw_creature.age == 0 {
-                    next_cell.creature = Some(Creature::new(sw_creature.color));
-                }
-            }
         }
     }
 

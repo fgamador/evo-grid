@@ -8,7 +8,7 @@ use rand::SeedableRng;
 use rayon::prelude::*;
 use std::fmt::Debug;
 use std::mem;
-use std::ops::{Index, IndexMut};
+use std::ops::{Index, IndexMut, Range};
 use std::slice::ChunksExactMut;
 
 pub trait World {
@@ -279,9 +279,8 @@ pub struct Neighborhood<'a, C>
 where
     C: Clone + Copy + Default + GridCell,
 {
+    center: Loc,
     cells: &'a WorldGridCells<C>,
-    rows: [u32; 3],
-    cols: [u32; 3],
 }
 
 impl<'a, C> Neighborhood<'a, C>
@@ -289,57 +288,29 @@ where
     C: Clone + Copy + Default + GridCell,
 {
     pub fn new(cells: &'a WorldGridCells<C>, center: Loc) -> Self {
-        let (row_above, row_below) = Self::adjacent_indexes(center.row, cells.height());
-        let (col_left, col_right) = Self::adjacent_indexes(center.col, cells.width());
-        Self {
-            cells,
-            rows: [row_above, center.row, row_below],
-            cols: [col_left, center.col, col_right],
-        }
-    }
-
-    pub fn cell(&self, row: u32, col: u32) -> &C {
-        let grid_index = Loc::new(self.rows[row as usize], self.cols[col as usize]);
-        &self.cells[grid_index]
+        Self { center, cells }
     }
 
     pub fn for_neighbor_cells<F>(&self, mut f: F)
     where
         F: FnMut(&C),
     {
-        self.for_cell(0, 0, &mut f);
-        self.for_cell(0, 1, &mut f);
-        self.for_cell(0, 2, &mut f);
-
-        self.for_cell(1, 0, &mut f);
-        self.for_cell(1, 2, &mut f);
-
-        self.for_cell(2, 0, &mut f);
-        self.for_cell(2, 1, &mut f);
-        self.for_cell(2, 2, &mut f);
+        for row in Self::index_range(self.center.row, self.cells.height) {
+            for col in Self::index_range(self.center.col, self.cells.width) {
+                let loc = Loc::new(row, col);
+                if loc != self.center {
+                    f(&self.cells[loc]);
+                }
+            }
+        }
     }
 
-    fn for_cell<F>(&self, row: u32, col: u32, f: &mut F)
-    where
-        F: FnMut(&C),
-    {
-        let grid_index = Loc::new(self.rows[row as usize], self.cols[col as usize]);
-        f(&self.cells[grid_index]);
-    }
-
-    fn adjacent_indexes(cell_index: u32, max: u32) -> (u32, u32) {
-        (
-            Self::modulo(cell_index as i64 - 1, max),
-            Self::modulo(cell_index as i64 + 1, max),
-        )
-    }
-
-    fn modulo(val: i64, max: u32) -> u32 {
-        val.rem_euclid(max as i64) as u32
+    fn index_range(center: u32, max: u32) -> Range<u32> {
+        center.saturating_sub(1)..(center + 2).min(max)
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Loc {
     pub row: u32,
     pub col: u32,
