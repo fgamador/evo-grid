@@ -4,8 +4,8 @@
 use pixels_main_support::animate;
 use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
-const TIME_STEP_FRAMES: u32 = 1;
-const CELL_PIXEL_WIDTH: u32 = 1;
+const TIME_STEP_FRAMES: u32 = 4;
+const CELL_PIXEL_WIDTH: u32 = 4;
 
 fn main() {
     animate(TIME_STEP_FRAMES, |window_size| {
@@ -27,6 +27,9 @@ impl ConwayWorld {
     pub fn new(width: u32, height: u32, rand: Random) -> Self {
         let mut result = Self::new_empty(width, height, rand);
         result.add_random_life();
+        for _ in 0..5 {
+            result.update();
+        }
         result
     }
 
