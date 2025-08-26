@@ -226,22 +226,17 @@ impl Creature {
         num_neighbors: usize,
         rand: &mut Option<Random>,
     ) -> Option<Creature> {
-        if num_neighbors == 0 {
-            return None;
-        }
-
-        if let Some((child_survival_gene, child_repro_gene)) =
-            Self::merge_parent_genes(neighborhood, num_neighbors, rand, MUTATION_ODDS)
+        if num_neighbors > 0
+            && let Some((child_survival_gene, child_repro_gene)) =
+                Self::merge_parent_genes(neighborhood, num_neighbors, rand, MUTATION_ODDS)
         {
             let child = Creature::new(child_survival_gene, child_repro_gene);
             if child.has_small_genome(rand) {
-                Some(child)
-            } else {
-                None
+                return Some(child);
             }
-        } else {
-            None
         }
+
+        None
     }
 
     fn merge_parent_genes(
