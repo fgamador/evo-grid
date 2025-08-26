@@ -211,67 +211,6 @@ where
     );
 }
 
-// From https://en.wikipedia.org/wiki/Alpha_compositing
-pub fn alpha_blend(above: [u8; 4], below: [u8; 4]) -> [u8; 4] {
-    if above[3] == 0xff {
-        return above;
-    }
-    if above[3] == 0x00 {
-        return below;
-    }
-
-    let above = color_as_fractions(above);
-    let below = color_as_fractions(below);
-
-    let above_alpha = above[3];
-    let below_alpha = below[3];
-    let result_alpha = above_alpha + below_alpha * (1.0 - above_alpha);
-
-    let mut result: [f32; 4] = [0.0, 0.0, 0.0, result_alpha];
-    for i in 0..=2 {
-        result[i] =
-            (above[i] * above_alpha + below[i] * below_alpha * (1.0 - above_alpha)) / result_alpha;
-    }
-    color_as_bytes(result)
-}
-
-// alpha_blend with below_alpha set to 1.0
-pub fn alpha_blend_with_background(above: [u8; 4], below: [u8; 4]) -> [u8; 4] {
-    if above[3] == 0xff {
-        return above;
-    }
-    if above[3] == 0x00 {
-        return below;
-    }
-
-    let above = color_as_fractions(above);
-    let below = color_as_fractions(below);
-
-    let above_alpha = above[3];
-
-    let mut result: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-    for i in 0..=2 {
-        result[i] = above[i] * above_alpha + below[i] * (1.0 - above_alpha);
-    }
-    color_as_bytes(result)
-}
-
-fn color_as_fractions(color: [u8; 4]) -> [f32; 4] {
-    let mut result: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
-    for i in 0..=3 {
-        result[i] = color[i] as f32 / 0xff as f32;
-    }
-    result
-}
-
-fn color_as_bytes(color: [f32; 4]) -> [u8; 4] {
-    let mut result: [u8; 4] = [0, 0, 0, 0];
-    for i in 0..=3 {
-        result[i] = (color[i] * 0xff as f32) as u8;
-    }
-    result
-}
-
 pub struct Neighborhood<'a, C>
 where
     C: Clone + Copy + Default + GridCell,
@@ -463,4 +402,65 @@ impl BitCountsMap {
             rand.as_mut().unwrap().next_bool(odds)
         }
     }
+}
+
+// From https://en.wikipedia.org/wiki/Alpha_compositing
+pub fn alpha_blend(above: [u8; 4], below: [u8; 4]) -> [u8; 4] {
+    if above[3] == 0xff {
+        return above;
+    }
+    if above[3] == 0x00 {
+        return below;
+    }
+
+    let above = color_as_fractions(above);
+    let below = color_as_fractions(below);
+
+    let above_alpha = above[3];
+    let below_alpha = below[3];
+    let result_alpha = above_alpha + below_alpha * (1.0 - above_alpha);
+
+    let mut result: [f32; 4] = [0.0, 0.0, 0.0, result_alpha];
+    for i in 0..=2 {
+        result[i] =
+            (above[i] * above_alpha + below[i] * below_alpha * (1.0 - above_alpha)) / result_alpha;
+    }
+    color_as_bytes(result)
+}
+
+// alpha_blend with below_alpha set to 1.0
+pub fn alpha_blend_with_background(above: [u8; 4], below: [u8; 4]) -> [u8; 4] {
+    if above[3] == 0xff {
+        return above;
+    }
+    if above[3] == 0x00 {
+        return below;
+    }
+
+    let above = color_as_fractions(above);
+    let below = color_as_fractions(below);
+
+    let above_alpha = above[3];
+
+    let mut result: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
+    for i in 0..=2 {
+        result[i] = above[i] * above_alpha + below[i] * (1.0 - above_alpha);
+    }
+    color_as_bytes(result)
+}
+
+fn color_as_fractions(color: [u8; 4]) -> [f32; 4] {
+    let mut result: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
+    for i in 0..=3 {
+        result[i] = color[i] as f32 / 0xff as f32;
+    }
+    result
+}
+
+fn color_as_bytes(color: [f32; 4]) -> [u8; 4] {
+    let mut result: [u8; 4] = [0, 0, 0, 0];
+    for i in 0..=3 {
+        result[i] = (color[i] * 0xff as f32) as u8;
+    }
+    result
 }
