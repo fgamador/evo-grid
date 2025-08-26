@@ -371,3 +371,91 @@ impl Random {
             .collect()
     }
 }
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct BitSet8 {
+    pub bits: u8,
+}
+
+impl BitSet8 {
+    pub fn new(bits: u8) -> Self {
+        Self { bits }
+    }
+
+    pub fn empty() -> Self {
+        Self::new(0)
+    }
+
+    pub fn has_bit(&self, index: usize) -> bool {
+        self.bits & (1 << index) != 0
+    }
+
+    pub fn set_bit(&mut self, index: usize) {
+        self.bits |= 1 << index;
+    }
+
+    pub fn flip_bit(&mut self, index: usize) {
+        self.bits ^= 1 << index;
+    }
+
+    pub fn count_bits(&self) -> usize {
+        let mut result = 0;
+        for i in 0..8 {
+            if self.has_bit(i) {
+                result += 1;
+            }
+        }
+        result
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct BitCountsMap {
+    ones: [u32; 8],
+    zeros: [u32; 8],
+}
+
+impl BitCountsMap {
+    pub fn new() -> Self {
+        Self {
+            ones: [0; 8],
+            zeros: [0; 8],
+        }
+    }
+
+    pub fn increment(&mut self, bits: &BitSet8) {
+        for i in 0..8 {
+            if bits.has_bit(i) {
+                self.ones[i] += 1;
+            } else {
+                self.zeros[i] += 1;
+            }
+        }
+    }
+
+    pub fn as_neighbor_counts(&self, rand: &mut Option<Random>, mutation_odds: f64) -> BitSet8 {
+        let mut result = BitSet8::empty();
+        for i in 0..8 {
+            if Self::merge_counts(self.ones[i], self.zeros[i], rand) {
+                result.set_bit(i);
+            }
+            if let Some(rand) = rand
+                && rand.next_bool(mutation_odds)
+            {
+                result.flip_bit(i);
+            }
+        }
+        result
+    }
+
+    fn merge_counts(num_ones: u32, num_zeros: u32, rand: &mut Option<Random>) -> bool {
+        if num_ones == 0 {
+            false
+        } else if num_zeros == 0 {
+            true
+        } else {
+            let odds = num_ones as f64 / (num_ones + num_zeros) as f64;
+            rand.as_mut().unwrap().next_bool(odds)
+        }
+    }
+}
