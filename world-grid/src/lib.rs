@@ -374,11 +374,11 @@ impl Random {
 }
 
 #[derive(Clone, Copy, Debug, Default)]
-pub struct BitSet8 {
+pub struct BitSet8Gene {
     pub bits: u8,
 }
 
-impl BitSet8 {
+impl BitSet8Gene {
     pub fn new(bits: u8) -> Self {
         Self { bits }
     }
@@ -387,7 +387,7 @@ impl BitSet8 {
         Self::new(0)
     }
 
-    pub fn has_bit(&self, index: usize) -> bool {
+    pub fn is_bit_set(&self, index: usize) -> bool {
         self.bits & (1 << index) != 0
     }
 
@@ -399,26 +399,22 @@ impl BitSet8 {
         self.bits ^= 1 << index;
     }
 
-    pub fn count_bits(&self) -> usize {
+    pub fn count_set_bits(&self) -> usize {
         let mut result = 0;
         for i in 0..8 {
-            if self.has_bit(i) {
+            if self.is_bit_set(i) {
                 result += 1;
             }
         }
         result
     }
 
-    pub fn merge(
-        bit_sets: &ArrayVec<Self, 8>,
-        rand: &mut Option<Random>,
-        mutation_odds: f64,
-    ) -> Self {
+    pub fn merge(genes: &ArrayVec<Self, 8>, rand: &mut Option<Random>, mutation_odds: f64) -> Self {
         let mut bit_counts = BitCountsMap::new();
-        for bit_set in bit_sets {
+        for bit_set in genes {
             bit_counts.increment(&bit_set);
         }
-        bit_counts.as_neighbor_counts(rand, mutation_odds)
+        bit_counts.as_bit_set(rand, mutation_odds)
     }
 }
 
@@ -429,16 +425,16 @@ pub struct BitCountsMap {
 }
 
 impl BitCountsMap {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             ones: [0; 8],
             zeros: [0; 8],
         }
     }
 
-    pub fn increment(&mut self, bits: &BitSet8) {
+    fn increment(&mut self, bits: &BitSet8Gene) {
         for i in 0..8 {
-            if bits.has_bit(i) {
+            if bits.is_bit_set(i) {
                 self.ones[i] += 1;
             } else {
                 self.zeros[i] += 1;
@@ -446,8 +442,8 @@ impl BitCountsMap {
         }
     }
 
-    pub fn as_neighbor_counts(&self, rand: &mut Option<Random>, mutation_odds: f64) -> BitSet8 {
-        let mut result = BitSet8::empty();
+    fn as_bit_set(&self, rand: &mut Option<Random>, mutation_odds: f64) -> BitSet8Gene {
+        let mut result = BitSet8Gene::empty();
         for i in 0..8 {
             if Self::merge_counts(self.ones[i], self.zeros[i], rand) {
                 result.set_bit(i);

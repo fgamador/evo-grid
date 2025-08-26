@@ -4,7 +4,7 @@
 use arrayvec::ArrayVec;
 use pixels_main_support::animate;
 use std::fmt::Debug;
-use world_grid::{BitSet8, GridCell, Loc, Neighborhood, Random, World, WorldGrid};
+use world_grid::{BitSet8Gene, GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
 const TIME_STEP_FRAMES: u32 = 30;
 const CELL_PIXEL_WIDTH: u32 = 4;
@@ -112,8 +112,8 @@ impl EvoConwayGridCell {
                 "({}, {}): Survival: {}, Repro: {}, Color: [0x{:X},0x{:X},0x{:X}]",
                 row,
                 col,
-                Self::format_neighbor_counts(creature.survival_neighbor_counts),
-                Self::format_neighbor_counts(creature.repro_neighbor_counts),
+                Self::format_neighbor_counts(creature.survival_gene),
+                Self::format_neighbor_counts(creature.repro_gene),
                 color[0],
                 color[1],
                 color[2]
@@ -123,11 +123,11 @@ impl EvoConwayGridCell {
         }
     }
 
-    fn format_neighbor_counts(neighbor_counts: BitSet8) -> String {
+    fn format_neighbor_counts(neighbor_counts: BitSet8Gene) -> String {
         let mut result = String::with_capacity(100);
         result.push('[');
         for i in 0..8 {
-            if neighbor_counts.has_bit(i) {
+            if neighbor_counts.is_bit_set(i) {
                 if result.len() > 1 {
                     result.push(',');
                 }
@@ -172,33 +172,32 @@ impl GridCell for EvoConwayGridCell {
 #[derive(Clone, Copy, Debug, Default)]
 struct Creature {
     // bits[n] == 1 means will survive if own cell has n-1 neighbor creatures
-    survival_neighbor_counts: BitSet8,
+    survival_gene: BitSet8Gene,
     // bits[n] == 1 means will reproduce if target cell has n-1 neighbor creatures
-    repro_neighbor_counts: BitSet8,
+    repro_gene: BitSet8Gene,
 }
 
 impl Creature {
-    pub fn new(survival_neighbor_counts: BitSet8, repro_neighbor_counts: BitSet8) -> Self {
+    pub fn new(survival_gene: BitSet8Gene, repro_gene: BitSet8Gene) -> Self {
         Self {
-            survival_neighbor_counts,
-            repro_neighbor_counts,
+            survival_gene,
+            repro_gene,
         }
     }
 
     pub fn conway() -> Self {
-        Self::new(BitSet8::new(0b110), BitSet8::new(0b100))
+        Self::new(BitSet8Gene::new(0b110), BitSet8Gene::new(0b100))
     }
 
     pub fn color_rgba(&self) -> [u8; 4] {
-        let counts_bits_union =
-            self.survival_neighbor_counts.bits | self.repro_neighbor_counts.bits;
+        let counts_bits_union = self.survival_gene.bits | self.repro_gene.bits;
         let red = counts_bits_union; // >> 1 + counts_bits_union >> 2;
 
-        let num_survival_bits = self.survival_neighbor_counts.count_bits() as u8;
+        let num_survival_bits = self.survival_gene.count_set_bits() as u8;
         let num_survival_bits_squeezed = (num_survival_bits & 0b1000) | (num_survival_bits << 1);
         let green = num_survival_bits_squeezed << 4;
 
-        let num_repro_bits = self.repro_neighbor_counts.count_bits() as u8;
+        let num_repro_bits = self.repro_gene.count_set_bits() as u8;
         let num_repro_bits_squeezed = (num_repro_bits & 0b1000) | (num_repro_bits << 1);
         let blue = num_repro_bits_squeezed << 4;
 
@@ -207,7 +206,7 @@ impl Creature {
 
     pub fn survives(&self, num_neighbors: usize, rand: &mut Option<Random>) -> bool {
         num_neighbors > 0
-            && self.survival_neighbor_counts.has_bit(num_neighbors - 1)
+            && self.survival_gene.is_bit_set(num_neighbors - 1)
             && self.has_small_genome(rand)
     }
 
@@ -218,7 +217,7 @@ impl Creature {
 
         let rand = rand.as_mut().unwrap();
         let num_genome_bits =
-            self.survival_neighbor_counts.count_bits() + self.repro_neighbor_counts.count_bits();
+            self.survival_gene.count_set_bits() + self.repro_gene.count_set_bits();
         rand.next_bool(1.0 - num_genome_bits as f64 / 16.0)
     }
 
@@ -250,15 +249,15 @@ impl Creature {
         num_neighbors: usize,
         rand: &mut Option<Random>,
         mutation_odds: f64,
-    ) -> Option<(BitSet8, BitSet8)> {
-        let mut parent_survival_genes = ArrayVec::<BitSet8, 8>::new();
-        let mut parent_repro_genes = ArrayVec::<BitSet8, 8>::new();
+    ) -> Option<(BitSet8Gene, BitSet8Gene)> {
+        let mut parent_survival_genes = ArrayVec::<BitSet8Gene, 8>::new();
+        let mut parent_repro_genes = ArrayVec::<BitSet8Gene, 8>::new();
         neighborhood.for_neighbor_cells(|neighbor| {
             if let Some(creature) = neighbor.creature
                 && creature.can_reproduce(num_neighbors)
             {
-                parent_survival_genes.push(creature.survival_neighbor_counts);
-                parent_repro_genes.push(creature.repro_neighbor_counts);
+                parent_survival_genes.push(creature.survival_gene);
+                parent_repro_genes.push(creature.repro_gene);
             }
         });
 
@@ -266,13 +265,13 @@ impl Creature {
             None
         } else {
             Some((
-                BitSet8::merge(&parent_survival_genes, rand, mutation_odds),
-                BitSet8::merge(&parent_repro_genes, rand, mutation_odds),
+                BitSet8Gene::merge(&parent_survival_genes, rand, mutation_odds),
+                BitSet8Gene::merge(&parent_repro_genes, rand, mutation_odds),
             ))
         }
     }
 
     fn can_reproduce(&self, num_neighbors: usize) -> bool {
-        num_neighbors > 0 && self.repro_neighbor_counts.has_bit(num_neighbors - 1)
+        num_neighbors > 0 && self.repro_gene.is_bit_set(num_neighbors - 1)
     }
 }
