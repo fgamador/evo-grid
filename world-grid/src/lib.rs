@@ -107,10 +107,6 @@ where
         rand: &mut Option<Random>,
     ) {
         let cell = &cells[loc];
-        if cell.debug_selected() {
-            println!("{:?}", cell);
-        }
-
         let neighborhood = Neighborhood::new(cells, loc);
         let next_cell = &mut next_cells_row[loc.col as usize];
         cell.update(&neighborhood, next_cell, rand);
@@ -205,7 +201,7 @@ pub trait GridCell
 where
     Self: Copy + Default + Send + Sync,
 {
-    fn debug_selected(&self) -> bool;
+
     fn color_rgba(&self) -> [u8; 4];
     fn update(
         &self,

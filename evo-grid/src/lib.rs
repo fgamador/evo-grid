@@ -126,7 +126,6 @@ impl SubstanceSource {
 pub struct EvoGridCell {
     pub creature: Option<Creature>,
     pub substance: Option<Substance>,
-    pub debug_selected: bool,
 }
 
 impl EvoGridCell {
@@ -162,10 +161,6 @@ impl EvoGridCell {
 }
 
 impl GridCell for EvoGridCell {
-    fn debug_selected(&self) -> bool {
-        self.debug_selected
-    }
-
     fn color_rgba(&self) -> [u8; 4] {
         alpha_blend(self.render_substance(), self.render_creature())
     }

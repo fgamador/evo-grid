@@ -77,7 +77,6 @@ impl World for ConwayWorld {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ConwayGridCell {
     pub alive: bool,
-    pub debug_selected: bool,
 }
 
 impl ConwayGridCell {
@@ -93,10 +92,6 @@ impl ConwayGridCell {
 }
 
 impl GridCell for ConwayGridCell {
-    fn debug_selected(&self) -> bool {
-        self.debug_selected
-    }
-
     fn color_rgba(&self) -> [u8; 4] {
         if self.alive {
             [0x80, 0x80, 0x80, 0xff]

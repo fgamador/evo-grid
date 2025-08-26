@@ -91,7 +91,6 @@ impl World for EvoConwayWorld {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct EvoConwayGridCell {
     creature: Option<Creature>,
-    pub debug_selected: bool,
 }
 
 impl EvoConwayGridCell {
@@ -140,10 +139,6 @@ impl EvoConwayGridCell {
 }
 
 impl GridCell for EvoConwayGridCell {
-    fn debug_selected(&self) -> bool {
-        self.debug_selected
-    }
-
     fn color_rgba(&self) -> [u8; 4] {
         if let Some(creature) = self.creature {
             creature.color_rgba()
