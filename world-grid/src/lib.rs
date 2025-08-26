@@ -1,6 +1,7 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+use arrayvec::ArrayVec;
 use rand::distr::uniform::{SampleRange, SampleUniform};
 use rand::prelude::*;
 use rand::rngs::SmallRng;
@@ -406,6 +407,18 @@ impl BitSet8 {
             }
         }
         result
+    }
+
+    pub fn merge(
+        bit_sets: &ArrayVec<Self, 8>,
+        rand: &mut Option<Random>,
+        mutation_odds: f64,
+    ) -> Self {
+        let mut bit_counts = BitCountsMap::new();
+        for bit_set in bit_sets {
+            bit_counts.increment(&bit_set);
+        }
+        bit_counts.as_neighbor_counts(rand, mutation_odds)
     }
 }
 

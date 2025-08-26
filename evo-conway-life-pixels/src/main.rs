@@ -1,9 +1,10 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+use arrayvec::ArrayVec;
 use pixels_main_support::animate;
 use std::fmt::Debug;
-use world_grid::{BitCountsMap, BitSet8, GridCell, Loc, Neighborhood, Random, World, WorldGrid};
+use world_grid::{BitSet8, GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
 const TIME_STEP_FRAMES: u32 = 30;
 const CELL_PIXEL_WIDTH: u32 = 4;
@@ -230,13 +231,10 @@ impl Creature {
             return None;
         }
 
-        if let Some((survival_bit_counts, birth_bit_counts)) =
-            Self::parent_bit_counts(neighborhood, num_neighbors)
+        if let Some((child_survival_gene, child_repro_gene)) =
+            Self::merge_parent_genes(neighborhood, num_neighbors, rand, MUTATION_ODDS)
         {
-            let child = Creature::new(
-                survival_bit_counts.as_neighbor_counts(rand, MUTATION_ODDS),
-                birth_bit_counts.as_neighbor_counts(rand, MUTATION_ODDS),
-            );
+            let child = Creature::new(child_survival_gene, child_repro_gene);
             if child.has_small_genome(rand) {
                 Some(child)
             } else {
@@ -247,26 +245,30 @@ impl Creature {
         }
     }
 
-    fn parent_bit_counts(
+    fn merge_parent_genes(
         neighborhood: &Neighborhood<EvoConwayGridCell>,
         num_neighbors: usize,
-    ) -> Option<(BitCountsMap, BitCountsMap)> {
-        let mut has_parents = false;
-        let mut survival_bit_counts = BitCountsMap::new();
-        let mut repro_bit_counts = BitCountsMap::new();
+        rand: &mut Option<Random>,
+        mutation_odds: f64,
+    ) -> Option<(BitSet8, BitSet8)> {
+        let mut parent_survival_genes = ArrayVec::<BitSet8, 8>::new();
+        let mut parent_repro_genes = ArrayVec::<BitSet8, 8>::new();
         neighborhood.for_neighbor_cells(|neighbor| {
-            if let Some(creature) = neighbor.creature {
-                if creature.can_reproduce(num_neighbors) {
-                    has_parents = true;
-                    survival_bit_counts.increment(&creature.survival_neighbor_counts);
-                    repro_bit_counts.increment(&creature.repro_neighbor_counts);
-                }
+            if let Some(creature) = neighbor.creature
+                && creature.can_reproduce(num_neighbors)
+            {
+                parent_survival_genes.push(creature.survival_neighbor_counts);
+                parent_repro_genes.push(creature.repro_neighbor_counts);
             }
         });
-        if has_parents {
-            Some((survival_bit_counts, repro_bit_counts))
-        } else {
+
+        if parent_survival_genes.is_empty() {
             None
+        } else {
+            Some((
+                BitSet8::merge(&parent_survival_genes, rand, mutation_odds),
+                BitSet8::merge(&parent_repro_genes, rand, mutation_odds),
+            ))
         }
     }
 
