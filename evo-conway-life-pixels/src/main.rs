@@ -276,7 +276,7 @@ impl Creature {
 }
 
 #[derive(Clone, Copy, Debug, Default)]
-struct BitSet8 {
+pub struct BitSet8 {
     bits: u8,
 }
 
@@ -289,19 +289,19 @@ impl BitSet8 {
         Self::new(0)
     }
 
-    fn has_bit(&self, index: usize) -> bool {
+    pub fn has_bit(&self, index: usize) -> bool {
         self.bits & (1 << index) != 0
     }
 
-    fn set_bit(&mut self, index: usize) {
+    pub fn set_bit(&mut self, index: usize) {
         self.bits |= 1 << index;
     }
 
-    fn flip_bit(&mut self, index: usize) {
+    pub fn flip_bit(&mut self, index: usize) {
         self.bits ^= 1 << index;
     }
 
-    fn count_bits(&self) -> usize {
+    pub fn count_bits(&self) -> usize {
         let mut result = 0;
         for i in 0..8 {
             if self.has_bit(i) {
@@ -313,7 +313,7 @@ impl BitSet8 {
 }
 
 #[derive(Clone, Copy, Debug, Default)]
-struct BitCountsMap {
+pub struct BitCountsMap {
     ones: [u32; 8],
     zeros: [u32; 8],
 }
@@ -326,36 +326,20 @@ impl BitCountsMap {
         }
     }
 
-    fn increment(&mut self, bits: &BitSet8) {
+    pub fn increment(&mut self, bits: &BitSet8) {
         for i in 0..8 {
             if bits.has_bit(i) {
-                self.add_one(i);
+                self.ones[i] += 1;
             } else {
-                self.add_zero(i);
+                self.zeros[i] += 1;
             }
         }
     }
 
-    fn add_one(&mut self, index: usize) {
-        self.ones[index] += 1;
-    }
-
-    fn add_zero(&mut self, index: usize) {
-        self.zeros[index] += 1;
-    }
-
-    fn num_ones(&self, index: usize) -> usize {
-        self.ones[index] as usize
-    }
-
-    fn num_zeros(&self, index: usize) -> usize {
-        self.zeros[index] as usize
-    }
-
-    fn as_neighbor_counts(&self, rand: &mut Option<Random>) -> BitSet8 {
+    pub fn as_neighbor_counts(&self, rand: &mut Option<Random>) -> BitSet8 {
         let mut result = BitSet8::empty();
         for i in 0..8 {
-            if Self::merge_counts(self.num_ones(i), self.num_zeros(i), rand) {
+            if Self::merge_counts(self.ones[i], self.zeros[i], rand) {
                 result.set_bit(i);
             }
             if let Some(rand) = rand
@@ -367,7 +351,7 @@ impl BitCountsMap {
         result
     }
 
-    fn merge_counts(num_ones: usize, num_zeros: usize, rand: &mut Option<Random>) -> bool {
+    fn merge_counts(num_ones: u32, num_zeros: u32, rand: &mut Option<Random>) -> bool {
         if num_ones == 0 {
             false
         } else if num_zeros == 0 {
