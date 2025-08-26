@@ -201,7 +201,6 @@ pub trait GridCell
 where
     Self: Copy + Default + Send + Sync,
 {
-
     fn color_rgba(&self) -> [u8; 4];
     fn update(
         &self,
@@ -263,48 +262,6 @@ impl Loc {
         } else {
             None
         }
-    }
-}
-
-#[derive(Debug)]
-pub struct Random {
-    rng: SmallRng,
-}
-
-impl Random {
-    pub fn new() -> Self {
-        Self {
-            rng: SmallRng::from_rng(&mut rand::rng()),
-        }
-    }
-
-    pub fn fork(&mut self) -> Self {
-        Self {
-            rng: SmallRng::from_rng(&mut self.rng),
-        }
-    }
-
-    pub fn next_bool(&mut self, p: f64) -> bool {
-        self.rng.random_bool(p)
-    }
-
-    pub fn next_in_range<T, R>(&mut self, range: R) -> T
-    where
-        T: SampleUniform,
-        R: SampleRange<T>,
-    {
-        self.rng.random_range(range)
-    }
-
-    pub fn shuffle_color_rgb(&mut self, mut color: [u8; 3]) -> [u8; 3] {
-        color.shuffle(&mut self.rng);
-        color
-    }
-
-    pub fn multi_fork_option(rand: &mut Option<Random>, count: u32) -> Vec<Option<Random>> {
-        (0..count)
-            .map(|_| rand.as_mut().map(|rand| rand.fork()))
-            .collect()
     }
 }
 
@@ -401,6 +358,48 @@ impl BitCountsMap {
             let odds = num_ones as f64 / (num_ones + num_zeros) as f64;
             rand.as_mut().unwrap().next_bool(odds)
         }
+    }
+}
+
+#[derive(Debug)]
+pub struct Random {
+    rng: SmallRng,
+}
+
+impl Random {
+    pub fn new() -> Self {
+        Self {
+            rng: SmallRng::from_rng(&mut rand::rng()),
+        }
+    }
+
+    pub fn fork(&mut self) -> Self {
+        Self {
+            rng: SmallRng::from_rng(&mut self.rng),
+        }
+    }
+
+    pub fn next_bool(&mut self, p: f64) -> bool {
+        self.rng.random_bool(p)
+    }
+
+    pub fn next_in_range<T, R>(&mut self, range: R) -> T
+    where
+        T: SampleUniform,
+        R: SampleRange<T>,
+    {
+        self.rng.random_range(range)
+    }
+
+    pub fn shuffle_color_rgb(&mut self, mut color: [u8; 3]) -> [u8; 3] {
+        color.shuffle(&mut self.rng);
+        color
+    }
+
+    pub fn multi_fork_option(rand: &mut Option<Random>, count: u32) -> Vec<Option<Random>> {
+        (0..count)
+            .map(|_| rand.as_mut().map(|rand| rand.fork()))
+            .collect()
     }
 }
 
