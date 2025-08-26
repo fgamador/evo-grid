@@ -5,23 +5,20 @@ use pixels_main_support::animate;
 use std::fmt::Debug;
 use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
-const TIME_STEP_FRAMES: u32 = 60;
+const TIME_STEP_FRAMES: u32 = 30;
 const CELL_PIXEL_WIDTH: u32 = 4;
 const EMPTY_CELL_COLOR: [u8; 4] = [0, 0, 0, 0xff];
 const MUTATION_ODDS: f64 = 0.001;
 const CONWAY_STEPS: usize = 10;
 
 fn main() {
-    animate(
-        TIME_STEP_FRAMES,
-        |window_size| {
-            EvoConwayWorld::new(
-                window_size.width / CELL_PIXEL_WIDTH,
-                window_size.height / CELL_PIXEL_WIDTH,
-                Random::new(),
-            )
-        },
-    );
+    animate(TIME_STEP_FRAMES, |window_size| {
+        EvoConwayWorld::new(
+            window_size.width / CELL_PIXEL_WIDTH,
+            window_size.height / CELL_PIXEL_WIDTH,
+            Random::new(),
+        )
+    });
 }
 
 #[derive(Debug)]
@@ -256,24 +253,18 @@ impl Creature {
     ) -> Option<(BitCountsMap, BitCountsMap)> {
         let mut has_parents = false;
         let mut survival_bit_counts = BitCountsMap::new();
-        let mut birth_bit_counts = BitCountsMap::new();
+        let mut repro_bit_counts = BitCountsMap::new();
         neighborhood.for_neighbor_cells(|neighbor| {
             if let Some(creature) = neighbor.creature {
                 if creature.can_reproduce(num_neighbors) {
                     has_parents = true;
-                    Self::increment_bit_counts(
-                        &creature.survival_neighbor_counts,
-                        &mut survival_bit_counts,
-                    );
-                    Self::increment_bit_counts(
-                        &creature.repro_neighbor_counts,
-                        &mut birth_bit_counts,
-                    );
+                    survival_bit_counts.increment(&creature.survival_neighbor_counts);
+                    repro_bit_counts.increment(&creature.repro_neighbor_counts);
                 }
             }
         });
         if has_parents {
-            Some((survival_bit_counts, birth_bit_counts))
+            Some((survival_bit_counts, repro_bit_counts))
         } else {
             None
         }
@@ -281,16 +272,6 @@ impl Creature {
 
     fn can_reproduce(&self, num_neighbors: usize) -> bool {
         num_neighbors > 0 && self.repro_neighbor_counts.has_bit(num_neighbors - 1)
-    }
-
-    fn increment_bit_counts(neighbor_counts: &BitSet8, bit_counts: &mut BitCountsMap) {
-        for i in 0..8 {
-            if neighbor_counts.has_bit(i) {
-                bit_counts.add_one(i);
-            } else {
-                bit_counts.add_zero(i);
-            }
-        }
     }
 }
 
@@ -342,6 +323,16 @@ impl BitCountsMap {
         Self {
             ones: [0; 8],
             zeros: [0; 8],
+        }
+    }
+
+    fn increment(&mut self, bits: &BitSet8) {
+        for i in 0..8 {
+            if bits.has_bit(i) {
+                self.add_one(i);
+            } else {
+                self.add_zero(i);
+            }
         }
     }
 
