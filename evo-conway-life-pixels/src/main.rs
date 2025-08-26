@@ -111,8 +111,8 @@ impl EvoConwayGridCell {
                 "({}, {}): Survival: {}, Repro: {}, Color: [0x{:X},0x{:X},0x{:X}]",
                 row,
                 col,
-                Self::format_neighbor_counts(creature.survival_gene),
-                Self::format_neighbor_counts(creature.repro_gene),
+                Self::format_neighbor_count_gene(creature.survival_gene),
+                Self::format_neighbor_count_gene(creature.repro_gene),
                 color[0],
                 color[1],
                 color[2]
@@ -122,7 +122,7 @@ impl EvoConwayGridCell {
         }
     }
 
-    fn format_neighbor_counts(neighbor_counts: BitSet8Gene) -> String {
+    fn format_neighbor_count_gene(neighbor_counts: BitSet8Gene) -> String {
         let mut result = String::with_capacity(100);
         result.push('[');
         for i in 0..8 {
