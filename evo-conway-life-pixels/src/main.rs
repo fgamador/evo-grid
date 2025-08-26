@@ -48,7 +48,9 @@ impl EvoConwayWorld {
     fn add_random_life(&mut self) {
         for row in 0..self.height() {
             for col in 0..self.width() {
-                if self.rand.as_mut().unwrap().next_bool(0.3) {
+                if let Some(rand) = self.rand.as_mut()
+                    && rand.next_bool(0.3)
+                {
                     let loc = Loc::new(row, col);
                     self.grid.cells[loc].creature = Some(Creature::conway());
                 }
@@ -206,14 +208,13 @@ impl Creature {
     }
 
     fn has_small_genome(&self, rand: &mut Option<Random>) -> bool {
-        if rand.is_none() {
-            return true;
+        if let Some(rand) = rand {
+            let num_genome_bits =
+                self.survival_gene.count_set_bits() + self.repro_gene.count_set_bits();
+            rand.next_bool(1.0 - num_genome_bits as f64 / 16.0)
+        } else {
+            true
         }
-
-        let rand = rand.as_mut().unwrap();
-        let num_genome_bits =
-            self.survival_gene.count_set_bits() + self.repro_gene.count_set_bits();
-        rand.next_bool(1.0 - num_genome_bits as f64 / 16.0)
     }
 
     pub fn maybe_reproduce(
