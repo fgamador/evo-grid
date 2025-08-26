@@ -234,8 +234,8 @@ impl Creature {
             Self::parent_bit_counts(neighborhood, num_neighbors)
         {
             let child = Creature::new(
-                survival_bit_counts.as_neighbor_counts(rand),
-                birth_bit_counts.as_neighbor_counts(rand),
+                survival_bit_counts.as_neighbor_counts(rand, MUTATION_ODDS),
+                birth_bit_counts.as_neighbor_counts(rand, MUTATION_ODDS),
             );
             if child.has_small_genome(rand) {
                 Some(child)
@@ -336,14 +336,14 @@ impl BitCountsMap {
         }
     }
 
-    pub fn as_neighbor_counts(&self, rand: &mut Option<Random>) -> BitSet8 {
+    pub fn as_neighbor_counts(&self, rand: &mut Option<Random>, mutation_odds: f64) -> BitSet8 {
         let mut result = BitSet8::empty();
         for i in 0..8 {
             if Self::merge_counts(self.ones[i], self.zeros[i], rand) {
                 result.set_bit(i);
             }
             if let Some(rand) = rand
-                && rand.next_bool(MUTATION_ODDS)
+                && rand.next_bool(mutation_odds)
             {
                 result.flip_bit(i);
             }
