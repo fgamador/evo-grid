@@ -10,7 +10,7 @@ use rand_distr::{Distribution, Normal};
 use rayon::prelude::*;
 use std::fmt::Debug;
 use std::mem;
-use std::ops::{Index, IndexMut, Range};
+use std::ops::{Index, IndexMut, Range, RangeInclusive};
 use std::slice::ChunksExactMut;
 
 pub trait World {
@@ -381,8 +381,9 @@ impl FractionGene {
         // do better than just averaging?
         let average_value = genes.iter().map(|gene| gene.value).sum::<f32>() / genes.len() as f32;
         if let Some(rand) = rand {
-            // todo can overflow gene value
-            Self::new(rand.next_normal(average_value as f64, mutation_stdev) as f32)
+            Self::new(
+                rand.next_truncated_normal(average_value as f64, mutation_stdev, 0.0..=1.0) as f32,
+            )
         } else {
             Self::new(average_value)
         }
@@ -422,6 +423,20 @@ impl Random {
     pub fn next_normal(&mut self, mean: f64, stdev: f64) -> f64 {
         let distr = Normal::new(mean, stdev).unwrap();
         distr.sample(&mut self.rng)
+    }
+
+    pub fn next_truncated_normal(
+        &mut self,
+        mean: f64,
+        stdev: f64,
+        range: RangeInclusive<f64>,
+    ) -> f64 {
+        loop {
+            let sample = self.next_normal(mean, stdev);
+            if range.contains(&sample) {
+                return sample;
+            }
+        }
     }
 
     pub fn shuffle_color_rgb(&mut self, mut color: [u8; 3]) -> [u8; 3] {
