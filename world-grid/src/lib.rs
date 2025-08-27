@@ -17,7 +17,7 @@ pub trait World {
     fn width(&self) -> u32;
     fn height(&self) -> u32;
     fn num_cells(&self) -> usize;
-    fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &impl GridCell> + Clone;
+    fn cells_iter(&self) -> Iter<'_, impl GridCell>;
     fn update(&mut self);
     fn debug_print(&self, _row: u32, _col: u32) {}
 }
@@ -59,7 +59,7 @@ where
         self.cells.num_cells()
     }
 
-    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &C> + Clone {
+    pub fn cells_iter(&self) -> Iter<'_, C> {
         self.cells.cells_iter()
     }
 

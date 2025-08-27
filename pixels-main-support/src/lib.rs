@@ -4,6 +4,7 @@
 use itertools::izip;
 use pixels::wgpu::Color;
 use pixels::{Pixels, PixelsBuilder, SurfaceTexture};
+use std::slice::Iter;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use winit::application::ApplicationHandler;
@@ -300,7 +301,7 @@ impl PixelCrossFadeBuffer {
         }
     }
 
-    fn load<'a, T: GridCell + 'a>(&mut self, cells: impl Iterator<Item = &'a T>) {
+    fn load<'a, C: GridCell + 'a>(&mut self, cells: Iter<'_, C>) {
         for (input_pixel, background_pixel, cell) in izip!(
             self.input_pixels.iter_mut(),
             self.background_pixels.iter_mut(),

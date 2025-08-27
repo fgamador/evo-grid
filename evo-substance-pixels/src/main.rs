@@ -4,6 +4,7 @@
 use arrayvec::ArrayVec;
 use pixels_main_support::animate;
 use std::fmt::Debug;
+use std::slice::Iter;
 use world_grid::{BitSet8Gene, GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
 const TIME_STEP_FRAMES: u32 = 60;
@@ -66,7 +67,7 @@ impl World for EvoSubstanceWorld {
         self.grid.num_cells()
     }
 
-    fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &impl GridCell> + Clone {
+    fn cells_iter(&self) -> Iter<'_, impl GridCell> {
         self.grid.cells_iter()
     }
 
