@@ -2,7 +2,7 @@
 #![forbid(unsafe_code)]
 
 use pixels_main_support::animate;
-use world_grid::{GridCell, Loc, Neighborhood, Random, World, WorldGrid};
+use world_grid::{GridCell, Neighborhood, Random, World, WorldGrid};
 
 const TIME_STEP_FRAMES: u32 = 4;
 const CELL_PIXEL_WIDTH: u32 = 4;
@@ -42,11 +42,11 @@ impl ConwayWorld {
     }
 
     fn add_random_life(&mut self) {
-        for row in 0..self.height() {
-            for col in 0..self.width() {
-                let loc = Loc::new(row, col);
-                let rand = self.rand.as_mut().unwrap();
-                self.grid.cells[loc].alive = rand.next_bool(0.3);
+        for cell in self.grid.cells.cells_iter_mut() {
+            if let Some(rand) = self.rand.as_mut()
+                && rand.next_bool(0.3)
+            {
+                cell.alive = true;
             }
         }
     }
