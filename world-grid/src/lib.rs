@@ -6,6 +6,7 @@ use rand::distr::uniform::{SampleRange, SampleUniform};
 use rand::prelude::*;
 use rand::rngs::SmallRng;
 use rand::SeedableRng;
+use rand_distr::{Distribution, Normal};
 use rayon::prelude::*;
 use std::fmt::Debug;
 use std::mem;
@@ -361,6 +362,33 @@ impl BitCountsMap {
     }
 }
 
+#[derive(Clone, Copy, Debug, Default)]
+pub struct FractionGene {
+    pub value: f32,
+}
+
+impl FractionGene {
+    pub fn new(value: f32) -> Self {
+        debug_assert!((0.0..=1.0).contains(&value));
+        Self { value }
+    }
+
+    pub fn merge(
+        genes: &ArrayVec<Self, 8>,
+        rand: &mut Option<Random>,
+        mutation_stdev: f64,
+    ) -> Self {
+        // do better than just averaging?
+        let average_value = genes.iter().map(|gene| gene.value).sum::<f32>() / genes.len() as f32;
+        if let Some(rand) = rand {
+            // todo can overflow gene value
+            Self::new(rand.next_normal(average_value as f64, mutation_stdev) as f32)
+        } else {
+            Self::new(average_value)
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Random {
     rng: SmallRng,
@@ -389,6 +417,11 @@ impl Random {
         R: SampleRange<T>,
     {
         self.rng.random_range(range)
+    }
+
+    pub fn next_normal(&mut self, mean: f64, stdev: f64) -> f64 {
+        let distr = Normal::new(mean, stdev).unwrap();
+        distr.sample(&mut self.rng)
     }
 
     pub fn shuffle_color_rgb(&mut self, mut color: [u8; 3]) -> [u8; 3] {
