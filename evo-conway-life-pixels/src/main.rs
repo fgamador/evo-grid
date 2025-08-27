@@ -6,7 +6,7 @@ use pixels_main_support::animate;
 use std::fmt::Debug;
 use world_grid::{BitSet8Gene, GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
-const TIME_STEP_FRAMES: u32 = 30;
+const TIME_STEP_FRAMES: u32 = 60;
 const CELL_PIXEL_WIDTH: u32 = 4;
 const EMPTY_CELL_COLOR: [u8; 4] = [0, 0, 0, 0xff];
 const MUTATION_ODDS: f64 = 0.001;
