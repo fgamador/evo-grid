@@ -11,7 +11,7 @@ use rayon::prelude::*;
 use std::fmt::Debug;
 use std::mem;
 use std::ops::{Index, IndexMut, Range, RangeInclusive};
-use std::slice::ChunksExactMut;
+use std::slice::{ChunksExactMut, Iter, IterMut};
 
 pub trait World {
     fn width(&self) -> u32;
@@ -149,8 +149,12 @@ where
         self.cells.len()
     }
 
-    pub fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &C> + Clone {
+    pub fn cells_iter(&self) -> Iter<'_, C> {
         self.cells.iter()
+    }
+
+    pub fn cells_iter_mut(&mut self) -> IterMut<'_, C> {
+        self.cells.iter_mut()
     }
 
     pub fn rows_mut(&mut self) -> ChunksExactMut<'_, C> {

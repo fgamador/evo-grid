@@ -43,14 +43,11 @@ impl EvoSubstanceWorld {
     }
 
     fn add_random_life(&mut self) {
-        for row in 0..self.height() {
-            for col in 0..self.width() {
-                if let Some(rand) = self.rand.as_mut()
-                    && rand.next_bool(0.3)
-                {
-                    let loc = Loc::new(row, col);
-                    self.grid.cells[loc].creature = Some(Creature::conway());
-                }
+        for cell in self.grid.cells.cells_iter_mut() {
+            if let Some(rand) = self.rand.as_mut()
+                && rand.next_bool(0.3)
+            {
+                cell.creature = Some(Creature::conway());
             }
         }
     }
@@ -85,6 +82,7 @@ impl World for EvoSubstanceWorld {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct EvoSubstanceCell {
     creature: Option<Creature>,
+    substance: Option<Substance>,
 }
 
 impl EvoSubstanceCell {
@@ -256,5 +254,22 @@ impl Creature {
 
     fn can_reproduce(&self, num_neighbors: usize) -> bool {
         num_neighbors > 0 && self.repro_gene.is_bit_set(num_neighbors - 1)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct Substance {
+    // bits[n] == 1 means will survive if own cell has n-1 neighbor creatures
+    survival_gene: BitSet8Gene,
+    // bits[n] == 1 means will reproduce if target cell has n-1 neighbor creatures
+    repro_gene: BitSet8Gene,
+}
+
+impl Substance {
+    pub fn new(survival_gene: BitSet8Gene, repro_gene: BitSet8Gene) -> Self {
+        Self {
+            survival_gene,
+            repro_gene,
+        }
     }
 }

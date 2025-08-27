@@ -46,14 +46,11 @@ impl EvoConwayWorld {
     }
 
     fn add_random_life(&mut self) {
-        for row in 0..self.height() {
-            for col in 0..self.width() {
-                if let Some(rand) = self.rand.as_mut()
-                    && rand.next_bool(0.3)
-                {
-                    let loc = Loc::new(row, col);
-                    self.grid.cells[loc].creature = Some(Creature::conway());
-                }
+        for cell in self.grid.cells.cells_iter_mut() {
+            if let Some(rand) = self.rand.as_mut()
+                && rand.next_bool(0.3)
+            {
+                cell.creature = Some(Creature::conway());
             }
         }
     }
