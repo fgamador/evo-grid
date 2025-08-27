@@ -1,0 +1,10 @@
+[package]
+name = "evo-substance-pixels"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[dependencies]
+arrayvec = "0.7"
+pixels-main-support = { path = "../pixels-main-support" }
+world-grid = { path = "../world-grid" }
