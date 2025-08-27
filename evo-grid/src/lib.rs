@@ -1,6 +1,7 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+use std::slice::Iter;
 use world_grid::{
     alpha_blend, GridCell, Loc, Neighborhood, Random, World, WorldGrid, WorldGridCells,
 };
@@ -92,7 +93,7 @@ impl World for EvoWorld {
         self.grid.num_cells()
     }
 
-    fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &impl GridCell> + Clone {
+    fn cells_iter(&self) -> Iter<'_, impl GridCell> {
         self.grid.cells_iter()
     }
 

@@ -1,6 +1,7 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
+use std::slice::Iter;
 use pixels_main_support::animate;
 use world_grid::{GridCell, Neighborhood, Random, World, WorldGrid};
 
@@ -65,7 +66,7 @@ impl World for ConwayWorld {
         self.grid.num_cells()
     }
 
-    fn cells_iter(&self) -> impl DoubleEndedIterator<Item = &impl GridCell> + Clone {
+    fn cells_iter(&self) -> Iter<'_, impl GridCell> {
         self.grid.cells_iter()
     }
 
