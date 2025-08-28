@@ -9,3 +9,6 @@ authors = ["Franz Amador <franzamador@gmail.com>"]
 
 [workspace.dependencies]
 rand = "0.9"
+
+[profile.release]
+debug = true
