@@ -279,25 +279,25 @@ impl<W: World> App<W> {
             self.pixels.frame_mut().chunks_exact_mut(4),
             self.cross_fade_buffer.output_pixels.iter()
         ) {
-            screen_pixel.copy_from_slice(buffer_pixel);
+            screen_pixel.copy_from_slice(&buffer_pixel.bytes);
         }
         self.pixels.render().unwrap();
     }
 }
 
 struct PixelCrossFadeBuffer {
-    input_pixels: Vec<[u8; 4]>,
-    background_pixels: Vec<[u8; 4]>,
-    output_pixels: Vec<[u8; 4]>,
+    input_pixels: Vec<Pixel>,
+    background_pixels: Vec<Pixel>,
+    output_pixels: Vec<Pixel>,
 }
 
 impl PixelCrossFadeBuffer {
     fn new(width: u32, height: u32) -> Self {
         let num_pixels = (width * height) as usize;
         Self {
-            input_pixels: vec![[0; 4]; num_pixels],
-            background_pixels: vec![[0; 4]; num_pixels],
-            output_pixels: vec![[0; 4]; num_pixels],
+            input_pixels: vec![Pixel::zeros(); num_pixels],
+            background_pixels: vec![Pixel::zeros(); num_pixels],
+            output_pixels: vec![Pixel::zeros(); num_pixels],
         }
     }
 
@@ -308,10 +308,10 @@ impl PixelCrossFadeBuffer {
             cells
         ) {
             *background_pixel = *input_pixel;
-            background_pixel[3] = 0xff;
+            background_pixel.make_opaque();
 
-            *input_pixel = cell.color_rgba();
-            input_pixel[3] = 0;
+            input_pixel.bytes = cell.color_rgba();
+            input_pixel.make_transparent();
         }
     }
 
@@ -332,14 +332,15 @@ impl PixelCrossFadeBuffer {
             self.output_pixels.iter_mut()
         ) {
             let mut input_pixel = *input_pixel;
-            input_pixel[3] = if is_dark(input_pixel) {
+            input_pixel.set_alpha(if input_pixel.is_dark() {
                 dark_pixel_alpha
             } else {
                 bright_pixel_alpha
-            };
+            });
 
-            *output_pixel = alpha_blend_with_background(input_pixel, *background_pixel);
-            output_pixel[3] = 0xff;
+            output_pixel.by tes =
+                alpha_blend_with_background(input_pixel.bytes, background_pixel.bytes);
+            output_pixel.make_opaque();
         }
     }
 }
@@ -348,7 +349,32 @@ fn fraction_to_alpha(fraction: f32) -> u8 {
     (fraction * 0xff as f32) as u8
 }
 
-fn is_dark(pixel: [u8; 4]) -> bool {
-    const MAX_DARK_VALUE: u8 = 0x10;
-    pixel[0] <= MAX_DARK_VALUE && pixel[1] <= MAX_DARK_VALUE && pixel[2] <= MAX_DARK_VALUE
+#[derive(Clone, Copy, Debug)]
+struct Pixel {
+    bytes: [u8; 4],
+}
+
+impl Pixel {
+    fn zeros() -> Self {
+        Self { bytes: [0; 4] }
+    }
+
+    fn set_alpha(&mut self, alpha: u8) {
+        self.bytes[3] = alpha;
+    }
+
+    fn make_transparent(&mut self) {
+        self.set_alpha(0x00);
+    }
+
+    fn make_opaque(&mut self) {
+        self.set_alpha(0xff);
+    }
+
+    fn is_dark(&self) -> bool {
+        const MAX_DARK_VALUE: u8 = 0x10;
+        self.bytes[0] <= MAX_DARK_VALUE
+            && self.bytes[1] <= MAX_DARK_VALUE
+            && self.bytes[2] <= MAX_DARK_VALUE
+    }
 }
