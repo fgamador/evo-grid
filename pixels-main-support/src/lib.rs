@@ -338,7 +338,7 @@ impl PixelCrossFadeBuffer {
                 bright_pixel_alpha
             });
 
-            output_pixel.by tes =
+            output_pixel.bytes =
                 alpha_blend_with_background(input_pixel.bytes, background_pixel.bytes);
             output_pixel.make_opaque();
         }
