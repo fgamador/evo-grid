@@ -301,7 +301,7 @@ impl PixelCrossFadeBuffer {
         }
     }
 
-    fn load<'a, C: GridCell + 'a>(&mut self, cells: Iter<'_, C>) {
+    fn load<C: GridCell>(&mut self, cells: Iter<'_, C>) {
         for (input_pixel, background_pixel, cell) in izip!(
             self.input_pixels.iter_mut(),
             self.background_pixels.iter_mut(),
