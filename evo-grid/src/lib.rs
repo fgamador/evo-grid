@@ -1,7 +1,6 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-use std::slice::Iter;
 use world_grid::{
     alpha_blend, GridCell, Loc, Neighborhood, Random, World, WorldGrid, WorldGridCells,
 };
@@ -37,10 +36,10 @@ impl EvoWorld {
 
     fn add_substance_source_clusters(&mut self, count: usize, radius: u32, size: u32) {
         for _ in 0..count {
-            let row_range = radius..(self.height() - radius);
+            let row_range = radius..(self.grid().height() - radius);
             let row = self.rand.as_mut().unwrap().next_in_range(row_range);
 
-            let col_range = radius..(self.width() - radius);
+            let col_range = radius..(self.grid().width() - radius);
             let col = self.rand.as_mut().unwrap().next_in_range(col_range);
 
             self.add_substance_source_cluster(Loc::new(row, col), radius, size);
@@ -75,26 +74,14 @@ impl EvoWorld {
     }
 
     fn add_creatures(&mut self) {
-        let loc = Loc::new(20 + self.height() / 4, self.width() / 3);
+        let loc = Loc::new(20 + self.grid().height() / 4, self.grid().width() / 3);
         self.grid.cells[loc].creature = Some(Creature::new([0, 0xff, 0]));
     }
 }
 
 impl World for EvoWorld {
-    fn width(&self) -> u32 {
-        self.grid.width()
-    }
-
-    fn height(&self) -> u32 {
-        self.grid.height()
-    }
-
-    fn num_cells(&self) -> usize {
-        self.grid.num_cells()
-    }
-
-    fn cells_iter(&self) -> Iter<'_, impl GridCell> {
-        self.grid.cells_iter()
+    fn grid(&self) -> &WorldGrid<impl GridCell> {
+        &self.grid
     }
 
     fn update(&mut self) {
@@ -175,6 +162,8 @@ impl GridCell for EvoGridCell {
         self.update_next_creature(neighborhood, next_cell);
         self.update_next_substance(neighborhood, next_cell);
     }
+
+    fn debug_print(&self, _row: u32, _col: u32) {}
 }
 
 #[derive(Clone, Copy, Debug, Default)]

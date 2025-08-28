@@ -4,8 +4,7 @@
 use arrayvec::ArrayVec;
 use pixels_main_support::animate;
 use std::fmt::Debug;
-use std::slice::Iter;
-use world_grid::{BitSet8, BitSet8Gene, GridCell, Loc, Neighborhood, Random, World, WorldGrid};
+use world_grid::{BitSet8, BitSet8Gene, GridCell, Neighborhood, Random, World, WorldGrid};
 
 const TIME_STEP_FRAMES: u32 = 60;
 const CELL_PIXEL_WIDTH: u32 = 4;
@@ -58,20 +57,8 @@ impl EvoConwayWorld {
 }
 
 impl World for EvoConwayWorld {
-    fn width(&self) -> u32 {
-        self.grid.width()
-    }
-
-    fn height(&self) -> u32 {
-        self.grid.height()
-    }
-
-    fn num_cells(&self) -> usize {
-        self.grid.num_cells()
-    }
-
-    fn cells_iter(&self) -> Iter<'_, impl GridCell> {
-        self.grid.cells_iter()
+    fn grid(&self) -> &WorldGrid<impl GridCell> {
+        &self.grid
     }
 
     fn update(&mut self) {
@@ -81,10 +68,6 @@ impl World for EvoConwayWorld {
         } else {
             self.grid.update(&mut self.rand, |_grid| {});
         };
-    }
-
-    fn debug_print(&self, row: u32, col: u32) {
-        self.grid.cells[Loc::new(row, col)].debug_print(row, col);
     }
 }
 
@@ -102,24 +85,6 @@ impl EvoConwayGridCell {
             }
         });
         result
-    }
-
-    fn debug_print(&self, row: u32, col: u32) {
-        if let Some(creature) = self.creature {
-            let color = self.color_rgba();
-            println!(
-                "({}, {}): Survival: {}, Repro: {}, Color: [0x{:X},0x{:X},0x{:X}]",
-                row,
-                col,
-                Self::format_neighbor_count_gene(creature.survival_gene),
-                Self::format_neighbor_count_gene(creature.repro_gene),
-                color[0],
-                color[1],
-                color[2]
-            );
-        } else {
-            println!("({}, {}): No creature", row, col);
-        }
     }
 
     fn format_neighbor_count_gene(neighbor_counts: BitSet8Gene) -> String {
@@ -162,6 +127,24 @@ impl GridCell for EvoConwayGridCell {
             next_cell.creature = Creature::maybe_reproduce(neighborhood, num_neighbors, rand);
         };
     }
+
+    fn debug_print(&self, row: u32, col: u32) {
+        if let Some(creature) = self.creature {
+            let color = self.color_rgba();
+            println!(
+                "({}, {}): Survival: {}, Repro: {}, Color: [0x{:X},0x{:X},0x{:X}]",
+                row,
+                col,
+                Self::format_neighbor_count_gene(creature.survival_gene),
+                Self::format_neighbor_count_gene(creature.repro_gene),
+                color[0],
+                color[1],
+                color[2]
+            );
+        } else {
+            println!("({}, {}): No creature", row, col);
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -181,7 +164,10 @@ impl Creature {
     }
 
     pub fn conway() -> Self {
-        Self::new(BitSet8Gene::new(BitSet8::new(0b110)), BitSet8Gene::new(BitSet8::new(0b100)))
+        Self::new(
+            BitSet8Gene::new(BitSet8::new(0b110)),
+            BitSet8Gene::new(BitSet8::new(0b100)),
+        )
     }
 
     pub fn color_rgba(&self) -> [u8; 4] {

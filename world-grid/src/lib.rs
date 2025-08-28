@@ -14,12 +14,8 @@ use std::ops::{Index, IndexMut, Range, RangeInclusive};
 use std::slice::{ChunksExactMut, Iter, IterMut};
 
 pub trait World {
-    fn width(&self) -> u32;
-    fn height(&self) -> u32;
-    fn num_cells(&self) -> usize;
-    fn cells_iter(&self) -> Iter<'_, impl GridCell>;
+    fn grid(&self) -> &WorldGrid<impl GridCell>;
     fn update(&mut self);
-    fn debug_print(&self, _row: u32, _col: u32) {}
 }
 
 #[derive(Clone, Debug)]
@@ -111,6 +107,10 @@ where
         let neighborhood = Neighborhood::new(cells, loc);
         let next_cell = &mut next_cells_row[loc.col as usize];
         cell.update(&neighborhood, next_cell, rand);
+    }
+
+    pub fn debug_print(&self, row: u32, col: u32) {
+        self.cells[Loc::new(row, col)].debug_print(row, col);
     }
 }
 
@@ -204,7 +204,7 @@ where
 
 pub trait GridCell
 where
-    Self: Copy + Default + Send + Sync,
+    Self: Copy + Debug + Default + Send + Sync,
 {
     fn color_rgba(&self) -> [u8; 4];
     fn update(
@@ -213,6 +213,7 @@ where
         next_cell: &mut Self,
         rand: &mut Option<Random>,
     );
+    fn debug_print(&self, row: u32, col: u32);
 }
 
 pub struct Neighborhood<'a, C>

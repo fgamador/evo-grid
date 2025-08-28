@@ -1,7 +1,6 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-use std::slice::Iter;
 use pixels_main_support::animate;
 use world_grid::{GridCell, Neighborhood, Random, World, WorldGrid};
 
@@ -54,20 +53,8 @@ impl ConwayWorld {
 }
 
 impl World for ConwayWorld {
-    fn width(&self) -> u32 {
-        self.grid.width()
-    }
-
-    fn height(&self) -> u32 {
-        self.grid.height()
-    }
-
-    fn num_cells(&self) -> usize {
-        self.grid.num_cells()
-    }
-
-    fn cells_iter(&self) -> Iter<'_, impl GridCell> {
-        self.grid.cells_iter()
+    fn grid(&self) -> &WorldGrid<impl GridCell> {
+        &self.grid
     }
 
     fn update(&mut self) {
@@ -114,4 +101,6 @@ impl GridCell for ConwayGridCell {
             neighbors == 3
         };
     }
+
+    fn debug_print(&self, _row: u32, _col: u32) {}
 }

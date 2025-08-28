@@ -4,7 +4,6 @@
 use arrayvec::ArrayVec;
 use pixels_main_support::animate;
 use std::fmt::Debug;
-use std::slice::Iter;
 use world_grid::{
     BitSet8, BitSet8Gene, FractionGene, GridCell, Neighborhood, Random, World, WorldGrid,
 };
@@ -58,27 +57,13 @@ impl EvoSubstanceWorld {
 }
 
 impl World for EvoSubstanceWorld {
-    fn width(&self) -> u32 {
-        self.grid.width()
-    }
-
-    fn height(&self) -> u32 {
-        self.grid.height()
-    }
-
-    fn num_cells(&self) -> usize {
-        self.grid.num_cells()
-    }
-
-    fn cells_iter(&self) -> Iter<'_, impl GridCell> {
-        self.grid.cells_iter()
+    fn grid(&self) -> &WorldGrid<impl GridCell> {
+        &self.grid
     }
 
     fn update(&mut self) {
         self.grid.update(&mut self.rand, |_grid| {});
     }
-
-    fn debug_print(&self, _row: u32, _col: u32) {}
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -123,6 +108,8 @@ impl GridCell for EvoSubstanceCell {
             next_cell.creature = Creature::maybe_reproduce(neighborhood, rand);
         };
     }
+
+    fn debug_print(&self, _row: u32, _col: u32) {}
 }
 
 #[derive(Clone, Copy, Debug, Default)]

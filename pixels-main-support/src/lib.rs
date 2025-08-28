@@ -171,8 +171,9 @@ impl<W: World> App<W> {
     {
         let window = Arc::new(Self::build_window(event_loop));
         let world = build_world(window.inner_size());
-        let pixels = Self::build_pixels(&window, world.width(), world.height());
-        let cross_fade_buffer = PixelCrossFadeBuffer::new(world.width(), world.height());
+        let pixels = Self::build_pixels(&window, world.grid().width(), world.grid().height());
+        let cross_fade_buffer =
+            PixelCrossFadeBuffer::new(world.grid().width(), world.grid().height());
         Self {
             world,
             window,
@@ -205,7 +206,7 @@ impl<W: World> App<W> {
 
     fn on_create(&mut self) {
         self.world.update();
-        self.cross_fade_buffer.load(self.world.cells_iter());
+        self.cross_fade_buffer.load(self.world.grid().cells_iter());
         self.cross_fade_buffer.straight_to_output();
 
         self.window.set_cursor_visible(false);
@@ -245,7 +246,7 @@ impl<W: World> App<W> {
 
     fn on_time_step_frame(&mut self) {
         self.world.update();
-        self.cross_fade_buffer.load(self.world.cells_iter());
+        self.cross_fade_buffer.load(self.world.grid().cells_iter());
         self.time_step_frame = 0;
         self.window.request_redraw();
     }
@@ -257,7 +258,7 @@ impl<W: World> App<W> {
 
     fn update_and_draw(&mut self) {
         self.world.update();
-        self.cross_fade_buffer.load(self.world.cells_iter());
+        self.cross_fade_buffer.load(self.world.grid().cells_iter());
         self.cross_fade_buffer.straight_to_output();
         self.window.request_redraw();
     }
@@ -267,7 +268,7 @@ impl<W: World> App<W> {
             .pixels
             .window_pos_to_pixel((pos.x as f32, pos.y as f32))
             .unwrap();
-        self.world.debug_print(row as u32, col as u32);
+        self.world.grid().debug_print(row as u32, col as u32);
     }
 
     fn request_redraw(&self) {
