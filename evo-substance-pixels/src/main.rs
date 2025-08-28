@@ -5,7 +5,7 @@ use arrayvec::ArrayVec;
 use pixels_main_support::animate;
 use std::fmt::Debug;
 use world_grid::{
-    BitSet8, BitSet8Gene, FractionGene, GridCell, Neighborhood, Random, World, WorldGrid,
+    BitSet8, BitSet8Gene, FractionGene, GridCell, Loc, Neighborhood, Random, World, WorldGrid,
 };
 
 const TIME_STEP_FRAMES: u32 = 60;
@@ -30,29 +30,81 @@ pub struct EvoSubstanceWorld {
 }
 
 impl EvoSubstanceWorld {
-    pub fn new(width: u32, height: u32, rand: Random) -> Self {
-        let mut result = Self::new_empty(width, height, rand);
+    pub fn new(grid_width: u32, grid_height: u32, rand: Random) -> Self {
+        let mut result = Self::new_empty(grid_width, grid_height, rand);
+        result.add_random_substances();
         result.add_random_life();
         result
     }
 
-    fn new_empty(width: u32, height: u32, rand: Random) -> Self {
-        assert!(width > 0 && height > 0);
+    fn new_empty(grid_width: u32, grid_height: u32, rand: Random) -> Self {
+        assert!(grid_width > 0 && grid_height > 0);
         Self {
-            grid: WorldGrid::new(width, height),
+            grid: WorldGrid::new(grid_width, grid_height),
             rand: Some(rand),
         }
     }
 
-    fn add_random_life(&mut self) {
-        for cell in self.grid.cells.cells_iter_mut() {
-            if let Some(rand) = self.rand.as_mut()
-                && rand.next_bool(0.3)
-            {
-                // todo
-                // cell.creature = Some(Creature::conway());
+    fn add_random_substances(&mut self) {
+        for _ in 0..=5 {
+            let center = self.random_loc();
+            let radius = self.random_blob_radius();
+            let substance = self.random_substance();
+            self.add_random_substance_blob(center, radius, substance);
+        }
+    }
+
+    fn random_loc(&mut self) -> Loc {
+        let rand = self.rand.as_mut().unwrap();
+        let row = rand.next_in_range(0..=self.grid.height());
+        let col = rand.next_in_range(0..=self.grid.width());
+        Loc::new(row, col)
+    }
+
+    fn random_blob_radius(&mut self) -> u32 {
+        let max_radius = self.grid.width().min(self.grid.height()) / 4;
+        let rand = self.rand.as_mut().unwrap();
+        rand.next_in_range(10..=max_radius)
+    }
+
+    fn random_substance(&mut self) -> Substance {
+        let rand = self.rand.as_mut().unwrap();
+        Substance::new(BitSet8::random(0.5, rand))
+    }
+
+    fn add_random_substance_blob(&mut self, center: Loc, radius: u32, substance: Substance) {
+        let (upper_left, lower_right) = self.cell_box(center, radius);
+        let rand = self.rand.as_mut().unwrap();
+        for row in upper_left.row..=lower_right.row {
+            for col in upper_left.col..=lower_right.col {
+                let loc = Loc::new(row, col);
+                let fraction_of_radius = loc.distance(center) / radius as f64;
+                if fraction_of_radius < 1.0
+                    && rand.next_bool(1.0 - fraction_of_radius)
+                    && let Some(cell) = self.grid.cell_mut(loc)
+                {
+                    cell.substance = Some(substance);
+                }
             }
         }
+    }
+
+    fn cell_box(&mut self, center: Loc, radius: u32) -> (Loc, Loc) {
+        let min_row = center.row.saturating_sub(radius);
+        let max_row = (center.row + radius).min(self.grid.height() - 1);
+        let min_col = center.col.saturating_sub(radius);
+        let max_col = (center.col + radius).min(self.grid.width() - 1);
+        (Loc::new(min_row, min_col), Loc::new(max_row, max_col))
+    }
+
+    fn add_random_life(&mut self) {
+        // for cell in self.grid.cells.cells_iter_mut() {
+        //     if let Some(rand) = self.rand.as_mut()
+        //         && rand.next_bool(0.3)
+        //     {
+        //         // cell.creature = Some(Creature::conway());
+        //     }
+        // }
     }
 }
 
@@ -72,17 +124,7 @@ pub struct EvoSubstanceCell {
     substance: Option<Substance>,
 }
 
-impl EvoSubstanceCell {
-    fn num_neighbor_creatures(neighborhood: &Neighborhood<EvoSubstanceCell>) -> usize {
-        let mut result = 0;
-        neighborhood.for_neighbor_cells(|neighbor| {
-            if neighbor.creature.is_some() {
-                result += 1;
-            }
-        });
-        result
-    }
-}
+impl EvoSubstanceCell {}
 
 impl GridCell for EvoSubstanceCell {
     fn color_rgba(&self) -> [u8; 4] {
@@ -99,9 +141,8 @@ impl GridCell for EvoSubstanceCell {
         next_cell: &mut EvoSubstanceCell,
         rand: &mut Option<Random>,
     ) {
-        let num_neighbors = Self::num_neighbor_creatures(neighborhood);
         if let Some(creature) = self.creature {
-            if !creature.survives(num_neighbors, rand) {
+            if !creature.survives(rand) {
                 next_cell.creature = None;
             }
         } else {
@@ -137,9 +178,11 @@ impl Creature {
         [red, green, blue, 0xff]
     }
 
-    pub fn survives(&self, num_neighbors: usize, rand: &mut Option<Random>) -> bool {
-        num_neighbors > 0 && self.enzyme_gene.value.is_bit_set(num_neighbors - 1)
+    pub fn survives(&self, _rand: &mut Option<Random>) -> bool {
+        // todo
+        // num_neighbors > 0 && self.enzyme_gene.value.is_bit_set(num_neighbors - 1)
         // && self.has_small_genome(rand)
+        true
     }
 
     pub fn maybe_reproduce(
@@ -165,7 +208,7 @@ impl Creature {
         let mut parent_match_weight_genes = ArrayVec::<FractionGene, 8>::new();
         neighborhood.for_neighbor_cells(|neighbor| {
             if let Some(creature) = neighbor.creature
-            // && creature.can_reproduce(num_neighbors)
+                && creature.can_reproduce()
             {
                 parent_enzyme_genes.push(creature.enzyme_gene);
                 parent_match_weight_genes.push(creature.match_weight_gene);
@@ -182,9 +225,9 @@ impl Creature {
         }
     }
 
-    fn can_reproduce(&self, num_neighbors: usize) -> bool {
+    fn can_reproduce(&self) -> bool {
         // todo
-        true
+        false
         // num_neighbors > 0 && self.match_weight_gene.value.is_bit_set(num_neighbors - 1)
     }
 }
@@ -201,7 +244,7 @@ impl Substance {
 
     pub fn color_rgba(&self) -> [u8; 4] {
         // todo
-        let red = 0;
+        let red = self.code.bits;
 
         let green = 0;
 

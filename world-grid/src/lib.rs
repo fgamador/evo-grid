@@ -55,6 +55,10 @@ where
         self.cells.num_cells()
     }
 
+    pub fn cell_mut(&mut self, loc: Loc) -> Option<&mut C> {
+        self.cells.cell_mut(loc)
+    }
+
     pub fn cells_iter(&self) -> Iter<'_, C> {
         self.cells.cells_iter()
     }
@@ -269,6 +273,12 @@ impl Loc {
             None
         }
     }
+
+    pub fn distance(&self, loc: Loc) -> f64 {
+        let row_diff = self.row.abs_diff(loc.row);
+        let col_diff = self.col.abs_diff(loc.col);
+        (((row_diff * row_diff) + (col_diff * col_diff)) as f64).sqrt()
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -302,6 +312,16 @@ impl BitSet8 {
 
     pub fn empty() -> Self {
         Self::new(0)
+    }
+
+    pub fn random(bit_odds: f64, rand: &mut Random) -> Self {
+        let mut result = Self::empty();
+        for i in 0..8 {
+            if rand.next_bool(bit_odds) {
+                result.set_bit(i);
+            }
+        }
+        result
     }
 
     pub fn is_bit_set(&self, index: usize) -> bool {
