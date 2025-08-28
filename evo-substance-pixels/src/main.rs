@@ -5,7 +5,9 @@ use arrayvec::ArrayVec;
 use pixels_main_support::animate;
 use std::fmt::Debug;
 use std::slice::Iter;
-use world_grid::{BitSet8Gene, FractionGene, GridCell, Neighborhood, Random, World, WorldGrid};
+use world_grid::{
+    BitSet8, BitSet8Gene, FractionGene, GridCell, Neighborhood, Random, World, WorldGrid,
+};
 
 const TIME_STEP_FRAMES: u32 = 60;
 const CELL_PIXEL_WIDTH: u32 = 4;
@@ -118,7 +120,7 @@ impl GridCell for EvoSubstanceCell {
                 next_cell.creature = None;
             }
         } else {
-            next_cell.creature = Creature::maybe_reproduce(neighborhood, num_neighbors, rand);
+            next_cell.creature = Creature::maybe_reproduce(neighborhood, rand);
         };
     }
 }
@@ -155,25 +157,20 @@ impl Creature {
 
     pub fn maybe_reproduce(
         neighborhood: &Neighborhood<EvoSubstanceCell>,
-        num_neighbors: usize,
         rand: &mut Option<Random>,
     ) -> Option<Creature> {
-        // if num_neighbors > 0
-        //     && let Some((child_enzyme_gene, child_match_weight_gene)) =
-        //         Self::merge_parent_genes(neighborhood, num_neighbors, rand, MUTATION_ODDS)
-        // {
-        //     let child = Creature::new(child_enzyme_gene, child_match_weight_gene);
-        //     if child.has_small_genome(rand) {
-        //         return Some(child);
-        //     }
-        // }
+        if let Some((child_enzyme_gene, child_match_weight_gene)) =
+            Self::merge_parent_genes(neighborhood, rand, MUTATION_ODDS)
+        {
+            let child = Creature::new(child_enzyme_gene, child_match_weight_gene);
+            return Some(child);
+        }
 
         None
     }
 
     fn merge_parent_genes(
         neighborhood: &Neighborhood<EvoSubstanceCell>,
-        num_neighbors: usize,
         rand: &mut Option<Random>,
         mutation_odds: f64,
     ) -> Option<(BitSet8Gene, FractionGene)> {
@@ -181,7 +178,7 @@ impl Creature {
         let mut parent_match_weight_genes = ArrayVec::<FractionGene, 8>::new();
         neighborhood.for_neighbor_cells(|neighbor| {
             if let Some(creature) = neighbor.creature
-                && creature.can_reproduce(num_neighbors)
+            // && creature.can_reproduce(num_neighbors)
             {
                 parent_enzyme_genes.push(creature.enzyme_gene);
                 parent_match_weight_genes.push(creature.match_weight_gene);
@@ -207,17 +204,22 @@ impl Creature {
 
 #[derive(Clone, Copy, Debug, Default)]
 struct Substance {
-    // bits[n] == 1 means will survive if own cell has n-1 neighbor creatures
-    survival_gene: BitSet8Gene,
-    // bits[n] == 1 means will reproduce if target cell has n-1 neighbor creatures
-    repro_gene: BitSet8Gene,
+    code: BitSet8,
 }
 
 impl Substance {
-    pub fn new(survival_gene: BitSet8Gene, repro_gene: BitSet8Gene) -> Self {
-        Self {
-            survival_gene,
-            repro_gene,
-        }
+    pub fn new(code: BitSet8) -> Self {
+        Self { code }
+    }
+
+    pub fn color_rgba(&self) -> [u8; 4] {
+        // todo
+        let red = 0;
+
+        let green = 0;
+
+        let blue = 0;
+
+        [red, green, blue, 0xff]
     }
 }
