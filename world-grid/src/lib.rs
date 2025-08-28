@@ -272,10 +272,29 @@ impl Loc {
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct BitSet8Gene {
-    pub bits: u8,
+    pub value: BitSet8,
 }
 
 impl BitSet8Gene {
+    pub fn new(value: BitSet8) -> Self {
+        Self { value }
+    }
+
+    pub fn merge(genes: &ArrayVec<Self, 8>, rand: &mut Option<Random>, mutation_odds: f64) -> Self {
+        let mut bit_counts = BitCountsMap::new();
+        for gene in genes {
+            bit_counts.increment(&gene.value);
+        }
+        Self::new(bit_counts.as_bit_set(rand, mutation_odds))
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct BitSet8 {
+    pub bits: u8,
+}
+
+impl BitSet8 {
     pub fn new(bits: u8) -> Self {
         Self { bits }
     }
@@ -305,14 +324,6 @@ impl BitSet8Gene {
         }
         result
     }
-
-    pub fn merge(genes: &ArrayVec<Self, 8>, rand: &mut Option<Random>, mutation_odds: f64) -> Self {
-        let mut bit_counts = BitCountsMap::new();
-        for bit_set in genes {
-            bit_counts.increment(&bit_set);
-        }
-        bit_counts.as_bit_set(rand, mutation_odds)
-    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -329,7 +340,7 @@ impl BitCountsMap {
         }
     }
 
-    fn increment(&mut self, bits: &BitSet8Gene) {
+    fn increment(&mut self, bits: &BitSet8) {
         for i in 0..8 {
             if bits.is_bit_set(i) {
                 self.ones[i] += 1;
@@ -339,8 +350,8 @@ impl BitCountsMap {
         }
     }
 
-    fn as_bit_set(&self, rand: &mut Option<Random>, mutation_odds: f64) -> BitSet8Gene {
-        let mut result = BitSet8Gene::empty();
+    fn as_bit_set(&self, rand: &mut Option<Random>, mutation_odds: f64) -> BitSet8 {
+        let mut result = BitSet8::empty();
         for i in 0..8 {
             if Self::merge_counts(self.ones[i], self.zeros[i], rand) {
                 result.set_bit(i);

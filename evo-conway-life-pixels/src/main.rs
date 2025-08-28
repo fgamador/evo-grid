@@ -5,7 +5,7 @@ use arrayvec::ArrayVec;
 use pixels_main_support::animate;
 use std::fmt::Debug;
 use std::slice::Iter;
-use world_grid::{BitSet8Gene, GridCell, Loc, Neighborhood, Random, World, WorldGrid};
+use world_grid::{BitSet8, BitSet8Gene, GridCell, Loc, Neighborhood, Random, World, WorldGrid};
 
 const TIME_STEP_FRAMES: u32 = 60;
 const CELL_PIXEL_WIDTH: u32 = 4;
@@ -126,7 +126,7 @@ impl EvoConwayGridCell {
         let mut result = String::with_capacity(100);
         result.push('[');
         for i in 0..8 {
-            if neighbor_counts.is_bit_set(i) {
+            if neighbor_counts.value.is_bit_set(i) {
                 if result.len() > 1 {
                     result.push(',');
                 }
@@ -181,18 +181,21 @@ impl Creature {
     }
 
     pub fn conway() -> Self {
-        Self::new(BitSet8Gene::new(0b110), BitSet8Gene::new(0b100))
+        Self::new(BitSet8Gene::new(BitSet8::new(0b110)), BitSet8Gene::new(BitSet8::new(0b100)))
     }
 
     pub fn color_rgba(&self) -> [u8; 4] {
-        let counts_bits_union = self.survival_gene.bits | self.repro_gene.bits;
+        let survival_bitset = self.survival_gene.value;
+        let repro_bitset = self.repro_gene.value;
+
+        let counts_bits_union = survival_bitset.bits | repro_bitset.bits;
         let red = counts_bits_union; // >> 1 + counts_bits_union >> 2;
 
-        let num_survival_bits = self.survival_gene.count_set_bits() as u8;
+        let num_survival_bits = survival_bitset.count_set_bits() as u8;
         let num_survival_bits_squeezed = (num_survival_bits & 0b1000) | (num_survival_bits << 1);
         let green = num_survival_bits_squeezed << 4;
 
-        let num_repro_bits = self.repro_gene.count_set_bits() as u8;
+        let num_repro_bits = repro_bitset.count_set_bits() as u8;
         let num_repro_bits_squeezed = (num_repro_bits & 0b1000) | (num_repro_bits << 1);
         let blue = num_repro_bits_squeezed << 4;
 
@@ -201,14 +204,14 @@ impl Creature {
 
     pub fn survives(&self, num_neighbors: usize, rand: &mut Option<Random>) -> bool {
         num_neighbors > 0
-            && self.survival_gene.is_bit_set(num_neighbors - 1)
+            && self.survival_gene.value.is_bit_set(num_neighbors - 1)
             && self.has_small_genome(rand)
     }
 
     fn has_small_genome(&self, rand: &mut Option<Random>) -> bool {
         if let Some(rand) = rand {
             let num_genome_bits =
-                self.survival_gene.count_set_bits() + self.repro_gene.count_set_bits();
+                self.survival_gene.value.count_set_bits() + self.repro_gene.value.count_set_bits();
             rand.next_bool(1.0 - num_genome_bits as f64 / 16.0)
         } else {
             true
@@ -261,6 +264,6 @@ impl Creature {
     }
 
     fn can_reproduce(&self, num_neighbors: usize) -> bool {
-        num_neighbors > 0 && self.repro_gene.is_bit_set(num_neighbors - 1)
+        num_neighbors > 0 && self.repro_gene.value.is_bit_set(num_neighbors - 1)
     }
 }
