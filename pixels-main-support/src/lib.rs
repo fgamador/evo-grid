@@ -13,7 +13,7 @@ use winit::event::{ElementState, KeyEvent, MouseButton, StartCause, WindowEvent}
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowId};
-use world_grid::{alpha_blend_with_background, GridCell, World};
+use world_grid::{alpha_blend_with_background, GridCell, GridSize, World};
 
 const BACKGROUND_COLOR: Color = Color::BLACK;
 const CURSOR_TIMEOUT_MILLIS: u64 = 1000;
@@ -171,9 +171,8 @@ impl<W: World> App<W> {
     {
         let window = Arc::new(Self::build_window(event_loop));
         let world = build_world(window.inner_size());
-        let pixels = Self::build_pixels(&window, world.grid().width(), world.grid().height());
-        let cross_fade_buffer =
-            PixelCrossFadeBuffer::new(world.grid().width(), world.grid().height());
+        let pixels = Self::build_pixels(&window, world.grid().size());
+        let cross_fade_buffer = PixelCrossFadeBuffer::new(world.grid().size());
         Self {
             world,
             window,
@@ -194,11 +193,11 @@ impl<W: World> App<W> {
         event_loop.create_window(window_attributes).unwrap()
     }
 
-    fn build_pixels(window: &Arc<Window>, width: u32, height: u32) -> Pixels<'static> {
+    fn build_pixels(window: &Arc<Window>, size: GridSize) -> Pixels<'static> {
         let window_size = window.inner_size();
         let surface_texture =
             SurfaceTexture::new(window_size.width, window_size.height, window.clone());
-        PixelsBuilder::new(width, height, surface_texture)
+        PixelsBuilder::new(size.width, size.height, surface_texture)
             .clear_color(BACKGROUND_COLOR)
             .build()
             .unwrap()
@@ -293,8 +292,8 @@ struct PixelCrossFadeBuffer {
 }
 
 impl PixelCrossFadeBuffer {
-    fn new(width: u32, height: u32) -> Self {
-        let num_pixels = (width * height) as usize;
+    fn new(size: GridSize) -> Self {
+        let num_pixels = size.area();
         Self {
             input_pixels: vec![Pixel::zeros(); num_pixels],
             background_pixels: vec![Pixel::zeros(); num_pixels],

@@ -5,8 +5,8 @@ use arrayvec::ArrayVec;
 use pixels_main_support::animate;
 use std::fmt::Debug;
 use world_grid::{
-    alpha_blend_with_background, BitSet8, BitSet8Gene, FractionGene, GridCell, Loc, Neighborhood, Random, World,
-    WorldGrid,
+    alpha_blend_with_background, BitSet8, BitSet8Gene, FractionGene, GridCell, Loc, Neighborhood, Random, GridSize,
+    World, WorldGrid,
 };
 
 const TIME_STEP_FRAMES: u32 = 60;
@@ -17,8 +17,10 @@ const MUTATION_ODDS: f64 = 0.001;
 fn main() {
     animate(TIME_STEP_FRAMES, |window_size| {
         EvoSubstanceWorld::new(
-            window_size.width / CELL_PIXEL_WIDTH,
-            window_size.height / CELL_PIXEL_WIDTH,
+            GridSize::new(
+                window_size.width / CELL_PIXEL_WIDTH,
+                window_size.height / CELL_PIXEL_WIDTH,
+            ),
             Random::new(),
         )
     });
@@ -31,17 +33,17 @@ pub struct EvoSubstanceWorld {
 }
 
 impl EvoSubstanceWorld {
-    pub fn new(grid_width: u32, grid_height: u32, rand: Random) -> Self {
-        let mut result = Self::new_empty(grid_width, grid_height, rand);
+    pub fn new(grid_size: GridSize, rand: Random) -> Self {
+        let mut result = Self::new_empty(grid_size, rand);
         result.add_random_substances();
         result.add_random_life();
         result
     }
 
-    fn new_empty(grid_width: u32, grid_height: u32, rand: Random) -> Self {
-        assert!(grid_width > 0 && grid_height > 0);
+    fn new_empty(grid_size: GridSize, rand: Random) -> Self {
+        assert!(!grid_size.is_empty());
         Self {
-            grid: WorldGrid::new(grid_width, grid_height),
+            grid: WorldGrid::new(grid_size),
             rand: Some(rand),
         }
     }
@@ -57,13 +59,13 @@ impl EvoSubstanceWorld {
 
     fn random_loc(&mut self) -> Loc {
         let rand = self.rand.as_mut().unwrap();
-        let row = rand.next_in_range(0..=self.grid.height());
-        let col = rand.next_in_range(0..=self.grid.width());
+        let row = rand.next_in_range(0..=self.grid.size().height);
+        let col = rand.next_in_range(0..=self.grid.size().width);
         Loc::new(row, col)
     }
 
     fn random_blob_radius(&mut self) -> u32 {
-        let max_radius = self.grid.width().min(self.grid.height()) / 4;
+        let max_radius = self.grid.size().width.min(self.grid.size().height) / 4;
         let rand = self.rand.as_mut().unwrap();
         rand.next_in_range(10..=max_radius)
     }
@@ -92,9 +94,9 @@ impl EvoSubstanceWorld {
 
     fn cell_box(&mut self, center: Loc, radius: u32) -> (Loc, Loc) {
         let min_row = center.row.saturating_sub(radius);
-        let max_row = (center.row + radius).min(self.grid.height() - 1);
+        let max_row = (center.row + radius).min(self.grid.size().height - 1);
         let min_col = center.col.saturating_sub(radius);
-        let max_col = (center.col + radius).min(self.grid.width() - 1);
+        let max_col = (center.col + radius).min(self.grid.size().width - 1);
         (Loc::new(min_row, min_col), Loc::new(max_row, max_col))
     }
 

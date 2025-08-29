@@ -2,7 +2,7 @@
 #![forbid(unsafe_code)]
 
 use world_grid::{
-    alpha_blend, GridCell, Loc, Neighborhood, Random, World, WorldGrid, WorldGridCells,
+    alpha_blend, GridCell, Loc, Neighborhood, Random, GridSize, World, WorldGrid, WorldGridCells,
 };
 
 #[derive(Debug)]
@@ -13,18 +13,18 @@ pub struct EvoWorld {
 }
 
 impl EvoWorld {
-    pub fn new(width: u32, height: u32, rand: Random) -> Self {
-        let mut result = Self::new_empty(width, height, rand);
+    pub fn new(grid_size: GridSize, rand: Random) -> Self {
+        let mut result = Self::new_empty(grid_size, rand);
         result.add_substances();
         result.add_creatures();
         // result.cells[(1 + height / 4, width / 2)].debug_selected = true;
         result
     }
 
-    fn new_empty(width: u32, height: u32, rand: Random) -> Self {
-        assert!(width != 0 && height != 0);
+    fn new_empty(grid_size: GridSize, rand: Random) -> Self {
+        assert!(!grid_size.is_empty());
         Self {
-            grid: WorldGrid::new(width, height),
+            grid: WorldGrid::new(grid_size),
             sources: vec![],
             rand: Some(rand),
         }
@@ -36,10 +36,10 @@ impl EvoWorld {
 
     fn add_substance_source_clusters(&mut self, count: usize, radius: u32, size: u32) {
         for _ in 0..count {
-            let row_range = radius..(self.grid().height() - radius);
+            let row_range = radius..(self.grid().size().height - radius);
             let row = self.rand.as_mut().unwrap().next_in_range(row_range);
 
-            let col_range = radius..(self.grid().width() - radius);
+            let col_range = radius..(self.grid().size().width - radius);
             let col = self.rand.as_mut().unwrap().next_in_range(col_range);
 
             self.add_substance_source_cluster(Loc::new(row, col), radius, size);
@@ -74,7 +74,10 @@ impl EvoWorld {
     }
 
     fn add_creatures(&mut self) {
-        let loc = Loc::new(20 + self.grid().height() / 4, self.grid().width() / 3);
+        let loc = Loc::new(
+            20 + self.grid().size().height / 4,
+            self.grid().size().width / 3,
+        );
         self.grid.cells[loc].creature = Some(Creature::new([0, 0xff, 0]));
     }
 }

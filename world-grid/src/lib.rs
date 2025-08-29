@@ -23,8 +23,7 @@ pub struct WorldGrid<C>
 where
     C: Clone + GridCell,
 {
-    width: u32,
-    height: u32,
+    size: GridSize,
     pub cells: WorldGridCells<C>,
     pub next_cells: WorldGridCells<C>,
 }
@@ -33,22 +32,17 @@ impl<C> WorldGrid<C>
 where
     C: Clone + Debug + GridCell,
 {
-    pub fn new(width: u32, height: u32) -> Self {
-        assert!(width > 0 && height > 0);
+    pub fn new(size: GridSize) -> Self {
+        assert!(!size.is_empty());
         Self {
-            width,
-            height,
-            cells: WorldGridCells::new(width, height),
-            next_cells: WorldGridCells::new(width, height),
+            size,
+            cells: WorldGridCells::new(size),
+            next_cells: WorldGridCells::new(size),
         }
     }
 
-    pub fn width(&self) -> u32 {
-        self.width
-    }
-
-    pub fn height(&self) -> u32 {
-        self.height
+    pub fn size(&self) -> GridSize {
+        self.size
     }
 
     pub fn num_cells(&self) -> usize {
@@ -76,14 +70,14 @@ where
     fn update_cells(&mut self, rand: &mut Option<Random>) {
         self.next_cells
             .par_rows_mut()
-            .zip(Random::multi_fork_option(rand, self.width).par_iter_mut())
+            .zip(Random::multi_fork_option(rand, self.size.width).par_iter_mut())
             .enumerate()
             .for_each(|(row, (row_next_cells, row_rand))| {
                 Self::update_row(
                     row as u32,
                     &self.cells,
                     row_next_cells,
-                    self.width,
+                    self.size.width,
                     row_rand,
                 );
             });
@@ -123,30 +117,24 @@ pub struct WorldGridCells<C>
 where
     C: Clone + GridCell,
 {
+    size: GridSize,
     cells: Vec<C>,
-    width: u32,
-    height: u32,
 }
 
 impl<C> WorldGridCells<C>
 where
     C: Clone + Copy + Default + GridCell,
 {
-    pub fn new(width: u32, height: u32) -> Self {
-        assert!(width != 0 && height != 0);
+    pub fn new(size: GridSize) -> Self {
+        assert!(!size.is_empty());
         Self {
-            cells: vec![C::default(); width as usize * height as usize],
-            width,
-            height,
+            size,
+            cells: vec![C::default(); size.area()],
         }
     }
 
-    pub fn width(&self) -> u32 {
-        self.width
-    }
-
-    pub fn height(&self) -> u32 {
-        self.height
+    pub fn size(&self) -> GridSize {
+        self.size
     }
 
     pub fn num_cells(&self) -> usize {
@@ -162,20 +150,19 @@ where
     }
 
     pub fn rows_mut(&mut self) -> ChunksExactMut<'_, C> {
-        self.cells.chunks_exact_mut(self.width as usize)
+        self.cells.chunks_exact_mut(self.size.width as usize)
     }
 
     pub fn par_rows_mut(&mut self) -> rayon::slice::ChunksExactMut<'_, C> {
-        self.cells.par_chunks_exact_mut(self.width as usize)
+        self.cells.par_chunks_exact_mut(self.size.width as usize)
     }
 
     fn cell(&self, loc: Loc) -> Option<&C> {
-        loc.grid_index(self.width, self.height)
-            .map(|index| &self.cells[index])
+        loc.grid_index(self.size).map(|index| &self.cells[index])
     }
 
     fn cell_mut(&mut self, loc: Loc) -> Option<&mut C> {
-        loc.grid_index(self.width, self.height)
+        loc.grid_index(self.size)
             .map(|index| &mut self.cells[index])
     }
 
@@ -240,8 +227,8 @@ where
     where
         F: FnMut(&C),
     {
-        for row in Self::index_range(self.center.row, self.cells.height) {
-            for col in Self::index_range(self.center.col, self.cells.width) {
+        for row in Self::index_range(self.center.row, self.cells.size.height) {
+            for col in Self::index_range(self.center.col, self.cells.size.width) {
                 let loc = Loc::new(row, col);
                 if loc != self.center {
                     f(&self.cells[loc]);
@@ -266,9 +253,9 @@ impl Loc {
         Self { row, col }
     }
 
-    pub fn grid_index(&self, width: u32, height: u32) -> Option<usize> {
-        if self.row < height && self.col < width {
-            Some((self.row * width + self.col) as usize)
+    pub fn grid_index(&self, size: GridSize) -> Option<usize> {
+        if self.row < size.height && self.col < size.width {
+            Some((self.row * size.width + self.col) as usize)
         } else {
             None
         }
@@ -278,6 +265,26 @@ impl Loc {
         let row_diff = self.row.abs_diff(loc.row);
         let col_diff = self.col.abs_diff(loc.col);
         (((row_diff * row_diff) + (col_diff * col_diff)) as f64).sqrt()
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct GridSize {
+    pub width: u32,
+    pub height: u32,
+}
+
+impl GridSize {
+    pub fn new(width: u32, height: u32) -> Self {
+        Self { width, height }
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.width == 0 || self.height == 0
+    }
+
+    pub fn area(&self) -> usize {
+        self.width as usize * self.height as usize
     }
 }
 
