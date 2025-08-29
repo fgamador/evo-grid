@@ -9,7 +9,7 @@ use world_grid::{
     World, WorldGrid,
 };
 
-const TIME_STEP_FRAMES: u32 = 60;
+const TIME_STEP_FRAMES: u32 = 20;
 const CELL_PIXEL_WIDTH: u32 = 4;
 const EMPTY_CELL_COLOR: [u8; 4] = [0, 0, 0, 0xff];
 const MUTATION_ODDS: f64 = 0.001;
@@ -149,7 +149,7 @@ impl GridCell for EvoSubstanceCell {
         rand: &mut Option<Random>,
     ) {
         if let Some(creature) = self.creature {
-            if !creature.survives(rand) {
+            if !creature.survives(&self.substance, rand) {
                 next_cell.creature = None;
             }
         } else {
@@ -182,11 +182,15 @@ impl Creature {
         [red, green, blue, 0xff]
     }
 
-    pub fn survives(&self, _rand: &mut Option<Random>) -> bool {
-        // todo
-        // num_neighbors > 0 && self.enzyme_gene.value.is_bit_set(num_neighbors - 1)
-        // && self.has_small_genome(rand)
-        true
+    pub fn survives(&self, substance: &Option<Substance>, rand: &mut Option<Random>) -> bool {
+        let rand = rand.as_mut().unwrap();
+        if let Some(substance) = substance {
+            let match_degree =
+                self.enzyme_gene.value.count_matching_bits(&substance.code) as f64 / 8.0;
+            rand.next_bool(match_degree)
+        } else {
+            rand.next_bool(0.5)
+        }
     }
 
     pub fn maybe_reproduce(

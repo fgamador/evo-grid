@@ -353,6 +353,11 @@ impl BitSet8 {
         result
     }
 
+    pub fn count_matching_bits(&self, other: &Self) -> usize {
+        let mismatched_bits = Self::new(self.bits ^ other.bits);
+        8 - mismatched_bits.count_set_bits()
+    }
+
     pub fn nybbles(&self) -> (u8, u8) {
         (self.bits & 0xf0, (self.bits & 0x0f) << 4)
     }
