@@ -352,6 +352,10 @@ impl BitSet8 {
         }
         result
     }
+
+    pub fn nybbles(&self) -> (u8, u8) {
+        (self.bits & 0xf0, (self.bits & 0x0f) << 4)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]

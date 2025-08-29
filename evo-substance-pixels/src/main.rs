@@ -5,8 +5,8 @@ use arrayvec::ArrayVec;
 use pixels_main_support::{animate, window_size_to_grid_size};
 use std::fmt::Debug;
 use world_grid::{
-    BitSet8, BitSet8Gene, FractionGene, GridCell, GridSize, Loc, Neighborhood, Random, World,
-    WorldGrid, alpha_blend_with_background,
+    alpha_blend_with_background, BitSet8, BitSet8Gene, FractionGene, GridCell, GridSize, Loc, Neighborhood, Random,
+    World, WorldGrid,
 };
 
 const TIME_STEP_FRAMES: u32 = 60;
@@ -249,13 +249,10 @@ impl Substance {
     }
 
     pub fn color_rgba(&self) -> [u8; 4] {
-        // todo
-        let red = self.code.bits;
-
-        let green = 0;
-
-        let blue = 0;
-
+        let (high, low) = self.code.nybbles();
+        let red = 0x40;
+        let green = high >> 1;
+        let blue = low >> 1;
         [red, green, blue, 0xff]
     }
 }
