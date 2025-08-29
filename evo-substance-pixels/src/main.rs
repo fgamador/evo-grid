@@ -131,14 +131,11 @@ impl EvoSubstanceCell {}
 
 impl GridCell for EvoSubstanceCell {
     fn color_rgba(&self) -> [u8; 4] {
-        let mut result = None;
-        if let Some(substance) = self.substance {
-            result = Some(substance.color_rgba());
-        }
+        let mut result = self.substance.map(|substance| substance.color_rgba());
         if let Some(creature) = self.creature {
             let mut creature_color = creature.color_rgba();
             result = result.map_or(Some(creature_color), |color| {
-                creature_color[3] = 0xa0;
+                creature_color[3] = 0x20;
                 Some(alpha_blend_with_background(creature_color, color))
             });
         }
