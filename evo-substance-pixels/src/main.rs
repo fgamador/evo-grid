@@ -5,7 +5,8 @@ use arrayvec::ArrayVec;
 use pixels_main_support::animate;
 use std::fmt::Debug;
 use world_grid::{
-    BitSet8, BitSet8Gene, FractionGene, GridCell, Loc, Neighborhood, Random, World, WorldGrid,
+    alpha_blend_with_background, BitSet8, BitSet8Gene, FractionGene, GridCell, Loc, Neighborhood, Random, World,
+    WorldGrid,
 };
 
 const TIME_STEP_FRAMES: u32 = 60;
@@ -128,11 +129,14 @@ impl EvoSubstanceCell {}
 
 impl GridCell for EvoSubstanceCell {
     fn color_rgba(&self) -> [u8; 4] {
-        if let Some(creature) = self.creature {
-            creature.color_rgba()
-        } else {
-            EMPTY_CELL_COLOR
+        let mut result = EMPTY_CELL_COLOR;
+        if let Some(substance) = self.substance {
+            result = substance.color_rgba();
         }
+        if let Some(creature) = self.creature {
+            result = alpha_blend_with_background(creature.color_rgba(), result);
+        }
+        result
     }
 
     fn update(
