@@ -97,13 +97,17 @@ impl EvoSubstanceWorld {
     }
 
     fn add_random_life(&mut self) {
-        // for cell in self.grid.cells.cells_iter_mut() {
-        //     if let Some(rand) = self.rand.as_mut()
-        //         && rand.next_bool(0.3)
-        //     {
-        //         // cell.creature = Some(Creature::conway());
-        //     }
-        // }
+        let rand = self.rand.as_mut().unwrap();
+        for cell in self.grid.cells.cells_iter_mut() {
+            if rand.next_bool(0.1) {
+                cell.creature = Some(Self::random_creature(rand));
+            }
+        }
+    }
+
+    fn random_creature(rand: &mut Random) -> Creature {
+        let enzyme = BitSet8::random(0.5, rand);
+        Creature::new(BitSet8Gene::new(enzyme), FractionGene::new(0.5))
     }
 }
 
@@ -174,13 +178,10 @@ impl Creature {
     }
 
     pub fn color_rgba(&self) -> [u8; 4] {
-        // todo
-        let red = 0;
-
-        let green = 0;
-
-        let blue = 0;
-
+        let (high, low) = self.enzyme_gene.value.nybbles();
+        let red = high;
+        let green = low;
+        let blue = 0x10;
         [red, green, blue, 0xff]
     }
 
