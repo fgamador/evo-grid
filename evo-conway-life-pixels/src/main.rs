@@ -2,7 +2,7 @@
 #![forbid(unsafe_code)]
 
 use arrayvec::ArrayVec;
-use pixels_main_support::animate;
+use pixels_main_support::{animate, window_size_to_grid_size};
 use std::fmt::Debug;
 use world_grid::{BitSet8, BitSet8Gene, GridCell, Neighborhood, Random, GridSize, World, WorldGrid};
 
@@ -15,10 +15,7 @@ const CONWAY_STEPS: usize = 10;
 fn main() {
     animate(TIME_STEP_FRAMES, |window_size| {
         EvoConwayWorld::new(
-            GridSize::new(
-                window_size.width / CELL_PIXEL_WIDTH,
-                window_size.height / CELL_PIXEL_WIDTH,
-            ),
+            window_size_to_grid_size(window_size, CELL_PIXEL_WIDTH),
             Random::new(),
         )
     });
@@ -32,16 +29,16 @@ pub struct EvoConwayWorld {
 }
 
 impl EvoConwayWorld {
-    pub fn new(size: GridSize, rand: Random) -> Self {
-        let mut result = Self::new_empty(size, rand);
+    pub fn new(grid_size: GridSize, rand: Random) -> Self {
+        let mut result = Self::new_empty(grid_size, rand);
         result.add_random_life();
         result
     }
 
-    fn new_empty(size: GridSize, rand: Random) -> Self {
-        assert!(!size.is_empty());
+    fn new_empty(grid_size: GridSize, rand: Random) -> Self {
+        assert!(!grid_size.is_empty());
         Self {
-            grid: WorldGrid::new(size),
+            grid: WorldGrid::new(grid_size),
             rand: Some(rand),
             conway_steps: CONWAY_STEPS,
         }

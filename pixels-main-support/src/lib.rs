@@ -378,3 +378,10 @@ impl Pixel {
             && self.bytes[2] <= MAX_DARK_VALUE
     }
 }
+
+pub fn window_size_to_grid_size(window_size: PhysicalSize<u32>, cell_pixel_width: u32) -> GridSize {
+    GridSize::new(
+        window_size.width / cell_pixel_width,
+        window_size.height / cell_pixel_width,
+    )
+}

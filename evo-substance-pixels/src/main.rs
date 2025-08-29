@@ -2,10 +2,10 @@
 #![forbid(unsafe_code)]
 
 use arrayvec::ArrayVec;
-use pixels_main_support::animate;
+use pixels_main_support::{animate, window_size_to_grid_size};
 use std::fmt::Debug;
 use world_grid::{
-    alpha_blend_with_background, BitSet8, BitSet8Gene, FractionGene, GridCell, Loc, Neighborhood, Random, GridSize,
+    alpha_blend_with_background, BitSet8, BitSet8Gene, FractionGene, GridCell, GridSize, Loc, Neighborhood, Random,
     World, WorldGrid,
 };
 
@@ -17,10 +17,7 @@ const MUTATION_ODDS: f64 = 0.001;
 fn main() {
     animate(TIME_STEP_FRAMES, |window_size| {
         EvoSubstanceWorld::new(
-            GridSize::new(
-                window_size.width / CELL_PIXEL_WIDTH,
-                window_size.height / CELL_PIXEL_WIDTH,
-            ),
+            window_size_to_grid_size(window_size, CELL_PIXEL_WIDTH),
             Random::new(),
         )
     });

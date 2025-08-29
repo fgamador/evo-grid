@@ -1,7 +1,7 @@
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 
-use pixels_main_support::animate;
+use pixels_main_support::{animate, window_size_to_grid_size};
 use world_grid::{GridCell, Neighborhood, Random, GridSize, World, WorldGrid};
 
 const TIME_STEP_FRAMES: u32 = 4;
@@ -10,10 +10,7 @@ const CELL_PIXEL_WIDTH: u32 = 4;
 fn main() {
     animate(TIME_STEP_FRAMES, |window_size| {
         ConwayWorld::new(
-            GridSize::new(
-                window_size.width / CELL_PIXEL_WIDTH,
-                window_size.height / CELL_PIXEL_WIDTH,
-            ),
+            window_size_to_grid_size(window_size, CELL_PIXEL_WIDTH),
             Random::new(),
         )
     });
@@ -26,8 +23,8 @@ pub struct ConwayWorld {
 }
 
 impl ConwayWorld {
-    pub fn new(size: GridSize, rand: Random) -> Self {
-        let mut result = Self::new_empty(size, rand);
+    pub fn new(grid_size: GridSize, rand: Random) -> Self {
+        let mut result = Self::new_empty(grid_size, rand);
         result.add_random_life();
         for _ in 0..5 {
             result.update();
@@ -35,10 +32,10 @@ impl ConwayWorld {
         result
     }
 
-    fn new_empty(size: GridSize, rand: Random) -> Self {
-        assert!(!size.is_empty());
+    fn new_empty(grid_size: GridSize, rand: Random) -> Self {
+        assert!(!grid_size.is_empty());
         Self {
-            grid: WorldGrid::new(size),
+            grid: WorldGrid::new(grid_size),
             rand: Some(rand),
         }
     }
