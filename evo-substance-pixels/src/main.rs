@@ -5,8 +5,8 @@ use arrayvec::ArrayVec;
 use pixels_main_support::{animate, window_size_to_grid_size};
 use std::fmt::Debug;
 use world_grid::{
-    alpha_blend_with_background, BitSet8, BitSet8Gene, FractionGene, GridCell, GridSize, Loc, Neighborhood, Random,
-    World, WorldGrid,
+    BitSet8, BitSet8Gene, FractionGene, GridCell, GridSize, Loc, Neighborhood, Random, World,
+    WorldGrid, alpha_blend_with_background,
 };
 
 const TIME_STEP_FRAMES: u32 = 60;
@@ -38,7 +38,6 @@ impl EvoSubstanceWorld {
     }
 
     fn new_empty(grid_size: GridSize, rand: Random) -> Self {
-        assert!(!grid_size.is_empty());
         Self {
             grid: WorldGrid::new(grid_size),
             rand: Some(rand),
@@ -128,14 +127,18 @@ impl EvoSubstanceCell {}
 
 impl GridCell for EvoSubstanceCell {
     fn color_rgba(&self) -> [u8; 4] {
-        let mut result = EMPTY_CELL_COLOR;
+        let mut result = None;
         if let Some(substance) = self.substance {
-            result = substance.color_rgba();
+            result = Some(substance.color_rgba());
         }
         if let Some(creature) = self.creature {
-            result = alpha_blend_with_background(creature.color_rgba(), result);
+            let mut creature_color = creature.color_rgba();
+            result = result.map_or(Some(creature_color), |color| {
+                creature_color[3] = 0xa0;
+                Some(alpha_blend_with_background(creature_color, color))
+            });
         }
-        result
+        result.unwrap_or(EMPTY_CELL_COLOR)
     }
 
     fn update(
