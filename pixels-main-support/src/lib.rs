@@ -224,7 +224,7 @@ impl<W: World> App<W> {
     fn on_frame(&mut self) {
         if self.time_step_frame < self.time_step_frames {
             if self.paused || self.fast_forward {
-                self.end_fade();
+                self.end_cross_fade();
             } else {
                 self.on_cross_fade_frame();
             }
@@ -237,7 +237,7 @@ impl<W: World> App<W> {
         }
     }
 
-    fn end_fade(&mut self) {
+    fn end_cross_fade(&mut self) {
         self.time_step_frame = self.time_step_frames;
         self.cross_fade_buffer.straight_to_output();
         self.window.request_redraw();
