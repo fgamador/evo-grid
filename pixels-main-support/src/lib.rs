@@ -13,7 +13,7 @@ use winit::event::{ElementState, KeyEvent, MouseButton, StartCause, WindowEvent}
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Cursor, CursorIcon, Fullscreen, Window, WindowId};
-use world_grid::{alpha_blend_with_background, GridCell, GridSize, World};
+use world_grid::{GridCell, GridSize, World, alpha_blend_with_background};
 
 const BACKGROUND_COLOR: Color = Color::BLACK;
 const CURSOR_TIMEOUT_MILLIS: u64 = 1000;
@@ -223,10 +223,11 @@ impl<W: World> App<W> {
 
     fn on_frame(&mut self) {
         if self.time_step_frame < self.time_step_frames {
-            if self.paused {
-                self.time_step_frame = self.time_step_frames;
+            if self.paused || self.fast_forward {
+                self.end_fade();
+            } else {
+                self.on_cross_fade_frame();
             }
-            self.on_cross_fade_frame();
         } else if !self.paused {
             if self.fast_forward {
                 self.update_and_draw();
@@ -234,6 +235,12 @@ impl<W: World> App<W> {
                 self.on_time_step_frame();
             }
         }
+    }
+
+    fn end_fade(&mut self) {
+        self.time_step_frame = self.time_step_frames;
+        self.cross_fade_buffer.straight_to_output();
+        self.window.request_redraw();
     }
 
     fn on_cross_fade_frame(&mut self) {
