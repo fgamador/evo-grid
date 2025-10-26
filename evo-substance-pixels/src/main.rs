@@ -5,8 +5,8 @@ use arrayvec::ArrayVec;
 use pixels_main_support::{animate, window_size_to_grid_size};
 use std::fmt::Debug;
 use world_grid::{
-    alpha_blend_with_background, BitSet8, BitSet8Gene, FractionGene, GridCell, GridSize, Loc, Neighborhood, Random,
-    World, WorldGrid,
+    BitSet8, BitSet8Gene, FractionGene, GridCell, GridSize, Loc, Neighborhood, Random, World,
+    WorldGrid, alpha_blend_with_background,
 };
 
 const TIME_STEP_FRAMES: u32 = 20;
@@ -135,7 +135,7 @@ impl GridCell for EvoSubstanceCell {
         if let Some(creature) = self.creature {
             let mut creature_color = creature.color_rgba();
             result = result.map_or(Some(creature_color), |color| {
-                creature_color[3] = 0x20;
+                creature_color[3] = 0x80;
                 Some(alpha_blend_with_background(creature_color, color))
             });
         }
@@ -189,7 +189,7 @@ impl Creature {
                 self.enzyme_gene.value.count_matching_bits(&substance.code) as f64 / 8.0;
             rand.next_bool(match_degree)
         } else {
-            rand.next_bool(0.5)
+            rand.next_bool(0.8)
         }
     }
 
@@ -200,11 +200,10 @@ impl Creature {
         if let Some((child_enzyme_gene, child_match_weight_gene)) =
             Self::merge_parent_genes(neighborhood, rand, MUTATION_ODDS)
         {
-            let child = Creature::new(child_enzyme_gene, child_match_weight_gene);
-            return Some(child);
+            Some(Creature::new(child_enzyme_gene, child_match_weight_gene))
+        } else {
+            None
         }
-
-        None
     }
 
     fn merge_parent_genes(
