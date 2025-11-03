@@ -503,6 +503,12 @@ impl Random {
     }
 }
 
+impl Default for Random {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 // From https://en.wikipedia.org/wiki/Alpha_compositing
 pub fn alpha_blend(above: [u8; 4], below: [u8; 4]) -> [u8; 4] {
     if above[3] == 0xff {
