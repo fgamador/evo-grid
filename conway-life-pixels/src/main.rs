@@ -95,7 +95,7 @@ impl GridCell for ConwayGridCell {
     ) {
         let neighbors = Self::num_live_neighbors(neighborhood);
         next_cell.alive = if self.alive {
-            2 <= neighbors && neighbors <= 3
+            (2..=3).contains(&neighbors)
         } else {
             neighbors == 3
         };
