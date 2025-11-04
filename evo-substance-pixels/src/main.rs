@@ -151,7 +151,7 @@ impl GridCell for EvoSubstanceCell {
                 next_cell.creature = None;
             }
         } else {
-            next_cell.creature = Creature::maybe_reproduce(neighborhood, rand);
+            next_cell.creature = Creature::maybe_reproduce(neighborhood, &self.substance, rand);
         };
     }
 
@@ -190,10 +190,11 @@ impl Creature {
 
     pub fn maybe_reproduce(
         neighborhood: &Neighborhood<EvoSubstanceCell>,
+        center_substance: &Option<Substance>,
         rand: &mut Option<Random>,
     ) -> Option<Creature> {
         if let Some((child_enzyme_gene, child_match_weight_gene)) =
-            Self::merge_parent_genes(neighborhood, rand, MUTATION_ODDS)
+            Self::merge_parent_genes(neighborhood, center_substance, rand, MUTATION_ODDS)
         {
             Some(Creature::new(child_enzyme_gene, child_match_weight_gene))
         } else {
@@ -203,6 +204,7 @@ impl Creature {
 
     fn merge_parent_genes(
         neighborhood: &Neighborhood<EvoSubstanceCell>,
+        center_substance: &Option<Substance>,
         rand: &mut Option<Random>,
         mutation_odds: f64,
     ) -> Option<(BitSet8Gene, FractionGene)> {
@@ -210,7 +212,7 @@ impl Creature {
         let mut parent_match_weight_genes = ArrayVec::<FractionGene, 8>::new();
         neighborhood.for_neighbor_cells(|neighbor| {
             if let Some(creature) = neighbor.creature
-                && creature.can_reproduce()
+                && creature.can_reproduce(&neighbor.substance, center_substance, rand)
             {
                 parent_enzyme_genes.push(creature.enzyme_gene);
                 parent_match_weight_genes.push(creature.match_weight_gene);
@@ -227,10 +229,19 @@ impl Creature {
         }
     }
 
-    fn can_reproduce(&self) -> bool {
+    fn can_reproduce(
+        &self,
+        _own_cell_substance: &Option<Substance>,
+        _target_cell_substance: &Option<Substance>,
+        _rand: &mut Option<Random>,
+    ) -> bool {
         // todo
         false
-        // num_neighbors > 0 && self.match_weight_gene.value.is_bit_set(num_neighbors - 1)
+        // let rand = rand.as_mut().unwrap();
+        // let odds = substance.map_or(0.8, |substance| {
+        //     substance.match_degree(self.enzyme_gene.value)
+        // });
+        // rand.next_bool(odds)
     }
 }
 
