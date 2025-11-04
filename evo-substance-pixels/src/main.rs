@@ -127,8 +127,6 @@ pub struct EvoSubstanceCell {
     substance: Option<Substance>,
 }
 
-impl EvoSubstanceCell {}
-
 impl GridCell for EvoSubstanceCell {
     fn color_rgba(&self) -> [u8; 4] {
         let mut result = self.substance.map(|substance| substance.color_rgba());
@@ -184,13 +182,10 @@ impl Creature {
 
     pub fn survives(&self, substance: &Option<Substance>, rand: &mut Option<Random>) -> bool {
         let rand = rand.as_mut().unwrap();
-        if let Some(substance) = substance {
-            let match_degree =
-                self.enzyme_gene.value.count_matching_bits(&substance.code) as f64 / 8.0;
-            rand.next_bool(match_degree)
-        } else {
-            rand.next_bool(0.8)
-        }
+        let odds = substance.map_or(0.8, |substance| {
+            substance.match_degree(self.enzyme_gene.value)
+        });
+        rand.next_bool(odds)
     }
 
     pub fn maybe_reproduce(
@@ -255,5 +250,9 @@ impl Substance {
         let green = high >> 1;
         let blue = low >> 1;
         [red, green, blue, 0xff]
+    }
+
+    fn match_degree(&self, bits: BitSet8) -> f64 {
+        self.code.count_matching_bits(bits) as f64 / 8.0
     }
 }

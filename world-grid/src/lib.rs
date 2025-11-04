@@ -353,7 +353,7 @@ impl BitSet8 {
         result
     }
 
-    pub fn count_matching_bits(&self, other: &Self) -> usize {
+    pub fn count_matching_bits(&self, other: Self) -> usize {
         let mismatched_bits = Self::new(self.bits ^ other.bits);
         8 - mismatched_bits.count_set_bits()
     }
