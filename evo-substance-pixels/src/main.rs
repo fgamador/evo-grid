@@ -181,9 +181,7 @@ impl Creature {
     }
 
     pub fn survives(&self, substance: &Option<Substance>, rand: &mut Random) -> bool {
-        let odds = substance.map_or(0.8, |substance| {
-            substance.match_degree(self.enzyme_gene.value)
-        });
+        let odds = substance.map_or(0.8, |substance| substance.matchness(self.enzyme_gene.value));
         rand.next_bool(odds)
     }
 
@@ -234,16 +232,15 @@ impl Creature {
 
     fn chooses_to_reproduce(
         &self,
-        _own_cell_substance: &Option<Substance>,
-        _target_cell_substance: &Option<Substance>,
-        _rand: &mut Random,
+        own_cell_substance: &Option<Substance>,
+        target_cell_substance: &Option<Substance>,
+        rand: &mut Random,
     ) -> bool {
-        // todo
-        false
-        // let odds = substance.map_or(0.8, |substance| {
-        //     substance.match_degree(self.enzyme_gene.value)
-        // });
-        // rand.next_bool(odds)
+        let odds = own_cell_substance
+            .map_or(0.5, |substance| substance.matchness(self.enzyme_gene.value))
+            * target_cell_substance
+                .map_or(0.5, |substance| substance.matchness(self.enzyme_gene.value));
+        rand.next_bool(odds)
     }
 }
 
@@ -265,7 +262,7 @@ impl Substance {
         [red, green, blue, 0xff]
     }
 
-    fn match_degree(&self, bits: BitSet8) -> f64 {
+    fn matchness(&self, bits: BitSet8) -> f64 {
         self.code.count_matching_bits(bits) as f64 / 8.0
     }
 }
