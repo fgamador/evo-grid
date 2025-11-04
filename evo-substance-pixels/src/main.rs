@@ -147,7 +147,7 @@ impl GridCell for EvoSubstanceCell {
         rand: &mut Option<Random>,
     ) {
         if let Some(creature) = self.creature {
-            if !creature.survives(&self.substance, rand) {
+            if !creature.survives(&self.substance, rand.as_mut().unwrap()) {
                 next_cell.creature = None;
             }
         } else {
@@ -180,8 +180,7 @@ impl Creature {
         [red, green, blue, 0xff]
     }
 
-    pub fn survives(&self, substance: &Option<Substance>, rand: &mut Option<Random>) -> bool {
-        let rand = rand.as_mut().unwrap();
+    pub fn survives(&self, substance: &Option<Substance>, rand: &mut Random) -> bool {
         let odds = substance.map_or(0.8, |substance| {
             substance.match_degree(self.enzyme_gene.value)
         });
@@ -212,7 +211,11 @@ impl Creature {
         let mut parent_match_weight_genes = ArrayVec::<FractionGene, 8>::new();
         neighborhood.for_neighbor_cells(|neighbor| {
             if let Some(creature) = neighbor.creature
-                && creature.can_reproduce(&neighbor.substance, center_substance, rand)
+                && creature.chooses_to_reproduce(
+                    &neighbor.substance,
+                    center_substance,
+                    rand.as_mut().unwrap(),
+                )
             {
                 parent_enzyme_genes.push(creature.enzyme_gene);
                 parent_match_weight_genes.push(creature.match_weight_gene);
@@ -229,15 +232,14 @@ impl Creature {
         }
     }
 
-    fn can_reproduce(
+    fn chooses_to_reproduce(
         &self,
         _own_cell_substance: &Option<Substance>,
         _target_cell_substance: &Option<Substance>,
-        _rand: &mut Option<Random>,
+        _rand: &mut Random,
     ) -> bool {
         // todo
         false
-        // let rand = rand.as_mut().unwrap();
         // let odds = substance.map_or(0.8, |substance| {
         //     substance.match_degree(self.enzyme_gene.value)
         // });
