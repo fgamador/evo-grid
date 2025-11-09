@@ -49,7 +49,7 @@ impl EvoSubstanceWorld {
             let center = self.random_loc();
             let radius = self.random_blob_radius();
             let substance = self.random_substance();
-            self.add_random_substance_blob(center, radius, substance);
+            self.add_substance_blob(center, radius, substance);
         }
     }
 
@@ -71,7 +71,7 @@ impl EvoSubstanceWorld {
         Substance::new(BitSet8::random(0.5, rand))
     }
 
-    fn add_random_substance_blob(&mut self, center: Loc, radius: u32, substance: Substance) {
+    fn add_substance_blob(&mut self, center: Loc, radius: u32, substance: Substance) {
         let (upper_left, lower_right) = self.cell_box(center, radius);
         let rand = self.rand.as_mut().unwrap();
         for row in upper_left.row..=lower_right.row {
