@@ -2,7 +2,7 @@
 #![forbid(unsafe_code)]
 
 use world_grid::{
-    alpha_blend, GridCell, Loc, Neighborhood, Random, GridSize, World, WorldGrid, WorldGridCells,
+    GridCell, GridSize, Loc, Neighborhood, Random, World, WorldGrid, WorldGridCells, alpha_blend,
 };
 
 #[derive(Debug)]
@@ -236,12 +236,11 @@ impl Substance {
     fn sum_donations(neighborhood: &Neighborhood<EvoGridCell>, color: [u8; 3]) -> f32 {
         let mut donated: f32 = 0.0;
         neighborhood.for_neighbor_cells(|neighbor| {
-            if let Some(neighbor_substance) = neighbor.substance {
-                if neighbor_substance.amount >= Self::MIN_AMOUNT
-                    && neighbor_substance.color == color
-                {
-                    donated += (Self::DONATE_FRACTION / 8.0) * neighbor_substance.amount;
-                }
+            if let Some(neighbor_substance) = neighbor.substance
+                && neighbor_substance.amount >= Self::MIN_AMOUNT
+                && neighbor_substance.color == color
+            {
+                donated += (Self::DONATE_FRACTION / 8.0) * neighbor_substance.amount;
             }
         });
         donated

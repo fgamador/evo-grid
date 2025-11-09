@@ -2,10 +2,10 @@
 #![forbid(unsafe_code)]
 
 use arrayvec::ArrayVec;
+use rand::SeedableRng;
 use rand::distr::uniform::{SampleRange, SampleUniform};
 use rand::prelude::*;
 use rand::rngs::SmallRng;
-use rand::SeedableRng;
 use rand_distr::{Distribution, Normal};
 use rayon::prelude::*;
 use std::fmt::Debug;

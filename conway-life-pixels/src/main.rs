@@ -2,7 +2,7 @@
 #![forbid(unsafe_code)]
 
 use pixels_main_support::{animate, window_size_to_grid_size};
-use world_grid::{GridCell, Neighborhood, Random, GridSize, World, WorldGrid};
+use world_grid::{GridCell, GridSize, Neighborhood, Random, World, WorldGrid};
 
 const TIME_STEP_FRAMES: u32 = 4;
 const CELL_PIXEL_WIDTH: u32 = 4;
