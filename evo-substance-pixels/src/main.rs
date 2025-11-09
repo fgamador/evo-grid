@@ -72,7 +72,7 @@ impl EvoSubstanceWorld {
     }
 
     fn add_substance_blob(&mut self, center: Loc, radius: u32, substance: Substance) {
-        let (upper_left, lower_right) = self.cell_box(center, radius);
+        let (upper_left, lower_right) = self.cell_circle_bounding_box(center, radius);
         let rand = self.rand.as_mut().unwrap();
         for row in upper_left.row..=lower_right.row {
             for col in upper_left.col..=lower_right.col {
@@ -88,7 +88,7 @@ impl EvoSubstanceWorld {
         }
     }
 
-    fn cell_box(&mut self, center: Loc, radius: u32) -> (Loc, Loc) {
+    fn cell_circle_bounding_box(&mut self, center: Loc, radius: u32) -> (Loc, Loc) {
         let min_row = center.row.saturating_sub(radius);
         let max_row = (center.row + radius).min(self.grid.size().height - 1);
         let min_col = center.col.saturating_sub(radius);
