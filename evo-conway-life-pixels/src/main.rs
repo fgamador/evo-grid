@@ -4,7 +4,9 @@
 use arrayvec::ArrayVec;
 use pixels_main_support::{animate, window_size_to_grid_size};
 use std::fmt::Debug;
-use world_grid::{BitSet8, BitSet8Gene, GridCell, Neighborhood, Random, GridSize, World, WorldGrid};
+use world_grid::{
+    BitSet8, BitSet8Gene, GridCell, GridSize, Neighborhood, Random, World, WorldGrid,
+};
 
 const TIME_STEP_FRAMES: u32 = 60;
 const CELL_PIXEL_WIDTH: u32 = 4;
@@ -68,6 +70,11 @@ impl World for EvoConwayWorld {
             self.grid.update(&mut self.rand, |_grid| {});
         };
     }
+
+    fn reset(&mut self) {
+        self.grid.clear();
+        self.add_random_life();
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -109,6 +116,10 @@ impl GridCell for EvoConwayGridCell {
         } else {
             EMPTY_CELL_COLOR
         }
+    }
+
+    fn clear(&mut self) {
+        self.creature = None;
     }
 
     fn update(

@@ -16,6 +16,7 @@ use std::slice::{ChunksExactMut, Iter, IterMut};
 pub trait World {
     fn grid(&self) -> &WorldGrid<impl GridCell>;
     fn update(&mut self);
+    fn reset(&mut self);
 }
 
 #[derive(Clone, Debug)]
@@ -39,6 +40,11 @@ where
             cells: WorldGridCells::new(size),
             next_cells: WorldGridCells::new(size),
         }
+    }
+
+    pub fn clear(&mut self) {
+        self.cells.clear();
+        self.next_cells.clear();
     }
 
     pub fn size(&self) -> GridSize {
@@ -133,6 +139,10 @@ where
         }
     }
 
+    pub fn clear(&mut self) {
+        self.cells.iter_mut().for_each(|cell| cell.clear());
+    }
+
     pub fn size(&self) -> GridSize {
         self.size
     }
@@ -198,6 +208,7 @@ where
     Self: Copy + Debug + Default + Send + Sync,
 {
     fn color_rgba(&self) -> [u8; 4];
+    fn clear(&mut self);
     fn update(
         &self,
         neighborhood: &Neighborhood<Self>,

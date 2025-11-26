@@ -15,9 +15,7 @@ pub struct EvoWorld {
 impl EvoWorld {
     pub fn new(grid_size: GridSize, rand: Random) -> Self {
         let mut result = Self::new_empty(grid_size, rand);
-        result.add_substances();
-        result.add_creatures();
-        // result.cells[(1 + height / 4, width / 2)].debug_selected = true;
+        result.add_contents();
         result
     }
 
@@ -28,6 +26,12 @@ impl EvoWorld {
             sources: vec![],
             rand: Some(rand),
         }
+    }
+
+    fn add_contents(&mut self) {
+        self.add_substances();
+        self.add_creatures();
+        // self.cells[(1 + height / 4, width / 2)].debug_selected = true;
     }
 
     fn add_substances(&mut self) {
@@ -94,6 +98,11 @@ impl World for EvoWorld {
                 .for_each(|source| source.update_cells(&mut grid.next_cells));
         });
     }
+
+    fn reset(&mut self) {
+        self.grid.clear();
+        self.add_contents();
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -154,6 +163,11 @@ impl EvoGridCell {
 impl GridCell for EvoGridCell {
     fn color_rgba(&self) -> [u8; 4] {
         alpha_blend(self.render_substance(), self.render_creature())
+    }
+
+    fn clear(&mut self) {
+        self.creature = None;
+        self.substance = None;
     }
 
     fn update(

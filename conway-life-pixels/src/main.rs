@@ -59,6 +59,11 @@ impl World for ConwayWorld {
     fn update(&mut self) {
         self.grid.update(&mut self.rand, |_grid| {});
     }
+
+    fn reset(&mut self) {
+        self.grid.clear();
+        self.add_random_life();
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -85,6 +90,10 @@ impl GridCell for ConwayGridCell {
         } else {
             [0x00, 0x00, 0x40, 0xff]
         }
+    }
+
+    fn clear(&mut self) {
+        self.alive = false;
     }
 
     fn update(

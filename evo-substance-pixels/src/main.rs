@@ -34,11 +34,7 @@ pub struct EvoSubstanceWorld {
 impl EvoSubstanceWorld {
     pub fn new(grid_size: GridSize, rand: Random) -> Self {
         let mut result = Self::new_empty(grid_size, rand);
-        result.add_random_creature(Loc::new(150, 250));
-        let substance = result.random_substance();
-        result.add_substance_blob(Loc::new(150, 200), 50, substance);
-        // result._add_random_substances();
-        // result._add_random_life();
+        result.add_contents();
         result
     }
 
@@ -47,6 +43,14 @@ impl EvoSubstanceWorld {
             grid: WorldGrid::new(grid_size),
             rand: Some(rand),
         }
+    }
+
+    fn add_contents(&mut self) {
+        self.add_random_creature(Loc::new(150, 250));
+        let substance = self.random_substance();
+        self.add_substance_blob(Loc::new(150, 200), 50, substance);
+        // self._add_random_substances();
+        // self._add_random_life();
     }
 
     fn _add_random_substances(&mut self) {
@@ -130,6 +134,11 @@ impl World for EvoSubstanceWorld {
     fn update(&mut self) {
         self.grid.update(&mut self.rand, |_grid| {});
     }
+
+    fn reset(&mut self) {
+        self.grid.clear();
+        self.add_contents();
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -149,6 +158,11 @@ impl GridCell for EvoSubstanceCell {
             });
         }
         result.unwrap_or(EMPTY_CELL_COLOR)
+    }
+
+    fn clear(&mut self) {
+        self.creature = None;
+        self.substance = None;
     }
 
     fn update(

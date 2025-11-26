@@ -131,6 +131,9 @@ where
                 KeyCode::KeyP => {
                     self.app().toggle_paused();
                 }
+                KeyCode::KeyR => {
+                    self.app().restart();
+                }
                 KeyCode::KeyS => {
                     self.app().on_single_step();
                 }
@@ -259,6 +262,11 @@ impl<W: World> App<W> {
 
     fn on_single_step(&mut self) {
         self.paused = true;
+        self.update_and_draw();
+    }
+
+    fn restart(&mut self) {
+        self.world.reset();
         self.update_and_draw();
     }
 
