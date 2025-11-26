@@ -12,8 +12,8 @@ use world_grid::{
 const TIME_STEP_FRAMES: u32 = 20;
 const CELL_PIXEL_WIDTH: u32 = 4;
 const EMPTY_CELL_COLOR: [u8; 4] = [0, 0, 0, 0xff];
-const DEFAULT_SURVIVAL_ODDS: f64 = 0.8;
-const DEFAULT_REPRO_ODDS: f64 = 0.5;
+const DEFAULT_SURVIVAL_ODDS: f64 = 0.5;
+const DEFAULT_REPRO_ODDS: f64 = 0.3;
 const MUTATION_ODDS: f64 = 0.001;
 
 fn main() {
@@ -35,8 +35,10 @@ impl EvoSubstanceWorld {
     pub fn new(grid_size: GridSize, rand: Random) -> Self {
         let mut result = Self::new_empty(grid_size, rand);
         result.add_random_creature(Loc::new(150, 250));
-        // result.add_random_substances();
-        // result.add_random_life();
+        let substance = result.random_substance();
+        result.add_substance_blob(Loc::new(150, 200), 50, substance);
+        // result._add_random_substances();
+        // result._add_random_life();
         result
     }
 
@@ -47,23 +49,23 @@ impl EvoSubstanceWorld {
         }
     }
 
-    fn add_random_substances(&mut self) {
+    fn _add_random_substances(&mut self) {
         for _ in 0..=5 {
-            let center = self.random_loc();
-            let radius = self.random_blob_radius();
+            let center = self._random_loc();
+            let radius = self._random_blob_radius();
             let substance = self.random_substance();
             self.add_substance_blob(center, radius, substance);
         }
     }
 
-    fn random_loc(&mut self) -> Loc {
+    fn _random_loc(&mut self) -> Loc {
         let rand = self.rand.as_mut().unwrap();
         let row = rand.next_in_range(0..=self.grid.size().height);
         let col = rand.next_in_range(0..=self.grid.size().width);
         Loc::new(row, col)
     }
 
-    fn random_blob_radius(&mut self) -> u32 {
+    fn _random_blob_radius(&mut self) -> u32 {
         let max_radius = self.grid.size().width.min(self.grid.size().height) / 4;
         let rand = self.rand.as_mut().unwrap();
         rand.next_in_range(10..=max_radius)
@@ -99,7 +101,7 @@ impl EvoSubstanceWorld {
         (Loc::new(min_row, min_col), Loc::new(max_row, max_col))
     }
 
-    fn add_random_life(&mut self) {
+    fn _add_random_life(&mut self) {
         let rand = self.rand.as_mut().unwrap();
         for cell in self.grid.cells.cells_iter_mut() {
             if rand.next_bool(0.1) {
