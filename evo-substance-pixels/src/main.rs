@@ -12,6 +12,8 @@ use world_grid::{
 const TIME_STEP_FRAMES: u32 = 20;
 const CELL_PIXEL_WIDTH: u32 = 4;
 const EMPTY_CELL_COLOR: [u8; 4] = [0, 0, 0, 0xff];
+const DEFAULT_SURVIVAL_ODDS: f64 = 0.8;
+const DEFAULT_REPRO_ODDS: f64 = 0.5;
 const MUTATION_ODDS: f64 = 0.001;
 
 fn main() {
@@ -32,8 +34,9 @@ pub struct EvoSubstanceWorld {
 impl EvoSubstanceWorld {
     pub fn new(grid_size: GridSize, rand: Random) -> Self {
         let mut result = Self::new_empty(grid_size, rand);
-        result.add_random_substances();
-        result.add_random_life();
+        result.add_random_creature(Loc::new(150, 250));
+        // result.add_random_substances();
+        // result.add_random_life();
         result
     }
 
@@ -103,6 +106,12 @@ impl EvoSubstanceWorld {
                 cell.creature = Some(Self::random_creature(rand));
             }
         }
+    }
+
+    fn add_random_creature(&mut self, loc: Loc) {
+        let rand = self.rand.as_mut().unwrap();
+        let cell = self.grid.cell_mut(loc).unwrap();
+        cell.creature = Some(Self::random_creature(rand));
     }
 
     fn random_creature(rand: &mut Random) -> Creature {
@@ -181,7 +190,7 @@ impl Creature {
     }
 
     pub fn survives(&self, substance: &Option<Substance>, rand: &mut Random) -> bool {
-        let odds = substance.map_or(0.8, |substance| substance.matchness(self.enzyme_gene.value));
+        let odds = self.enzyme_match_odds(substance, DEFAULT_SURVIVAL_ODDS);
         rand.next_bool(odds)
     }
 
@@ -236,11 +245,15 @@ impl Creature {
         target_cell_substance: &Option<Substance>,
         rand: &mut Random,
     ) -> bool {
-        let odds = own_cell_substance
-            .map_or(0.5, |substance| substance.matchness(self.enzyme_gene.value))
-            * target_cell_substance
-                .map_or(0.5, |substance| substance.matchness(self.enzyme_gene.value));
+        let odds = self.enzyme_match_odds(own_cell_substance, DEFAULT_REPRO_ODDS)
+            * self.enzyme_match_odds(target_cell_substance, DEFAULT_REPRO_ODDS);
         rand.next_bool(odds)
+    }
+
+    fn enzyme_match_odds(&self, substance: &Option<Substance>, default_odds: f64) -> f64 {
+        substance.map_or(default_odds, |substance| {
+            substance.match_fraction(self.enzyme_gene.value)
+        })
     }
 }
 
@@ -262,7 +275,7 @@ impl Substance {
         [red, green, blue, 0xff]
     }
 
-    fn matchness(&self, bits: BitSet8) -> f64 {
+    fn match_fraction(&self, bits: BitSet8) -> f64 {
         self.code.count_matching_bits(bits) as f64 / 8.0
     }
 }
