@@ -26,9 +26,7 @@ impl ConwayWorld {
     pub fn new(grid_size: GridSize, rand: Random) -> Self {
         let mut result = Self::new_empty(grid_size, rand);
         result.add_random_life();
-        for _ in 0..5 {
-            result.update();
-        }
+        result.skip_initial_steps();
         result
     }
 
@@ -49,6 +47,12 @@ impl ConwayWorld {
             }
         }
     }
+
+    fn skip_initial_steps(&mut self) {
+        for _ in 0..5 {
+            self.update();
+        }
+    }
 }
 
 impl World for ConwayWorld {
@@ -63,6 +67,7 @@ impl World for ConwayWorld {
     fn reset(&mut self) {
         self.grid.clear();
         self.add_random_life();
+        self.skip_initial_steps();
     }
 }
 

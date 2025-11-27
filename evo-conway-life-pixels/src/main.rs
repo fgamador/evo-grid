@@ -8,11 +8,11 @@ use world_grid::{
     BitSet8, BitSet8Gene, GridCell, GridSize, Neighborhood, Random, World, WorldGrid,
 };
 
-const TIME_STEP_FRAMES: u32 = 60;
+const TIME_STEP_FRAMES: u32 = 20;
 const CELL_PIXEL_WIDTH: u32 = 4;
 const EMPTY_CELL_COLOR: [u8; 4] = [0, 0, 0, 0xff];
 const MUTATION_ODDS: f64 = 0.001;
-const CONWAY_STEPS: usize = 10;
+const CONWAY_STEPS: usize = 30;
 
 fn main() {
     animate(TIME_STEP_FRAMES, |window_size| {

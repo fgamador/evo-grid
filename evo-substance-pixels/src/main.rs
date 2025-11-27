@@ -46,9 +46,12 @@ impl EvoSubstanceWorld {
     }
 
     fn add_contents(&mut self) {
-        self.add_random_creature(Loc::new(150, 250));
-        let substance = self.random_substance();
-        self.add_substance_blob(Loc::new(150, 200), 50, substance);
+        self.add_random_creature(Loc::new(150, 300));
+        self.add_random_substance(Loc::new(150, 250), 50);
+        self.add_random_substance(Loc::new(80, 150), 30);
+        self.add_random_substance(Loc::new(80, 350), 30);
+        self.add_random_substance(Loc::new(220, 150), 30);
+        self.add_random_substance(Loc::new(220, 350), 30);
         // self._add_random_substances();
         // self._add_random_life();
     }
@@ -57,8 +60,7 @@ impl EvoSubstanceWorld {
         for _ in 0..=5 {
             let center = self._random_loc();
             let radius = self._random_blob_radius();
-            let substance = self.random_substance();
-            self.add_substance_blob(center, radius, substance);
+            self.add_random_substance(center, radius);
         }
     }
 
@@ -73,6 +75,11 @@ impl EvoSubstanceWorld {
         let max_radius = self.grid.size().width.min(self.grid.size().height) / 4;
         let rand = self.rand.as_mut().unwrap();
         rand.next_in_range(10..=max_radius)
+    }
+
+    fn add_random_substance(&mut self, center: Loc, radius: u32) {
+        let substance = self.random_substance();
+        self.add_substance_blob(center, radius, substance);
     }
 
     fn random_substance(&mut self) -> Substance {
