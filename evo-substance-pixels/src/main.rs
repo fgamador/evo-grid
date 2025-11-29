@@ -9,7 +9,7 @@ use world_grid::{
     WorldGrid, alpha_blend_with_background,
 };
 
-const TIME_STEP_FRAMES: u32 = 20;
+const TIME_STEP_FRAMES: u32 = 2;
 const CELL_PIXEL_WIDTH: u32 = 4;
 const EMPTY_CELL_COLOR: [u8; 4] = [0, 0, 0, 0xff];
 const DEFAULT_SURVIVAL_ODDS: f64 = 0.5;
